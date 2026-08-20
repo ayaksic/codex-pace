@@ -61,9 +61,9 @@ public struct PaceSnapshot: Codable, Equatable, Sendable {
         weeklyWindow.usageRemainingPercent - weeklyWindow.timeRemainingPercent(at: date)
     }
 
-    public func paceState(at date: Date = Date(), tolerance: Double = 1) -> PaceState {
+    public func paceState(at date: Date = Date(), tolerance: Double = 0) -> PaceState {
         let delta = paceDeltaPercentagePoints(at: date)
-        if abs(delta) < tolerance {
+        if delta == 0 || (tolerance > 0 && abs(delta) < tolerance) {
             return .onPace
         }
         return delta > 0 ? .ahead : .behind

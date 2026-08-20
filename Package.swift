@@ -36,5 +36,9 @@ let package = Package(
             name: "CodexPaceCoreTests",
             dependencies: ["CodexPaceCore"]
         ),
+        .testTarget(
+            name: "CodexPaceUITests",
+            dependencies: ["CodexPaceCore", "CodexPaceUI"]
+        ),
     ]
 )

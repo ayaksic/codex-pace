@@ -16,7 +16,26 @@ import Testing
     #expect(abs(window.timeRemainingPercent(at: now) - 82.5) < 0.001)
     #expect(abs(window.timeRemainingHours(at: now) - 138.6) < 0.001)
     #expect(abs(snapshot.paceDeltaPercentagePoints(at: now) + 0.5) < 0.001)
-    #expect(snapshot.paceState(at: now) == .onPace)
+    #expect(snapshot.paceState(at: now) == .behind)
+}
+
+@Test func classifiesPaceByDeltaSignAndExactEquality() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+    func snapshot(usedPercent: Double) -> PaceSnapshot {
+        PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: usedPercent,
+                durationMinutes: 100,
+                resetsAt: now.addingTimeInterval(50 * 60)
+            ),
+            fetchedAt: now
+        )
+    }
+
+    #expect(snapshot(usedPercent: 51.6).paceState(at: now) == .behind)
+    #expect(snapshot(usedPercent: 50).paceState(at: now) == .onPace)
+    #expect(snapshot(usedPercent: 48.4).paceState(at: now) == .ahead)
 }
 
 @Test func clampsTimeAtWindowBoundaries() {

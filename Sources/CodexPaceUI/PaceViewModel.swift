@@ -42,13 +42,16 @@ public final class PaceViewModel: ObservableObject {
     public var paceText: String {
         guard let snapshot else { return "Unavailable" }
         let delta = snapshot.paceDeltaPercentagePoints(at: now)
+        let formattedDelta = delta.formatted(
+            .number.sign(strategy: .always()).precision(.fractionLength(1))
+        )
         switch snapshot.paceState(at: now) {
         case .ahead:
-            return "Ahead \(abs(delta).formatted(.number.precision(.fractionLength(1)))) pt"
+            return "Speed up (\(formattedDelta)%)"
         case .onPace:
-            return "On pace · \(delta.formatted(.number.sign(strategy: .always()).precision(.fractionLength(1)))) pt"
+            return "On pace"
         case .behind:
-            return "Behind \(abs(delta).formatted(.number.precision(.fractionLength(1)))) pt"
+            return "Slow down (\(formattedDelta)%)"
         }
     }
 
