@@ -228,15 +228,19 @@ private struct ComparisonBar: View {
                         .frame(width: proxy.size.width * min(100, max(0, value)) / 100)
                     Canvas { context, size in
                         let segmentWidth = size.width / Double(Self.segmentCount)
+                        let fillWidth = size.width * min(100, max(0, value)) / 100
 
                         for tick in 1..<Self.segmentCount {
                             let x = segmentWidth * Double(tick)
+                            let tickColor: Color = x <= fillWidth
+                                ? .black.opacity(0.32)
+                                : .white.opacity(0.85)
                             var path = Path()
                             path.move(to: CGPoint(x: x, y: 0))
                             path.addLine(to: CGPoint(x: x, y: size.height))
                             context.stroke(
                                 path,
-                                with: .color(.primary.opacity(0.16)),
+                                with: .color(tickColor),
                                 lineWidth: 0.5
                             )
                         }
