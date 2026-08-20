@@ -97,15 +97,19 @@ public struct PaceMenuView: View {
                 Text("Resets")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(hours(snapshot.weeklyWindow.timeRemainingHours(at: model.now)))
+                Text(resetDetails(snapshot.weeklyWindow))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             HStack {
                 Text(model.errorMessage == nil ? "Updated" : "Last good reading")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(snapshot.fetchedAt.formatted(.dateTime.hour().minute().second()))
+                Text(updatedDetails(snapshot.fetchedAt))
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
             }
             if let error = model.errorMessage {
                 Text(error)
@@ -155,6 +159,24 @@ public struct PaceMenuView: View {
 
     private func hours(_ value: Double) -> String {
         value.formatted(.number.precision(.fractionLength(1))) + " hr"
+    }
+
+    private func resetDetails(_ window: UsageWindow) -> String {
+        let timestamp = window.resetsAt.formatted(
+            .dateTime.month(.abbreviated).day().hour().minute()
+        )
+        return "\(timestamp) · \(hours(window.timeRemainingHours(at: model.now)))"
+    }
+
+    private func updatedDetails(_ fetchedAt: Date) -> String {
+        let timestamp = fetchedAt.formatted(.dateTime.hour().minute().second())
+        let elapsedSeconds = Int(max(0, model.now.timeIntervalSince(fetchedAt)).rounded(.down))
+        let minutes = elapsedSeconds / 60
+        let seconds = elapsedSeconds % 60
+        let elapsed = minutes == 0
+            ? "\(seconds)s ago"
+            : "\(minutes)m \(String(format: "%02d", seconds))s ago"
+        return "\(timestamp) · \(elapsed)"
     }
 
     private func statusColor(_ state: PaceState) -> Color {

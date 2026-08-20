@@ -21,7 +21,7 @@ public final class PaceViewModel: ObservableObject {
 
         guard pollingEnabled else { return }
         Task { await refresh() }
-        timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.now = Date()
