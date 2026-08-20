@@ -233,7 +233,7 @@ private struct ComparisonBar: View {
                         for tick in 1..<Self.segmentCount {
                             let x = segmentWidth * Double(tick)
                             let tickColor: Color = x <= fillWidth
-                                ? .black.opacity(0.32)
+                                ? .black
                                 : .white.opacity(0.85)
                             var path = Path()
                             path.move(to: CGPoint(x: x, y: 0))
