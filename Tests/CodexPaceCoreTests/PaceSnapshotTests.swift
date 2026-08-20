@@ -14,6 +14,7 @@ import Testing
 
     #expect(window.usageRemainingPercent == 82)
     #expect(abs(window.timeRemainingPercent(at: now) - 82.5) < 0.001)
+    #expect(abs(window.timeRemainingHours(at: now) - 138.6) < 0.001)
     #expect(abs(snapshot.paceDeltaPercentagePoints(at: now) + 0.5) < 0.001)
     #expect(snapshot.paceState(at: now) == .onPace)
 }
@@ -24,6 +25,7 @@ import Testing
 
     #expect(window.timeRemainingPercent(at: reset.addingTimeInterval(-700_000)) == 100)
     #expect(window.timeRemainingPercent(at: reset.addingTimeInterval(1)) == 0)
+    #expect(window.timeRemainingHours(at: reset.addingTimeInterval(1)) == 0)
 }
 
 @Test func selectsWeeklyWindowWhenFiveHourWindowIsPrimary() throws {

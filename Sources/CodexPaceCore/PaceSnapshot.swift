@@ -21,6 +21,10 @@ public struct UsageWindow: Codable, Equatable, Sendable {
         return Self.clamp(resetsAt.timeIntervalSince(date) / durationSeconds * 100)
     }
 
+    public func timeRemainingHours(at date: Date = Date()) -> Double {
+        max(0, resetsAt.timeIntervalSince(date) / 3_600)
+    }
+
     private static func clamp(_ value: Double) -> Double {
         min(100, max(0, value))
     }

@@ -78,7 +78,7 @@ public struct PaceMenuView: View {
             ComparisonBar(
                 label: "Time",
                 value: snapshot.weeklyWindow.timeRemainingPercent(at: model.now),
-                color: .secondary
+                color: .purple
             )
         }
     }
@@ -97,16 +97,15 @@ public struct PaceMenuView: View {
                 Text("Resets")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(snapshot.weeklyWindow.resetsAt.formatted(
-                    .dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute()
-                ))
-                .monospacedDigit()
+                Text(hours(snapshot.weeklyWindow.timeRemainingHours(at: model.now)))
+                    .monospacedDigit()
             }
             HStack {
                 Text(model.errorMessage == nil ? "Updated" : "Last good reading")
                     .foregroundStyle(.secondary)
                 Spacer()
-                Text(snapshot.fetchedAt.formatted(.relative(presentation: .named)))
+                Text(snapshot.fetchedAt.formatted(.dateTime.hour().minute().second()))
+                    .monospacedDigit()
             }
             if let error = model.errorMessage {
                 Text(error)
@@ -152,6 +151,10 @@ public struct PaceMenuView: View {
 
     private func percent(_ value: Double, places: Int) -> String {
         value.formatted(.number.precision(.fractionLength(places))) + "%"
+    }
+
+    private func hours(_ value: Double) -> String {
+        value.formatted(.number.precision(.fractionLength(1))) + " hr"
     }
 
     private func statusColor(_ state: PaceState) -> Color {
