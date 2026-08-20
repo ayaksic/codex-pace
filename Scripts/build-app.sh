@@ -27,7 +27,9 @@ mkdir -p "$macos_dir" "$resources_dir" "$cli_dir"
 cp "$build_dir/CodexPaceMenu" "$macos_dir/Codex Pace"
 cp "$build_dir/codex-pace" "$cli_dir/codex-pace"
 cp "$project_dir/Resources/Info.plist" "$contents_dir/Info.plist"
-swift "$project_dir/Scripts/generate-icon.swift" "$resources_dir/AppIcon.icns"
+swift "$project_dir/Scripts/generate-icon.swift" \
+    "$project_dir/Resources/AppIconSource.png" \
+    "$resources_dir/AppIcon.icns"
 
 codesign --force --sign - "$app_bundle"
 codesign --verify --deep --strict "$app_bundle"

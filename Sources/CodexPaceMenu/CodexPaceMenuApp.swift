@@ -9,7 +9,8 @@ struct CodexPaceMenuApp: App {
         MenuBarExtra {
             PaceMenuView(model: model)
         } label: {
-            Label(model.menuBarText, systemImage: "gauge.with.dots.needle.67percent")
+            Text(model.menuBarText)
+                .monospacedDigit()
         }
         .menuBarExtraStyle(.window)
     }

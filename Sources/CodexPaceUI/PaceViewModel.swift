@@ -34,8 +34,16 @@ public final class PaceViewModel: ObservableObject {
 
     public var menuBarText: String {
         guard let snapshot else { return "—/—" }
-        let usage = Int(snapshot.weeklyWindow.usageRemainingPercent.rounded())
-        let time = Int(snapshot.weeklyWindow.timeRemainingPercent(at: now).rounded())
+        let usage = snapshot.weeklyWindow.usageRemainingPercent.formatted(
+            .number
+                .precision(.fractionLength(0))
+                .locale(Locale(identifier: "en_US_POSIX"))
+        )
+        let time = snapshot.weeklyWindow.timeRemainingPercent(at: now).formatted(
+            .number
+                .precision(.fractionLength(1))
+                .locale(Locale(identifier: "en_US_POSIX"))
+        )
         return "\(usage)/\(time)"
     }
 

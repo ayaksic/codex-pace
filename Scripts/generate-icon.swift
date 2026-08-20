@@ -3,17 +3,23 @@
 import AppKit
 import Foundation
 
-guard CommandLine.arguments.count == 2 else {
-    FileHandle.standardError.write(Data("Usage: generate-icon.swift OUTPUT.icns\n".utf8))
+guard CommandLine.arguments.count == 3 else {
+    FileHandle.standardError.write(Data("Usage: generate-icon.swift SOURCE.png OUTPUT.icns\n".utf8))
     exit(2)
 }
 
-let outputURL = URL(fileURLWithPath: CommandLine.arguments[1])
+let sourceURL = URL(fileURLWithPath: CommandLine.arguments[1])
+let outputURL = URL(fileURLWithPath: CommandLine.arguments[2])
 let fileManager = FileManager.default
 let iconsetURL = fileManager.temporaryDirectory
     .appendingPathComponent("CodexPace-\(UUID().uuidString).iconset", isDirectory: true)
 try fileManager.createDirectory(at: iconsetURL, withIntermediateDirectories: true)
 defer { try? fileManager.removeItem(at: iconsetURL) }
+
+guard let sourceImage = NSImage(contentsOf: sourceURL) else {
+    FileHandle.standardError.write(Data("Could not read icon source: \(sourceURL.path)\n".utf8))
+    exit(1)
+}
 
 func render(size: Int, filename: String) throws {
     guard let bitmap = NSBitmapImageRep(
@@ -37,38 +43,13 @@ func render(size: Int, filename: String) throws {
     defer { NSGraphicsContext.restoreGraphicsState() }
 
     let canvas = NSRect(x: 0, y: 0, width: size, height: size)
-    NSColor.clear.setFill()
-    canvas.fill()
-
-    let inset = CGFloat(size) * 0.055
-    let tile = canvas.insetBy(dx: inset, dy: inset)
-    let background = NSBezierPath(
-        roundedRect: tile,
-        xRadius: CGFloat(size) * 0.22,
-        yRadius: CGFloat(size) * 0.22
+    context.imageInterpolation = .high
+    sourceImage.draw(
+        in: canvas,
+        from: NSRect(origin: .zero, size: sourceImage.size),
+        operation: .copy,
+        fraction: 1
     )
-    NSColor(calibratedRed: 0.09, green: 0.40, blue: 0.93, alpha: 1).setFill()
-    background.fill()
-
-    let pointSize = CGFloat(size) * 0.54
-    let baseConfiguration = NSImage.SymbolConfiguration(pointSize: pointSize, weight: .semibold)
-    let colorConfiguration = NSImage.SymbolConfiguration(hierarchicalColor: .white)
-    let configuration = baseConfiguration.applying(colorConfiguration)
-    let symbol = (
-        NSImage(systemSymbolName: "gauge.with.dots.needle.67percent", accessibilityDescription: nil)
-            ?? NSImage(systemSymbolName: "gauge.medium", accessibilityDescription: nil)
-    )?.withSymbolConfiguration(configuration)
-
-    if let symbol {
-        let side = CGFloat(size) * 0.64
-        let rect = NSRect(
-            x: (CGFloat(size) - side) / 2,
-            y: (CGFloat(size) - side) / 2,
-            width: side,
-            height: side
-        )
-        symbol.draw(in: rect)
-    }
 
     guard let png = bitmap.representation(using: .png, properties: [:]) else {
         throw CocoaError(.fileWriteUnknown)
