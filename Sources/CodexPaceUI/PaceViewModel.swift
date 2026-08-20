@@ -3,6 +3,8 @@ import Foundation
 
 @MainActor
 public final class PaceViewModel: ObservableObject {
+    private static let autoRefreshInterval: TimeInterval = 2 * 60
+
     @Published public private(set) var snapshot: PaceSnapshot?
     @Published public private(set) var now: Date
     @Published public private(set) var errorMessage: String?
@@ -25,7 +27,7 @@ public final class PaceViewModel: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.now = Date()
-                if self.lastAttempt.map({ self.now.timeIntervalSince($0) >= 300 }) ?? true {
+                if self.lastAttempt.map({ self.now.timeIntervalSince($0) >= Self.autoRefreshInterval }) ?? true {
                     await self.refresh()
                 }
             }
@@ -33,7 +35,7 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var menuBarText: String {
-        guard let snapshot else { return "—/—" }
+        guard let snapshot else { return "— / —" }
         let usage = snapshot.weeklyWindow.usageRemainingPercent.formatted(
             .number
                 .precision(.fractionLength(0))
@@ -44,7 +46,7 @@ public final class PaceViewModel: ObservableObject {
                 .precision(.fractionLength(1))
                 .locale(Locale(identifier: "en_US_POSIX"))
         )
-        return "\(usage)/\(time)"
+        return "\(usage) / \(time)"
     }
 
     public var paceText: String {

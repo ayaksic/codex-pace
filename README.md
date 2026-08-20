@@ -7,7 +7,7 @@ with the percentage of the current seven-day window remaining.
 > affiliated with, endorsed by, or sponsored by OpenAI. Codex and OpenAI are
 > trademarks of their respective owners.
 
-The menu bar shows `usage / time`, so `82/83.0` means 82% of usage and roughly
+The menu bar shows `usage / time`, so `82 / 83.0` means 82% of usage and roughly
 83% of the week remain. Click it for the exact values, pace, and reset time.
 
 ## Build
