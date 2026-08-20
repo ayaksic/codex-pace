@@ -207,7 +207,7 @@ private struct MetricView: View {
 }
 
 private struct ComparisonBar: View {
-    private static let segmentCount = 100
+    private static let segmentCount = 20
 
     let label: String
     let value: Double
