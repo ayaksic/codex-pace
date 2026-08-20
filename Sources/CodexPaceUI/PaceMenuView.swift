@@ -207,6 +207,8 @@ private struct MetricView: View {
 }
 
 private struct ComparisonBar: View {
+    private static let segmentCount = 100
+
     let label: String
     let value: Double
     let color: Color
@@ -224,6 +226,22 @@ private struct ComparisonBar: View {
                     Capsule()
                         .fill(color)
                         .frame(width: proxy.size.width * min(100, max(0, value)) / 100)
+                    Canvas { context, size in
+                        let segmentWidth = size.width / Double(Self.segmentCount)
+
+                        for tick in 1..<Self.segmentCount {
+                            let x = segmentWidth * Double(tick)
+                            var path = Path()
+                            path.move(to: CGPoint(x: x, y: 0))
+                            path.addLine(to: CGPoint(x: x, y: size.height))
+                            context.stroke(
+                                path,
+                                with: .color(.primary.opacity(0.16)),
+                                lineWidth: 0.5
+                            )
+                        }
+                    }
+                    .mask(Capsule())
                 }
             }
             .frame(height: 5)

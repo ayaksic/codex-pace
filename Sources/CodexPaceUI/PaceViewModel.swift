@@ -46,7 +46,7 @@ public final class PaceViewModel: ObservableObject {
                 .precision(.fractionLength(1))
                 .locale(Locale(identifier: "en_US_POSIX"))
         )
-        return "\(usage) / \(time)"
+        return "\(usage)% / \(time)%"
     }
 
     public var paceText: String {

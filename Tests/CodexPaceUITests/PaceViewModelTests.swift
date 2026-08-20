@@ -17,7 +17,7 @@ import CodexPaceCore
 
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
-    #expect(model.menuBarText == "76 / 80.1")
+    #expect(model.menuBarText == "76% / 80.1%")
 }
 
 @MainActor
