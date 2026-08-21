@@ -29,6 +29,7 @@ struct CodexPaceMenuApp: App {
 
 private struct MenuBarContent: View {
     @ObservedObject var model: PaceViewModel
+    @Environment(\.dismiss) private var dismiss
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -37,6 +38,7 @@ private struct MenuBarContent: View {
                 id: PaceWindow.id,
                 value: PaceWindow.mainValue
             )
+            dismiss()
             DispatchQueue.main.async {
                 NSApplication.shared.activate(ignoringOtherApps: true)
             }

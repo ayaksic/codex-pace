@@ -105,7 +105,7 @@ public struct PaceMenuView: View {
             }
             if let catchUp = model.zeroUsageCatchUpText {
                 HStack {
-                    Text("No-usage catch-up")
+                    Text("Stoppage time")
                         .foregroundStyle(.secondary)
                     Spacer()
                     Text(catchUp)
