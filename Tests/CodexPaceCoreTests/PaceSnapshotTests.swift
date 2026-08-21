@@ -17,6 +17,34 @@ import Testing
     #expect(abs(window.timeRemainingHours(at: now) - 138.6) < 0.001)
     #expect(abs(snapshot.paceDeltaPercentagePoints(at: now) + 0.5) < 0.001)
     #expect(snapshot.paceState(at: now) == .behind)
+    #expect(abs(window.zeroUsageCatchUpTimeInterval(at: now)! - 50.4 * 60) < 0.001)
+}
+
+@Test func calculatesZeroUsageCatchUpOnlyWhileBehind() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let durationMinutes = 10_080
+
+    func window(usedPercent: Double) -> UsageWindow {
+        UsageWindow(
+            usedPercent: usedPercent,
+            durationMinutes: durationMinutes,
+            resetsAt: now.addingTimeInterval(0.801 * Double(durationMinutes) * 60)
+        )
+    }
+
+    let behind = window(usedPercent: 24)
+    let expectedMinutes = (80.1 - 76) / 100 * Double(durationMinutes)
+
+    #expect(abs(behind.zeroUsageCatchUpTimeInterval(at: now)! / 60 - expectedMinutes) < 0.001)
+    #expect(window(usedPercent: 19.8).zeroUsageCatchUpTimeInterval(at: now) == nil)
+    #expect(
+        UsageWindow(
+            usedPercent: 50,
+            durationMinutes: 100,
+            resetsAt: now.addingTimeInterval(50 * 60)
+        ).zeroUsageCatchUpTimeInterval(at: now) == nil
+    )
+    #expect(window(usedPercent: 18).zeroUsageCatchUpTimeInterval(at: now) == nil)
 }
 
 @Test func classifiesPaceByDeltaSignAndExactEquality() {

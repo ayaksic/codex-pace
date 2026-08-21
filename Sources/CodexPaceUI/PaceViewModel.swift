@@ -65,6 +65,26 @@ public final class PaceViewModel: ObservableObject {
         }
     }
 
+    public var zeroUsageCatchUpText: String? {
+        guard
+            let interval = snapshot?.weeklyWindow.zeroUsageCatchUpTimeInterval(at: now)
+        else {
+            return nil
+        }
+
+        let totalMinutes = max(1, Int((interval / 60).rounded()))
+        let hours = totalMinutes / 60
+        let minutes = totalMinutes % 60
+
+        if hours == 0 {
+            return "\(minutes)m"
+        }
+        if minutes == 0 {
+            return "\(hours)h"
+        }
+        return "\(hours)h \(minutes)m"
+    }
+
     public func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true

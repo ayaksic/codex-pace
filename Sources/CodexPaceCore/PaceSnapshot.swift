@@ -25,6 +25,14 @@ public struct UsageWindow: Codable, Equatable, Sendable {
         max(0, resetsAt.timeIntervalSince(date) / 3_600)
     }
 
+    /// Time required for the remaining-window percentage to fall to the
+    /// remaining-usage percentage, assuming usage does not increase.
+    public func zeroUsageCatchUpTimeInterval(at date: Date = Date()) -> TimeInterval? {
+        let deficitPercentagePoints = timeRemainingPercent(at: date) - usageRemainingPercent
+        guard deficitPercentagePoints > 0 else { return nil }
+        return deficitPercentagePoints / 100 * Double(durationMinutes) * 60
+    }
+
     private static func clamp(_ value: Double) -> Double {
         min(100, max(0, value))
     }

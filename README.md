@@ -7,8 +7,14 @@ with the percentage of the current seven-day window remaining.
 > affiliated with, endorsed by, or sponsored by OpenAI. Codex and OpenAI are
 > trademarks of their respective owners.
 
-The menu bar shows `usage / time`, so `82 / 83.0` means 82% of usage and roughly
+The menu bar shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly
 83% of the week remain. Click it for the exact values, pace, and reset time.
+When the pace says **Slow down**, the **No-usage catch-up** row shows how long it
+would take to get back on pace if weekly usage stopped increasing.
+
+Use the window button in the popover header to open or focus one independent
+Codex Pace window. The window shares the menu bar's live reading and refresh
+cycle. Closing it leaves the menu bar app running.
 
 ## Build
 

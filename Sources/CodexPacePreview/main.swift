@@ -8,6 +8,9 @@ import SwiftUI
 struct CodexPacePreview {
     static func main() throws {
         let outputPath = CommandLine.arguments.dropFirst().first ?? "/tmp/codex-pace-preview.png"
+        let colorScheme: ColorScheme = CommandLine.arguments.dropFirst().contains("--dark")
+            ? .dark
+            : .light
         let now = Date(timeIntervalSince1970: 1_787_181_600)
         let snapshot = PaceSnapshot(
             weeklyWindow: UsageWindow(
@@ -20,9 +23,9 @@ struct CodexPacePreview {
             creditBalance: "0"
         )
         let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
-        let content = PaceMenuView(model: model)
+        let content = PaceMenuView(model: model, popOutAction: {})
             .background(Color(nsColor: .windowBackgroundColor))
-            .environment(\.colorScheme, .light)
+            .environment(\.colorScheme, colorScheme)
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2
 

@@ -4,9 +4,11 @@ import SwiftUI
 
 public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
+    private let popOutAction: (() -> Void)?
 
-    public init(model: PaceViewModel) {
+    public init(model: PaceViewModel, popOutAction: (() -> Void)? = nil) {
         self.model = model
+        self.popOutAction = popOutAction
     }
 
     public var body: some View {
@@ -48,6 +50,14 @@ public struct PaceMenuView: View {
             .buttonStyle(.plain)
             .help("Refresh usage")
             .disabled(model.isRefreshing)
+            if let popOutAction {
+                Button(action: popOutAction) {
+                    Image(systemName: "macwindow")
+                }
+                .buttonStyle(.plain)
+                .help("Open Codex Pace window")
+                .accessibilityLabel("Open Codex Pace window")
+            }
         }
     }
 
@@ -92,6 +102,16 @@ public struct PaceMenuView: View {
                 Text(model.paceText)
                     .fontWeight(.medium)
                     .foregroundStyle(statusColor(snapshot.paceState(at: model.now)))
+            }
+            if let catchUp = model.zeroUsageCatchUpText {
+                HStack {
+                    Text("No-usage catch-up")
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    Text(catchUp)
+                        .fontWeight(.medium)
+                        .monospacedDigit()
+                }
             }
             HStack {
                 Text("Resets")

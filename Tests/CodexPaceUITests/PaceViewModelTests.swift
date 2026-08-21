@@ -40,3 +40,27 @@ import CodexPaceCore
     #expect(paceText(usedPercent: 50) == "On pace")
     #expect(paceText(usedPercent: 48.4) == "Speed up (+1.6%)")
 }
+
+@MainActor
+@Test func formatsZeroUsageCatchUpOnlyWhileSlowingDown() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let durationMinutes = 10_080
+
+    func catchUpText(usedPercent: Double, at date: Date = now) -> String? {
+        let snapshot = PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: usedPercent,
+                durationMinutes: durationMinutes,
+                resetsAt: now.addingTimeInterval(0.801 * Double(durationMinutes) * 60)
+            ),
+            fetchedAt: now
+        )
+        return PaceViewModel(snapshot: snapshot, now: date, pollingEnabled: false)
+            .zeroUsageCatchUpText
+    }
+
+    #expect(catchUpText(usedPercent: 24) == "6h 53m")
+    #expect(catchUpText(usedPercent: 24, at: now.addingTimeInterval(60)) == "6h 52m")
+    #expect(catchUpText(usedPercent: 19.8) == nil)
+    #expect(catchUpText(usedPercent: 18) == nil)
+}
