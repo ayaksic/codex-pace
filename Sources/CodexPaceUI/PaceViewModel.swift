@@ -98,13 +98,19 @@ public final class PaceViewModel: ObservableObject {
         formatDurationWithSeconds(max(0, date.timeIntervalSince(now)))
     }
 
-    public func elapsedText(since date: Date) -> String {
-        let elapsedSeconds = Int(max(0, now.timeIntervalSince(date)).rounded(.down))
-        let minutes = elapsedSeconds / 60
-        let seconds = elapsedSeconds % 60
-        return minutes == 0
-            ? "\(seconds)s ago"
-            : "\(minutes)m \(seconds)s ago"
+    public var nextRefreshAt: Date? {
+        (lastAttempt ?? snapshot?.fetchedAt)?.addingTimeInterval(Self.autoRefreshInterval)
+    }
+
+    public var nextRefreshCountdownText: String? {
+        guard let nextRefreshAt else { return nil }
+        let totalSeconds = max(
+            0,
+            Int(nextRefreshAt.timeIntervalSince(now).rounded(.up))
+        )
+        let minutes = totalSeconds / 60
+        let seconds = totalSeconds % 60
+        return String(format: "%02dm %02ds", minutes, seconds)
     }
 
     private func formatDuration(_ interval: TimeInterval) -> String {
@@ -126,11 +132,7 @@ public final class PaceViewModel: ObservableObject {
         let hours = totalSeconds / 3_600
         let minutes = totalSeconds % 3_600 / 60
         let seconds = totalSeconds % 60
-
-        if hours == 0 {
-            return "\(minutes)m \(seconds)s"
-        }
-        return "\(hours)h \(minutes)m \(seconds)s"
+        return String(format: "%03dh %02dm %02ds", hours, minutes, seconds)
     }
 
     public func refresh() async {

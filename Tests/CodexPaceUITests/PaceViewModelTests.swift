@@ -82,11 +82,11 @@ import CodexPaceCore
     }
 
     #expect(model(usedPercent: 24).paceTimeLabel == "Stoppage time")
-    #expect(model(usedPercent: 24).paceTimeText == "6h 43m 12s")
+    #expect(model(usedPercent: 24).paceTimeText == "006h 43m 12s")
     #expect(model(usedPercent: 20).paceTimeLabel == nil)
     #expect(model(usedPercent: 20).paceTimeText == nil)
     #expect(model(usedPercent: 16).paceTimeLabel == "Time ahead")
-    #expect(model(usedPercent: 16).paceTimeText == "6h 43m 12s")
+    #expect(model(usedPercent: 16).paceTimeText == "006h 43m 12s")
 }
 
 @MainActor
@@ -96,17 +96,28 @@ import CodexPaceCore
 
     #expect(
         model.remainingTimeText(until: now.addingTimeInterval(66 * 3_600 + 39 * 60 + 14))
-            == "66h 39m 14s"
+            == "066h 39m 14s"
     )
-    #expect(model.remainingTimeText(until: now.addingTimeInterval(39 * 60 + 14)) == "39m 14s")
-    #expect(model.remainingTimeText(until: now.addingTimeInterval(-1)) == "0m 0s")
+    #expect(
+        model.remainingTimeText(until: now.addingTimeInterval(39 * 60 + 14))
+            == "000h 39m 14s"
+    )
+    #expect(model.remainingTimeText(until: now.addingTimeInterval(-1)) == "000h 00m 00s")
 }
 
 @MainActor
-@Test func formatsElapsedSecondsWithoutLeadingZero() {
+@Test func calculatesNextRefreshTimestampAndCountdown() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
-    let model = PaceViewModel(now: now, pollingEnabled: false)
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: now.addingTimeInterval(66 * 3_600)
+        ),
+        fetchedAt: now
+    )
+    let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
-    #expect(model.elapsedText(since: now.addingTimeInterval(-5)) == "5s ago")
-    #expect(model.elapsedText(since: now.addingTimeInterval(-65)) == "1m 5s ago")
+    #expect(model.nextRefreshAt == now.addingTimeInterval(2 * 60))
+    #expect(model.nextRefreshCountdownText == "02m 00s")
 }

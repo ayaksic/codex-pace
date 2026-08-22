@@ -27,7 +27,7 @@ public struct PaceMenuView: View {
             footer
         }
         .padding(12)
-        .frame(width: 292)
+        .frame(width: 412)
     }
 
     private var header: some View {
@@ -105,35 +105,36 @@ public struct PaceMenuView: View {
                     .fontWeight(.medium)
                     .foregroundStyle(statusColor(snapshot.paceState(at: model.now)))
             }
-            if let paceTimeLabel = model.paceTimeLabel,
-               let paceTime = model.paceTimeText {
-                HStack {
-                    Text(paceTimeLabel)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Text(paceTime)
-                        .fontWeight(.medium)
-                        .monospacedDigit()
+            Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
+                if let paceTimeLabel = model.paceTimeLabel,
+                   let paceTime = model.paceTimeText {
+                    GridRow {
+                        detailLabel(paceTimeLabel)
+                        timestampDatePlaceholder
+                        timestampTimePlaceholder
+                        timestampSeparatorPlaceholder
+                        detailValue(paceTime)
+                    }
+                }
+                GridRow {
+                    detailLabel("Resets")
+                    timestampDate(snapshot.weeklyWindow.resetsAt)
+                    timestampTime(snapshot.weeklyWindow.resetsAt)
+                    timestampSeparator
+                    detailValue(model.remainingTimeText(until: snapshot.weeklyWindow.resetsAt))
+                }
+                if let nextRefreshAt = model.nextRefreshAt,
+                   let countdown = model.nextRefreshCountdownText {
+                    GridRow {
+                        detailLabel("Next update")
+                        timestampDate(nextRefreshAt)
+                        timestampTime(nextRefreshAt)
+                        timestampSeparator
+                        nextUpdateValue(countdown)
+                    }
                 }
             }
-            HStack {
-                Text("Resets")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(resetDetails(snapshot.weeklyWindow))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            HStack {
-                Text(model.errorMessage == nil ? "Updated" : "Last good reading")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(updatedDetails(snapshot.fetchedAt))
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
             if let error = model.errorMessage {
                 Text(error)
                     .font(.caption)
@@ -180,25 +181,67 @@ public struct PaceMenuView: View {
         value.formatted(.number.precision(.fractionLength(places))) + "%"
     }
 
-    private func resetDetails(_ window: UsageWindow) -> String {
-        let date = window.resetsAt.formatted(
-            .dateTime
-                .month(.abbreviated)
-                .day()
-                .locale(Locale(identifier: "en_US_POSIX"))
-        )
-        let time = window.resetsAt.formatted(
-            .dateTime
-                .hour()
-                .minute()
-                .locale(Locale(identifier: "en_US_POSIX"))
-        )
-        return "\(date) \(time) • \(model.remainingTimeText(until: window.resetsAt))"
+    private func detailLabel(_ text: String) -> some View {
+        Text(text)
+            .foregroundStyle(.secondary)
+            .frame(width: 106, alignment: .leading)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
     }
 
-    private func updatedDetails(_ fetchedAt: Date) -> String {
-        let timestamp = fetchedAt.formatted(.dateTime.hour().minute().second())
-        return "\(timestamp) · \(model.elapsedText(since: fetchedAt))"
+    private func detailValue(_ text: String) -> some View {
+        Text(text)
+            .fontWeight(.medium)
+            .monospacedDigit()
+            .lineLimit(1)
+    }
+
+    private func nextUpdateValue(_ text: String) -> some View {
+        (Text("000h ").foregroundColor(.clear) + Text(text))
+            .fontWeight(.medium)
+            .monospacedDigit()
+            .lineLimit(1)
+            .accessibilityLabel("\(text) until next update")
+    }
+
+    private func timestampDate(_ value: Date) -> some View {
+        Text(value.formatted(
+            .dateTime
+                .month(.abbreviated)
+                .day(.twoDigits)
+                .locale(Locale(identifier: "en_US_POSIX"))
+        ))
+        .monospacedDigit()
+        .frame(width: 44, alignment: .leading)
+    }
+
+    private func timestampTime(_ value: Date) -> some View {
+        Text(value.formatted(
+            .dateTime
+                .hour(.twoDigits(amPM: .abbreviated))
+                .minute(.twoDigits)
+                .second(.twoDigits)
+                .locale(Locale(identifier: "en_US_POSIX"))
+        ))
+        .monospacedDigit()
+        .frame(width: 88, alignment: .leading)
+    }
+
+    private var timestampSeparator: some View {
+        Text("•")
+            .frame(width: 5, alignment: .center)
+    }
+
+    private var timestampDatePlaceholder: some View {
+        Color.clear.frame(width: 44, height: 1)
+    }
+
+    private var timestampTimePlaceholder: some View {
+        Color.clear.frame(width: 88, height: 1)
+    }
+
+    private var timestampSeparatorPlaceholder: some View {
+        Color.clear.frame(width: 5, height: 1)
     }
 
     private func statusColor(_ state: PaceState) -> Color {
