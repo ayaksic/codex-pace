@@ -7,14 +7,17 @@ import SwiftUI
 @MainActor
 struct CodexPacePreview {
     static func main() throws {
-        let outputPath = CommandLine.arguments.dropFirst().first ?? "/tmp/codex-pace-preview.png"
-        let colorScheme: ColorScheme = CommandLine.arguments.dropFirst().contains("--dark")
+        let arguments = Array(CommandLine.arguments.dropFirst())
+        let outputPath = arguments.first(where: { !$0.hasPrefix("--") })
+            ?? "/tmp/codex-pace-preview.png"
+        let colorScheme: ColorScheme = arguments.contains("--dark")
             ? .dark
             : .light
+        let usedPercent = arguments.contains("--ahead") ? 17.5 : 18
         let now = Date(timeIntervalSince1970: 1_787_181_600)
         let snapshot = PaceSnapshot(
             weeklyWindow: UsageWindow(
-                usedPercent: 18,
+                usedPercent: usedPercent,
                 durationMinutes: 10_080,
                 resetsAt: Date(timeIntervalSince1970: 1_787_679_109)
             ),

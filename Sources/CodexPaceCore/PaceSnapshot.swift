@@ -28,9 +28,16 @@ public struct UsageWindow: Codable, Equatable, Sendable {
     /// Time required for the remaining-window percentage to fall to the
     /// remaining-usage percentage, assuming usage does not increase.
     public func zeroUsageCatchUpTimeInterval(at date: Date = Date()) -> TimeInterval? {
-        let deficitPercentagePoints = timeRemainingPercent(at: date) - usageRemainingPercent
-        guard deficitPercentagePoints > 0 else { return nil }
-        return deficitPercentagePoints / 100 * Double(durationMinutes) * 60
+        let paceTimeDelta = paceTimeDeltaInterval(at: date)
+        guard paceTimeDelta < 0 else { return nil }
+        return -paceTimeDelta
+    }
+
+    /// The time-equivalent pace margin. Positive values are time ahead; negative
+    /// values are the time usage would need to stop to return to pace.
+    public func paceTimeDeltaInterval(at date: Date = Date()) -> TimeInterval {
+        let deltaPercentagePoints = usageRemainingPercent - timeRemainingPercent(at: date)
+        return deltaPercentagePoints / 100 * Double(durationMinutes) * 60
     }
 
     private static func clamp(_ value: Double) -> Double {

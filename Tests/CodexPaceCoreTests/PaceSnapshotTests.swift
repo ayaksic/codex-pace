@@ -66,6 +66,23 @@ import Testing
     #expect(snapshot(usedPercent: 48.4).paceState(at: now) == .ahead)
 }
 
+@Test func calculatesSignedTimeEquivalentOfPaceMargin() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+    func window(usedPercent: Double) -> UsageWindow {
+        UsageWindow(
+            usedPercent: usedPercent,
+            durationMinutes: 10_080,
+            resetsAt: now.addingTimeInterval(0.8 * 10_080 * 60)
+        )
+    }
+
+    let expectedSeconds = 0.04 * 10_080 * 60
+    #expect(abs(window(usedPercent: 16).paceTimeDeltaInterval(at: now) - expectedSeconds) < 0.001)
+    #expect(abs(window(usedPercent: 24).paceTimeDeltaInterval(at: now) + expectedSeconds) < 0.001)
+    #expect(abs(window(usedPercent: 20).paceTimeDeltaInterval(at: now)) < 0.001)
+}
+
 @Test func clampsTimeAtWindowBoundaries() {
     let reset = Date(timeIntervalSince1970: 2_000_000_000)
     let window = UsageWindow(usedPercent: 0, durationMinutes: 10_080, resetsAt: reset)

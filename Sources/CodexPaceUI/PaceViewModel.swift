@@ -72,6 +72,36 @@ public final class PaceViewModel: ObservableObject {
             return nil
         }
 
+        return formatDuration(interval)
+    }
+
+    public var paceTimeLabel: String? {
+        guard let snapshot else { return nil }
+        switch snapshot.paceState(at: now) {
+        case .ahead:
+            return "Time ahead"
+        case .onPace:
+            return nil
+        case .behind:
+            return "Stoppage time"
+        }
+    }
+
+    public var paceTimeText: String? {
+        guard let snapshot, snapshot.paceState(at: now) != .onPace else { return nil }
+        return formatDuration(abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)))
+    }
+
+    public func elapsedText(since date: Date) -> String {
+        let elapsedSeconds = Int(max(0, now.timeIntervalSince(date)).rounded(.down))
+        let minutes = elapsedSeconds / 60
+        let seconds = elapsedSeconds % 60
+        return minutes == 0
+            ? "\(seconds)s ago"
+            : "\(minutes)m \(seconds)s ago"
+    }
+
+    private func formatDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = max(1, Int((interval / 60).rounded()))
         let hours = totalMinutes / 60
         let minutes = totalMinutes % 60

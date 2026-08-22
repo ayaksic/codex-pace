@@ -103,12 +103,13 @@ public struct PaceMenuView: View {
                     .fontWeight(.medium)
                     .foregroundStyle(statusColor(snapshot.paceState(at: model.now)))
             }
-            if let catchUp = model.zeroUsageCatchUpText {
+            if let paceTimeLabel = model.paceTimeLabel,
+               let paceTime = model.paceTimeText {
                 HStack {
-                    Text("Stoppage time")
+                    Text(paceTimeLabel)
                         .foregroundStyle(.secondary)
                     Spacer()
-                    Text(catchUp)
+                    Text(paceTime)
                         .fontWeight(.medium)
                         .monospacedDigit()
                 }
@@ -190,13 +191,7 @@ public struct PaceMenuView: View {
 
     private func updatedDetails(_ fetchedAt: Date) -> String {
         let timestamp = fetchedAt.formatted(.dateTime.hour().minute().second())
-        let elapsedSeconds = Int(max(0, model.now.timeIntervalSince(fetchedAt)).rounded(.down))
-        let minutes = elapsedSeconds / 60
-        let seconds = elapsedSeconds % 60
-        let elapsed = minutes == 0
-            ? "\(seconds)s ago"
-            : "\(minutes)m \(String(format: "%02d", seconds))s ago"
-        return "\(timestamp) · \(elapsed)"
+        return "\(timestamp) · \(model.elapsedText(since: fetchedAt))"
     }
 
     private func statusColor(_ state: PaceState) -> Color {
