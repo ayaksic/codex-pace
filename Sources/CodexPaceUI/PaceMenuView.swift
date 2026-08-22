@@ -31,34 +31,36 @@ public struct PaceMenuView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 7) {
-            Image(systemName: "gauge.with.dots.needle.67percent")
-                .foregroundStyle(.tint)
+        ZStack {
             Text("Codex Pace")
                 .font(.headline)
-            Spacer()
-            if model.isRefreshing {
-                ProgressView()
-                    .controlSize(.small)
-                    .scaleEffect(0.75)
-            }
-            Button {
-                Task { await model.refresh() }
-            } label: {
-                Image(systemName: "arrow.clockwise")
-            }
-            .buttonStyle(.plain)
-            .help("Refresh usage")
-            .disabled(model.isRefreshing)
-            if let popOutAction {
-                Button(action: popOutAction) {
-                    Image(systemName: "macwindow")
+
+            HStack(spacing: 7) {
+                Spacer()
+                if model.isRefreshing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .scaleEffect(0.75)
+                }
+                Button {
+                    Task { await model.refresh() }
+                } label: {
+                    Image(systemName: "arrow.clockwise")
                 }
                 .buttonStyle(.plain)
-                .help("Open Codex Pace window")
-                .accessibilityLabel("Open Codex Pace window")
+                .help("Refresh usage")
+                .disabled(model.isRefreshing)
+                if let popOutAction {
+                    Button(action: popOutAction) {
+                        Image(systemName: "macwindow")
+                    }
+                    .buttonStyle(.plain)
+                    .help("Open Codex Pace window")
+                    .accessibilityLabel("Open Codex Pace window")
+                }
             }
         }
+        .frame(maxWidth: .infinity)
     }
 
     private func metrics(_ snapshot: PaceSnapshot) -> some View {
