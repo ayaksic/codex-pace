@@ -4,7 +4,6 @@ import SwiftUI
 
 private enum PaceWindow {
     static let id = "pace-window"
-    static let mainValue = "main"
 }
 
 @main
@@ -12,6 +11,11 @@ struct CodexPaceMenuApp: App {
     @StateObject private var model = PaceViewModel()
 
     var body: some Scene {
+        Window("Codex Pace", id: PaceWindow.id) {
+            PaceMenuView(model: model)
+        }
+        .windowResizability(.contentSize)
+
         MenuBarExtra {
             MenuBarContent(model: model)
         } label: {
@@ -19,11 +23,6 @@ struct CodexPaceMenuApp: App {
                 .monospacedDigit()
         }
         .menuBarExtraStyle(.window)
-
-        WindowGroup("Codex Pace", id: PaceWindow.id, for: String.self) { _ in
-            PaceMenuView(model: model)
-        }
-        .windowResizability(.contentSize)
     }
 }
 
@@ -34,10 +33,7 @@ private struct MenuBarContent: View {
 
     var body: some View {
         PaceMenuView(model: model) {
-            openWindow(
-                id: PaceWindow.id,
-                value: PaceWindow.mainValue
-            )
+            openWindow(id: PaceWindow.id)
             dismiss()
             DispatchQueue.main.async {
                 NSApplication.shared.activate(ignoringOtherApps: true)
