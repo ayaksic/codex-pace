@@ -11,11 +11,15 @@ Codex Pace opens as a regular Dock app with one main window. The menu bar also
 shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of the
 week remain. Click it for the exact values, pace, and reset time. When the pace
 says **Slow down**, the **Stoppage time** row shows how long it would take to get
-back on pace if weekly usage stopped increasing.
+back on pace if weekly usage stopped increasing, followed by the date and time
+when usage could resume.
 
 Use the window button in the popover header to focus the main Codex Pace window.
 The window shares the menu bar's live reading and refresh cycle. Closing it
 leaves the app running; click its Dock icon to reopen the window.
+Use the `2×` control in the main window to double the window and everything
+inside it for viewing from farther away. The selection is remembered; use `1×`
+to return to the standard size. The menu-bar popover stays compact.
 
 ## Build
 

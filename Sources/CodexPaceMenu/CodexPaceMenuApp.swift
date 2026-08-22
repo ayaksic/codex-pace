@@ -9,10 +9,11 @@ private enum PaceWindow {
 @main
 struct CodexPaceMenuApp: App {
     @StateObject private var model = PaceViewModel()
+    @AppStorage("largeDisplayEnabled") private var isLargeDisplay = false
 
     var body: some Scene {
         Window("Codex Pace", id: PaceWindow.id) {
-            PaceMenuView(model: model)
+            PaceMenuView(model: model, isLargeDisplay: $isLargeDisplay)
         }
         .windowResizability(.contentSize)
 

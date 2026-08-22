@@ -86,13 +86,19 @@ import CodexPaceCore
         model(usedPercent: 24).paceTimeFields
             == DurationFields(hours: 6, minutes: 43, seconds: 12)
     )
+    #expect(
+        model(usedPercent: 24).stoppageEndsAt
+            == now.addingTimeInterval(6 * 3_600 + 43 * 60 + 12)
+    )
     #expect(model(usedPercent: 20).paceTimeLabel == nil)
     #expect(model(usedPercent: 20).paceTimeFields == nil)
+    #expect(model(usedPercent: 20).stoppageEndsAt == nil)
     #expect(model(usedPercent: 16).paceTimeLabel == "Time ahead")
     #expect(
         model(usedPercent: 16).paceTimeFields
             == DurationFields(hours: 6, minutes: 43, seconds: 12)
     )
+    #expect(model(usedPercent: 16).stoppageEndsAt == nil)
 }
 
 @MainActor

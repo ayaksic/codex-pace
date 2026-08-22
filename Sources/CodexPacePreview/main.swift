@@ -13,6 +13,7 @@ struct CodexPacePreview {
         let colorScheme: ColorScheme = arguments.contains("--dark")
             ? .dark
             : .light
+        let isLargeDisplay = arguments.contains("--double")
         let usedPercent = arguments.contains("--ahead") ? 17.5 : 18
         let now = Date(timeIntervalSince1970: 1_787_181_600)
         let snapshot = PaceSnapshot(
@@ -26,7 +27,11 @@ struct CodexPacePreview {
             creditBalance: "0"
         )
         let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
-        let content = PaceMenuView(model: model, popOutAction: {})
+        let content = PaceMenuView(
+            model: model,
+            isLargeDisplay: .constant(isLargeDisplay),
+            popOutAction: {}
+        )
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
         let renderer = ImageRenderer(content: content)

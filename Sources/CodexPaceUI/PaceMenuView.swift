@@ -4,30 +4,41 @@ import SwiftUI
 
 public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
+    @Binding private var isLargeDisplay: Bool
+    private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
 
-    public init(model: PaceViewModel, popOutAction: (() -> Void)? = nil) {
+    public init(
+        model: PaceViewModel,
+        isLargeDisplay: Binding<Bool>? = nil,
+        popOutAction: (() -> Void)? = nil
+    ) {
         self.model = model
+        self._isLargeDisplay = isLargeDisplay ?? .constant(false)
+        self.showsDisplaySizeControl = isLargeDisplay != nil
         self.popOutAction = popOutAction
     }
 
     public var body: some View {
-        VStack(spacing: 10) {
-            header
+        ScaledLayout(scale: displayScale) {
+            VStack(spacing: 10) {
+                header
 
-            if let snapshot = model.snapshot {
-                metrics(snapshot)
-                comparison(snapshot)
-                details(snapshot)
-            } else {
-                unavailable
+                if let snapshot = model.snapshot {
+                    metrics(snapshot)
+                    comparison(snapshot)
+                    details(snapshot)
+                } else {
+                    unavailable
+                }
+
+                Divider()
+                footer
             }
-
-            Divider()
-            footer
+            .padding(12)
+            .frame(width: 412)
+            .scaleEffect(displayScale, anchor: .topLeading)
         }
-        .padding(12)
-        .frame(width: 412)
     }
 
     private var header: some View {
@@ -51,6 +62,20 @@ public struct PaceMenuView: View {
                 .buttonStyle(.plain)
                 .help("Refresh usage")
                 .disabled(model.isRefreshing)
+                if showsDisplaySizeControl {
+                    Button {
+                        isLargeDisplay.toggle()
+                    } label: {
+                        Text(isLargeDisplay ? "1×" : "2×")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                    }
+                    .buttonStyle(.plain)
+                    .help(isLargeDisplay ? "Use standard window size" : "Double window size")
+                    .accessibilityLabel(
+                        isLargeDisplay ? "Use standard window size" : "Double window size"
+                    )
+                }
                 if let popOutAction {
                     Button(action: popOutAction) {
                         Image(systemName: "macwindow")
@@ -104,9 +129,15 @@ public struct PaceMenuView: View {
                     GridRow {
                         detailLabel(paceTimeLabel)
                         durationValue(paceTime)
-                        timestampSeparatorPlaceholder
-                        timestampDatePlaceholder
-                        timestampTimePlaceholder
+                        if let stoppageEndsAt = model.stoppageEndsAt {
+                            timestampSeparator
+                            timestampDate(stoppageEndsAt)
+                            timestampTime(stoppageEndsAt)
+                        } else {
+                            timestampSeparatorPlaceholder
+                            timestampDatePlaceholder
+                            timestampTimePlaceholder
+                        }
                     }
                 }
                 GridRow {
@@ -263,6 +294,10 @@ public struct PaceMenuView: View {
         return statusColor(snapshot.paceState(at: model.now))
     }
 
+    private var displayScale: CGFloat {
+        isLargeDisplay ? 2 : 1
+    }
+
     private func statusColor(_ state: PaceState) -> Color {
         switch state {
         case .ahead, .onPace:
@@ -270,6 +305,42 @@ public struct PaceMenuView: View {
         case .behind:
             .orange
         }
+    }
+}
+
+private struct ScaledLayout: Layout {
+    let scale: CGFloat
+
+    func sizeThatFits(
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) -> CGSize {
+        guard let subview = subviews.first else { return .zero }
+        let contentSize = subview.sizeThatFits(
+            ProposedViewSize(
+                width: proposal.width.map { $0 / scale },
+                height: proposal.height.map { $0 / scale }
+            )
+        )
+        return CGSize(width: contentSize.width * scale, height: contentSize.height * scale)
+    }
+
+    func placeSubviews(
+        in bounds: CGRect,
+        proposal: ProposedViewSize,
+        subviews: Subviews,
+        cache: inout ()
+    ) {
+        guard let subview = subviews.first else { return }
+        subview.place(
+            at: bounds.origin,
+            anchor: .topLeading,
+            proposal: ProposedViewSize(
+                width: bounds.width / scale,
+                height: bounds.height / scale
+            )
+        )
     }
 }
 

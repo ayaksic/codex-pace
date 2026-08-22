@@ -109,6 +109,13 @@ public final class PaceViewModel: ObservableObject {
         )
     }
 
+    public var stoppageEndsAt: Date? {
+        guard let snapshot, snapshot.paceState(at: now) == .behind else { return nil }
+        return now.addingTimeInterval(
+            -snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)
+        )
+    }
+
     public func remainingTimeFields(until date: Date) -> DurationFields {
         durationFields(
             totalSeconds: max(0, Int(date.timeIntervalSince(now).rounded(.down)))
