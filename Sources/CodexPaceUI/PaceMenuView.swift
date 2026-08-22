@@ -103,29 +103,29 @@ public struct PaceMenuView: View {
                    let paceTime = model.paceTimeFields {
                     GridRow {
                         detailLabel(paceTimeLabel)
+                        durationValue(paceTime)
+                        timestampSeparatorPlaceholder
                         timestampDatePlaceholder
                         timestampTimePlaceholder
-                        timestampSeparatorPlaceholder
-                        durationValue(paceTime)
                     }
                 }
                 GridRow {
                     detailLabel("Resets")
-                    timestampDate(snapshot.weeklyWindow.resetsAt)
-                    timestampTime(snapshot.weeklyWindow.resetsAt)
-                    timestampSeparator
                     durationValue(
                         model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt)
                     )
+                    timestampSeparator
+                    timestampDate(snapshot.weeklyWindow.resetsAt)
+                    timestampTime(snapshot.weeklyWindow.resetsAt)
                 }
                 if let nextRefreshAt = model.nextRefreshAt,
                    let countdown = model.nextRefreshCountdownFields {
                     GridRow {
                         detailLabel("Next update")
+                        durationValue(countdown, hidesZeroMinutes: true)
+                        timestampSeparator
                         timestampDate(nextRefreshAt)
                         timestampTime(nextRefreshAt)
-                        timestampSeparator
-                        durationValue(countdown)
                     }
                 }
             }
@@ -184,11 +184,14 @@ public struct PaceMenuView: View {
             .minimumScaleFactor(0.85)
     }
 
-    private func durationValue(_ fields: DurationFields) -> some View {
+    private func durationValue(
+        _ fields: DurationFields,
+        hidesZeroMinutes: Bool = false
+    ) -> some View {
         HStack(spacing: 5) {
             Text(fields.hours == 0 ? "" : "\(fields.hours)h")
                 .frame(width: 38, alignment: .trailing)
-            Text("\(fields.minutes)m")
+            Text(hidesZeroMinutes && fields.minutes == 0 ? "" : "\(fields.minutes)m")
                 .frame(width: 30, alignment: .trailing)
             Text("\(fields.seconds)s")
                 .frame(width: 30, alignment: .trailing)
@@ -197,12 +200,20 @@ public struct PaceMenuView: View {
             .monospacedDigit()
             .lineLimit(1)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(durationAccessibilityLabel(fields))
+            .accessibilityLabel(
+                durationAccessibilityLabel(fields, hidesZeroMinutes: hidesZeroMinutes)
+            )
     }
 
-    private func durationAccessibilityLabel(_ fields: DurationFields) -> String {
+    private func durationAccessibilityLabel(
+        _ fields: DurationFields,
+        hidesZeroMinutes: Bool
+    ) -> String {
         let hourText = fields.hours == 0 ? nil : "\(fields.hours) hours"
-        return [hourText, "\(fields.minutes) minutes", "\(fields.seconds) seconds"]
+        let minuteText = hidesZeroMinutes && fields.minutes == 0
+            ? nil
+            : "\(fields.minutes) minutes"
+        return [hourText, minuteText, "\(fields.seconds) seconds"]
             .compactMap { $0 }
             .joined(separator: ", ")
     }
