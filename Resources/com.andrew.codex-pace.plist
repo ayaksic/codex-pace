@@ -7,7 +7,7 @@
     <key>ProgramArguments</key>
     <array>
         <string>/usr/bin/open</string>
-        <string>-gja</string>
+        <string>-ga</string>
         <string>/Applications/Codex Pace.app</string>
     </array>
     <key>RunAtLoad</key>

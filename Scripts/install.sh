@@ -32,7 +32,7 @@ esac
 /bin/launchctl bootstrap "$launch_domain" "$launch_agent"
 /bin/launchctl enable "$launch_service"
 
-/usr/bin/open -gja "$installed_app"
+/usr/bin/open -a "$installed_app"
 
 echo "$installed_app"
 echo "$launch_agent"

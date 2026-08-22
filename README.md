@@ -7,14 +7,15 @@ with the percentage of the current seven-day window remaining.
 > affiliated with, endorsed by, or sponsored by OpenAI. Codex and OpenAI are
 > trademarks of their respective owners.
 
-The menu bar shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly
-83% of the week remain. Click it for the exact values, pace, and reset time.
-When the pace says **Slow down**, the **Stoppage time** row shows how long it
-would take to get back on pace if weekly usage stopped increasing.
+Codex Pace opens as a regular Dock app with one main window. The menu bar also
+shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of the
+week remain. Click it for the exact values, pace, and reset time. When the pace
+says **Slow down**, the **Stoppage time** row shows how long it would take to get
+back on pace if weekly usage stopped increasing.
 
-Use the window button in the popover header to close the popover and open or
-focus one independent Codex Pace window. The window shares the menu bar's live
-reading and refresh cycle. Closing it leaves the menu bar app running.
+Use the window button in the popover header to focus the main Codex Pace window.
+The window shares the menu bar's live reading and refresh cycle. Closing it
+leaves the app running; click its Dock icon to reopen the window.
 
 ## Build
 
@@ -35,8 +36,8 @@ This creates:
 
 The installer rebuilds and verifies the app, copies it to
 `/Applications/Codex Pace.app`, installs the user LaunchAgent at
-`~/Library/LaunchAgents/com.andrew.codex-pace.plist`, and launches the app in
-the background. The LaunchAgent opens Codex Pace at each graphical login.
+`~/Library/LaunchAgents/com.andrew.codex-pace.plist`, and launches the app. The
+LaunchAgent opens Codex Pace at each graphical login without hiding its window.
 
 Run the terminal report directly with:
 
