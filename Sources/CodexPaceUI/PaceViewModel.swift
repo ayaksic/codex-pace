@@ -1,6 +1,18 @@
 import CodexPaceCore
 import Foundation
 
+public struct DurationFields: Equatable, Sendable {
+    public let hours: Int
+    public let minutes: Int
+    public let seconds: Int
+
+    public init(hours: Int, minutes: Int, seconds: Int) {
+        self.hours = hours
+        self.minutes = minutes
+        self.seconds = seconds
+    }
+}
+
 @MainActor
 public final class PaceViewModel: ObservableObject {
     private static let autoRefreshInterval: TimeInterval = 2 * 60
@@ -87,30 +99,33 @@ public final class PaceViewModel: ObservableObject {
         }
     }
 
-    public var paceTimeText: String? {
+    public var paceTimeFields: DurationFields? {
         guard let snapshot, snapshot.paceState(at: now) != .onPace else { return nil }
-        return formatDurationWithSeconds(
-            abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now))
+        return durationFields(
+            totalSeconds: max(
+                0,
+                Int(abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)).rounded(.down))
+            )
         )
     }
 
-    public func remainingTimeText(until date: Date) -> String {
-        formatDurationWithSeconds(max(0, date.timeIntervalSince(now)))
+    public func remainingTimeFields(until date: Date) -> DurationFields {
+        durationFields(
+            totalSeconds: max(0, Int(date.timeIntervalSince(now).rounded(.down)))
+        )
     }
 
     public var nextRefreshAt: Date? {
         (lastAttempt ?? snapshot?.fetchedAt)?.addingTimeInterval(Self.autoRefreshInterval)
     }
 
-    public var nextRefreshCountdownText: String? {
+    public var nextRefreshCountdownFields: DurationFields? {
         guard let nextRefreshAt else { return nil }
         let totalSeconds = max(
             0,
             Int(nextRefreshAt.timeIntervalSince(now).rounded(.up))
         )
-        let minutes = totalSeconds / 60
-        let seconds = totalSeconds % 60
-        return String(format: "%02dm %02ds", minutes, seconds)
+        return durationFields(totalSeconds: totalSeconds)
     }
 
     private func formatDuration(_ interval: TimeInterval) -> String {
@@ -127,12 +142,12 @@ public final class PaceViewModel: ObservableObject {
         return "\(hours)h \(minutes)m"
     }
 
-    private func formatDurationWithSeconds(_ interval: TimeInterval) -> String {
-        let totalSeconds = max(0, Int(interval.rounded(.down)))
-        let hours = totalSeconds / 3_600
-        let minutes = totalSeconds % 3_600 / 60
-        let seconds = totalSeconds % 60
-        return String(format: "%03dh %02dm %02ds", hours, minutes, seconds)
+    private func durationFields(totalSeconds: Int) -> DurationFields {
+        DurationFields(
+            hours: totalSeconds / 3_600,
+            minutes: totalSeconds % 3_600 / 60,
+            seconds: totalSeconds % 60
+        )
     }
 
     public func refresh() async {

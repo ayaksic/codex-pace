@@ -82,27 +82,36 @@ import CodexPaceCore
     }
 
     #expect(model(usedPercent: 24).paceTimeLabel == "Stoppage time")
-    #expect(model(usedPercent: 24).paceTimeText == "006h 43m 12s")
+    #expect(
+        model(usedPercent: 24).paceTimeFields
+            == DurationFields(hours: 6, minutes: 43, seconds: 12)
+    )
     #expect(model(usedPercent: 20).paceTimeLabel == nil)
-    #expect(model(usedPercent: 20).paceTimeText == nil)
+    #expect(model(usedPercent: 20).paceTimeFields == nil)
     #expect(model(usedPercent: 16).paceTimeLabel == "Time ahead")
-    #expect(model(usedPercent: 16).paceTimeText == "006h 43m 12s")
+    #expect(
+        model(usedPercent: 16).paceTimeFields
+            == DurationFields(hours: 6, minutes: 43, seconds: 12)
+    )
 }
 
 @MainActor
-@Test func formatsRemainingTimeToTheSecond() {
+@Test func calculatesRemainingTimeFieldsToTheSecond() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let model = PaceViewModel(now: now, pollingEnabled: false)
 
     #expect(
-        model.remainingTimeText(until: now.addingTimeInterval(66 * 3_600 + 39 * 60 + 14))
-            == "066h 39m 14s"
+        model.remainingTimeFields(until: now.addingTimeInterval(66 * 3_600 + 39 * 60 + 14))
+            == DurationFields(hours: 66, minutes: 39, seconds: 14)
     )
     #expect(
-        model.remainingTimeText(until: now.addingTimeInterval(39 * 60 + 14))
-            == "000h 39m 14s"
+        model.remainingTimeFields(until: now.addingTimeInterval(39 * 60 + 14))
+            == DurationFields(hours: 0, minutes: 39, seconds: 14)
     )
-    #expect(model.remainingTimeText(until: now.addingTimeInterval(-1)) == "000h 00m 00s")
+    #expect(
+        model.remainingTimeFields(until: now.addingTimeInterval(-1))
+            == DurationFields(hours: 0, minutes: 0, seconds: 0)
+    )
 }
 
 @MainActor
@@ -119,5 +128,8 @@ import CodexPaceCore
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
     #expect(model.nextRefreshAt == now.addingTimeInterval(2 * 60))
-    #expect(model.nextRefreshCountdownText == "02m 00s")
+    #expect(
+        model.nextRefreshCountdownFields
+            == DurationFields(hours: 0, minutes: 2, seconds: 0)
+    )
 }

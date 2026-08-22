@@ -32,8 +32,9 @@ public struct PaceMenuView: View {
 
     private var header: some View {
         ZStack {
-            Text("Codex Pace")
+            Text(model.paceText)
                 .font(.headline)
+                .foregroundStyle(headerColor)
 
             HStack(spacing: 7) {
                 Spacer()
@@ -97,23 +98,15 @@ public struct PaceMenuView: View {
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
         VStack(spacing: 6) {
-            HStack {
-                Text("Pace")
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(model.paceText)
-                    .fontWeight(.medium)
-                    .foregroundStyle(statusColor(snapshot.paceState(at: model.now)))
-            }
             Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
                 if let paceTimeLabel = model.paceTimeLabel,
-                   let paceTime = model.paceTimeText {
+                   let paceTime = model.paceTimeFields {
                     GridRow {
                         detailLabel(paceTimeLabel)
                         timestampDatePlaceholder
                         timestampTimePlaceholder
                         timestampSeparatorPlaceholder
-                        detailValue(paceTime)
+                        durationValue(paceTime)
                     }
                 }
                 GridRow {
@@ -121,16 +114,18 @@ public struct PaceMenuView: View {
                     timestampDate(snapshot.weeklyWindow.resetsAt)
                     timestampTime(snapshot.weeklyWindow.resetsAt)
                     timestampSeparator
-                    detailValue(model.remainingTimeText(until: snapshot.weeklyWindow.resetsAt))
+                    durationValue(
+                        model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt)
+                    )
                 }
                 if let nextRefreshAt = model.nextRefreshAt,
-                   let countdown = model.nextRefreshCountdownText {
+                   let countdown = model.nextRefreshCountdownFields {
                     GridRow {
                         detailLabel("Next update")
                         timestampDate(nextRefreshAt)
                         timestampTime(nextRefreshAt)
                         timestampSeparator
-                        nextUpdateValue(countdown)
+                        durationValue(countdown)
                     }
                 }
             }
@@ -189,19 +184,27 @@ public struct PaceMenuView: View {
             .minimumScaleFactor(0.85)
     }
 
-    private func detailValue(_ text: String) -> some View {
-        Text(text)
+    private func durationValue(_ fields: DurationFields) -> some View {
+        HStack(spacing: 5) {
+            Text(fields.hours == 0 ? "" : "\(fields.hours)h")
+                .frame(width: 38, alignment: .trailing)
+            Text("\(fields.minutes)m")
+                .frame(width: 30, alignment: .trailing)
+            Text("\(fields.seconds)s")
+                .frame(width: 30, alignment: .trailing)
+        }
             .fontWeight(.medium)
             .monospacedDigit()
             .lineLimit(1)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(durationAccessibilityLabel(fields))
     }
 
-    private func nextUpdateValue(_ text: String) -> some View {
-        (Text("000h ").foregroundColor(.clear) + Text(text))
-            .fontWeight(.medium)
-            .monospacedDigit()
-            .lineLimit(1)
-            .accessibilityLabel("\(text) until next update")
+    private func durationAccessibilityLabel(_ fields: DurationFields) -> String {
+        let hourText = fields.hours == 0 ? nil : "\(fields.hours) hours"
+        return [hourText, "\(fields.minutes) minutes", "\(fields.seconds) seconds"]
+            .compactMap { $0 }
+            .joined(separator: ", ")
     }
 
     private func timestampDate(_ value: Date) -> some View {
@@ -242,6 +245,11 @@ public struct PaceMenuView: View {
 
     private var timestampSeparatorPlaceholder: some View {
         Color.clear.frame(width: 5, height: 1)
+    }
+
+    private var headerColor: Color {
+        guard let snapshot = model.snapshot else { return .secondary }
+        return statusColor(snapshot.paceState(at: model.now))
     }
 
     private func statusColor(_ state: PaceState) -> Color {
