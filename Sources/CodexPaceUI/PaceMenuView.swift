@@ -180,15 +180,20 @@ public struct PaceMenuView: View {
         value.formatted(.number.precision(.fractionLength(places))) + "%"
     }
 
-    private func hours(_ value: Double) -> String {
-        value.formatted(.number.precision(.fractionLength(1))) + " hr"
-    }
-
     private func resetDetails(_ window: UsageWindow) -> String {
-        let timestamp = window.resetsAt.formatted(
-            .dateTime.month(.abbreviated).day().hour().minute()
+        let date = window.resetsAt.formatted(
+            .dateTime
+                .month(.abbreviated)
+                .day()
+                .locale(Locale(identifier: "en_US_POSIX"))
         )
-        return "\(timestamp) · \(hours(window.timeRemainingHours(at: model.now)))"
+        let time = window.resetsAt.formatted(
+            .dateTime
+                .hour()
+                .minute()
+                .locale(Locale(identifier: "en_US_POSIX"))
+        )
+        return "\(date) \(time) • \(model.remainingTimeText(until: window.resetsAt))"
     }
 
     private func updatedDetails(_ fetchedAt: Date) -> String {

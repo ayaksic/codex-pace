@@ -89,7 +89,13 @@ public final class PaceViewModel: ObservableObject {
 
     public var paceTimeText: String? {
         guard let snapshot, snapshot.paceState(at: now) != .onPace else { return nil }
-        return formatDuration(abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)))
+        return formatDurationWithSeconds(
+            abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now))
+        )
+    }
+
+    public func remainingTimeText(until date: Date) -> String {
+        formatDurationWithSeconds(max(0, date.timeIntervalSince(now)))
     }
 
     public func elapsedText(since date: Date) -> String {
@@ -113,6 +119,18 @@ public final class PaceViewModel: ObservableObject {
             return "\(hours)h"
         }
         return "\(hours)h \(minutes)m"
+    }
+
+    private func formatDurationWithSeconds(_ interval: TimeInterval) -> String {
+        let totalSeconds = max(0, Int(interval.rounded(.down)))
+        let hours = totalSeconds / 3_600
+        let minutes = totalSeconds % 3_600 / 60
+        let seconds = totalSeconds % 60
+
+        if hours == 0 {
+            return "\(minutes)m \(seconds)s"
+        }
+        return "\(hours)h \(minutes)m \(seconds)s"
     }
 
     public func refresh() async {

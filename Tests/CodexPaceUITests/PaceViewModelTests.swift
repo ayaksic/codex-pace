@@ -82,11 +82,24 @@ import CodexPaceCore
     }
 
     #expect(model(usedPercent: 24).paceTimeLabel == "Stoppage time")
-    #expect(model(usedPercent: 24).paceTimeText == "6h 43m")
+    #expect(model(usedPercent: 24).paceTimeText == "6h 43m 12s")
     #expect(model(usedPercent: 20).paceTimeLabel == nil)
     #expect(model(usedPercent: 20).paceTimeText == nil)
     #expect(model(usedPercent: 16).paceTimeLabel == "Time ahead")
-    #expect(model(usedPercent: 16).paceTimeText == "6h 43m")
+    #expect(model(usedPercent: 16).paceTimeText == "6h 43m 12s")
+}
+
+@MainActor
+@Test func formatsRemainingTimeToTheSecond() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let model = PaceViewModel(now: now, pollingEnabled: false)
+
+    #expect(
+        model.remainingTimeText(until: now.addingTimeInterval(66 * 3_600 + 39 * 60 + 14))
+            == "66h 39m 14s"
+    )
+    #expect(model.remainingTimeText(until: now.addingTimeInterval(39 * 60 + 14)) == "39m 14s")
+    #expect(model.remainingTimeText(until: now.addingTimeInterval(-1)) == "0m 0s")
 }
 
 @MainActor
