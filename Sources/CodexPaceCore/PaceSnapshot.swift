@@ -45,6 +45,44 @@ public struct UsageWindow: Codable, Equatable, Sendable {
     }
 }
 
+public struct RateLimitResetCredit: Codable, Equatable, Sendable, Identifiable {
+    public let id: String
+    public let resetType: String
+    public let status: String
+    public let grantedAt: Date
+    public let expiresAt: Date?
+    public let title: String?
+    public let description: String?
+
+    public init(
+        id: String,
+        resetType: String,
+        status: String,
+        grantedAt: Date,
+        expiresAt: Date? = nil,
+        title: String? = nil,
+        description: String? = nil
+    ) {
+        self.id = id
+        self.resetType = resetType
+        self.status = status
+        self.grantedAt = grantedAt
+        self.expiresAt = expiresAt
+        self.title = title
+        self.description = description
+    }
+}
+
+public struct RateLimitResetCredits: Codable, Equatable, Sendable {
+    public let availableCount: Int
+    public let credits: [RateLimitResetCredit]?
+
+    public init(availableCount: Int, credits: [RateLimitResetCredit]? = nil) {
+        self.availableCount = availableCount
+        self.credits = credits
+    }
+}
+
 public enum PaceState: String, Codable, Equatable, Sendable {
     case ahead
     case onPace
@@ -57,19 +95,22 @@ public struct PaceSnapshot: Codable, Equatable, Sendable {
     public let fetchedAt: Date
     public let planType: String?
     public let creditBalance: String?
+    public let rateLimitResetCredits: RateLimitResetCredits?
 
     public init(
         weeklyWindow: UsageWindow,
         shortWindow: UsageWindow? = nil,
         fetchedAt: Date,
         planType: String? = nil,
-        creditBalance: String? = nil
+        creditBalance: String? = nil,
+        rateLimitResetCredits: RateLimitResetCredits? = nil
     ) {
         self.weeklyWindow = weeklyWindow
         self.shortWindow = shortWindow
         self.fetchedAt = fetchedAt
         self.planType = planType
         self.creditBalance = creditBalance
+        self.rateLimitResetCredits = rateLimitResetCredits
     }
 
     public func paceDeltaPercentagePoints(at date: Date = Date()) -> Double {

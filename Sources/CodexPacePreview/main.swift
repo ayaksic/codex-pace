@@ -14,6 +14,8 @@ struct CodexPacePreview {
             ? .dark
             : .light
         let isLargeDisplay = arguments.contains("--double")
+        let hasResetOverride = arguments.contains("--reset-override")
+        let hasBankedResets = arguments.contains("--banked-resets")
         let usedPercent = arguments.contains("--ahead") ? 17.5 : 18
         let now = Date(timeIntervalSince1970: 1_787_181_600)
         let snapshot = PaceSnapshot(
@@ -24,9 +26,43 @@ struct CodexPacePreview {
             ),
             fetchedAt: now,
             planType: "pro",
-            creditBalance: "0"
+            creditBalance: "0",
+            rateLimitResetCredits: hasBankedResets
+                ? RateLimitResetCredits(
+                    availableCount: 3,
+                    credits: [
+                        RateLimitResetCredit(
+                            id: "preview-reset-1",
+                            resetType: "codexRateLimits",
+                            status: "available",
+                            grantedAt: now.addingTimeInterval(-24 * 3_600),
+                            expiresAt: now.addingTimeInterval(11 * 3_600),
+                            title: "Rate-limit reset"
+                        ),
+                        RateLimitResetCredit(
+                            id: "preview-reset-2",
+                            resetType: "codexRateLimits",
+                            status: "available",
+                            grantedAt: now.addingTimeInterval(-24 * 3_600),
+                            expiresAt: now.addingTimeInterval(35 * 3_600),
+                            title: "Rate-limit reset"
+                        ),
+                    ]
+                )
+                : nil
         )
-        let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
+        let defaultsSuiteName = "CodexPacePreview.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: defaultsSuiteName)!
+        defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+        let model = PaceViewModel(
+            snapshot: snapshot,
+            now: now,
+            pollingEnabled: false,
+            defaults: defaults
+        )
+        if hasResetOverride {
+            model.setManualResetAt(now.addingTimeInterval(11 * 3_600))
+        }
         let content = PaceMenuView(
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),

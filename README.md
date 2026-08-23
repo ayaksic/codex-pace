@@ -21,6 +21,19 @@ Use the `2×` control in the main window to double the window and everything
 inside it for viewing from farther away. The selection is remembered; use `1×`
 to return to the standard size. The menu-bar popover stays compact.
 
+Use the calendar-and-clock button in the header when a one-off usage reset is
+expected before the timestamp reported by Codex. Codex Pace shows the manual
+value as **Reset by (est.)**, remembers it across launches, and automatically
+returns to the Codex-reported timestamp after the estimate passes.
+
+Available banked resets appear at the bottom with their expiration countdowns
+and timestamps. When a known banked reset expires before the natural reset, the
+main reset row becomes **Banked reset expires** and counts down to that earlier
+deadline. Codex Pace preserves the server's authoritative available count even
+when the server omits or caps detailed expiration rows. Manual estimates and
+banked-reset expirations change only the reset row; **Week left**, pace, and
+stoppage time remain based on Codex's reported seven-day window.
+
 ## Build
 
 ```sh

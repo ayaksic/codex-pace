@@ -5,6 +5,7 @@ import SwiftUI
 public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
     @Binding private var isLargeDisplay: Bool
+    @State private var isShowingResetEditor = false
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
 
@@ -32,12 +33,20 @@ public struct PaceMenuView: View {
                     unavailable
                 }
 
+                if model.availableBankedResetCount > 0 {
+                    Divider()
+                    bankedResets
+                }
+
                 Divider()
                 footer
             }
             .padding(12)
             .frame(width: 412)
             .scaleEffect(displayScale, anchor: .topLeading)
+        }
+        .sheet(isPresented: $isShowingResetEditor) {
+            ResetOverrideEditor(model: model)
         }
     }
 
@@ -62,6 +71,17 @@ public struct PaceMenuView: View {
                 .buttonStyle(.plain)
                 .help("Refresh usage")
                 .disabled(model.isRefreshing)
+                Button {
+                    isShowingResetEditor = true
+                } label: {
+                    Image(systemName: "calendar.badge.clock")
+                        .foregroundStyle(model.isManualResetActive ? Color.accentColor : .primary)
+                }
+                .buttonStyle(.plain)
+                .help(model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate")
+                .accessibilityLabel(
+                    model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
+                )
                 if showsDisplaySizeControl {
                     Button {
                         isLargeDisplay.toggle()
@@ -140,14 +160,16 @@ public struct PaceMenuView: View {
                         }
                     }
                 }
-                GridRow {
-                    detailLabel("Resets")
-                    durationValue(
-                        model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt)
-                    )
-                    timestampSeparator
-                    timestampDate(snapshot.weeklyWindow.resetsAt)
-                    timestampTime(snapshot.weeklyWindow.resetsAt)
+                if let resetTarget = model.resetCountdownTarget {
+                    GridRow {
+                        detailLabel(resetLabel(for: resetTarget.kind))
+                        durationValue(
+                            model.remainingTimeFields(until: resetTarget.date)
+                        )
+                        timestampSeparator
+                        timestampDate(resetTarget.date)
+                        timestampTime(resetTarget.date)
+                    }
                 }
                 if let nextRefreshAt = model.nextRefreshAt,
                    let countdown = model.nextRefreshCountdownFields {
@@ -167,6 +189,50 @@ public struct PaceMenuView: View {
                     .foregroundStyle(.orange)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .font(.callout)
+    }
+
+    private var bankedResets: some View {
+        VStack(spacing: 6) {
+            HStack {
+                Text("Banked resets")
+                    .fontWeight(.medium)
+                Spacer()
+                Text("\(model.availableBankedResetCount)")
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .monospacedDigit()
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 2)
+                    .background(.quaternary, in: Capsule())
+            }
+
+            Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
+                ForEach(model.availableBankedResetCredits) { credit in
+                    GridRow {
+                        detailLabel("Expires")
+                        if let expiresAt = credit.expiresAt {
+                            durationValue(model.remainingTimeFields(until: expiresAt))
+                            timestampSeparator
+                            timestampDate(expiresAt)
+                            timestampTime(expiresAt)
+                        } else {
+                            Text("No expiration reported")
+                                .foregroundStyle(.secondary)
+                                .gridCellColumns(4)
+                        }
+                    }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            if model.bankedResetCountWithoutDetails > 0 {
+                Text(expirationDetailsUnavailableText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .font(.callout)
@@ -205,6 +271,23 @@ public struct PaceMenuView: View {
 
     private func percent(_ value: Double, places: Int) -> String {
         value.formatted(.number.precision(.fractionLength(places))) + "%"
+    }
+
+    private func resetLabel(for kind: ResetCountdownKind) -> String {
+        switch kind {
+        case .natural:
+            "Resets"
+        case .manualEstimate:
+            "Reset by (est.)"
+        case .bankedResetExpiry:
+            "Banked reset expires"
+        }
+    }
+
+    private var expirationDetailsUnavailableText: String {
+        let count = model.bankedResetCountWithoutDetails
+        let noun = count == 1 ? "reset" : "resets"
+        return "Expiration details unavailable for \(count) additional \(noun)."
     }
 
     private func detailLabel(_ text: String) -> some View {
@@ -305,6 +388,81 @@ public struct PaceMenuView: View {
         case .behind:
             .orange
         }
+    }
+}
+
+private struct ResetOverrideEditor: View {
+    @ObservedObject var model: PaceViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedDate: Date
+
+    init(model: PaceViewModel) {
+        self.model = model
+        let earliestDate = model.now.addingTimeInterval(60)
+        let initialDate = model.manualResetAt
+            ?? model.snapshot?.weeklyWindow.resetsAt
+            ?? model.now.addingTimeInterval(3_600)
+        _selectedDate = State(initialValue: max(earliestDate, initialDate))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Reset estimate")
+                .font(.headline)
+
+            Text("Use this for a one-off reset expected before Codex's reported seven-day window ends.")
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            DatePicker(
+                "Estimated reset by",
+                selection: $selectedDate,
+                in: model.now.addingTimeInterval(60)...,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+
+            if let reportedResetAt = model.snapshot?.weeklyWindow.resetsAt {
+                LabeledContent("Codex reports") {
+                    Text(reportedResetAt.formatted(date: .abbreviated, time: .shortened))
+                        .monospacedDigit()
+                }
+                .font(.callout)
+            }
+
+            Text("This changes the displayed reset countdown only. Week left and pace continue to use the window reported by Codex. Times use this Mac's time zone.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                if model.isManualResetActive {
+                    Button("Remove estimate", role: .destructive) {
+                        model.clearManualReset()
+                        dismiss()
+                    }
+                }
+                Spacer()
+                Button("Cancel") {
+                    dismiss()
+                }
+                Button("Save") {
+                    model.setManualResetAt(dateRoundedToMinute(selectedDate))
+                    dismiss()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 390)
+    }
+
+    private func dateRoundedToMinute(_ date: Date) -> Date {
+        let components = Calendar.current.dateComponents(
+            [.calendar, .timeZone, .year, .month, .day, .hour, .minute],
+            from: date
+        )
+        return Calendar.current.date(from: components) ?? date
     }
 }
 

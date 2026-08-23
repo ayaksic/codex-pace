@@ -139,3 +139,229 @@ import CodexPaceCore
             == DurationFields(hours: 0, minutes: 2, seconds: 0)
     )
 }
+
+@MainActor
+@Test func persistsManualResetEstimateAndFallsBackAfterItExpires() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let reportedResetAt = now.addingTimeInterval(4 * 24 * 3_600)
+    let estimatedResetAt = now.addingTimeInterval(2 * 3_600)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: reportedResetAt
+        ),
+        fetchedAt: now
+    )
+
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    #expect(model.displayedResetAt == reportedResetAt)
+    #expect(!model.isManualResetActive)
+
+    model.setManualResetAt(estimatedResetAt)
+    #expect(model.displayedResetAt == estimatedResetAt)
+    #expect(model.isManualResetActive)
+
+    let restoredModel = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    #expect(restoredModel.displayedResetAt == estimatedResetAt)
+    #expect(restoredModel.isManualResetActive)
+
+    let expiredModel = PaceViewModel(
+        snapshot: snapshot,
+        now: estimatedResetAt,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    #expect(expiredModel.displayedResetAt == reportedResetAt)
+    #expect(!expiredModel.isManualResetActive)
+    #expect(defaults.object(forKey: "manualResetAt") == nil)
+}
+
+@MainActor
+@Test func clearingManualResetRestoresReportedTimestamp() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let reportedResetAt = now.addingTimeInterval(4 * 24 * 3_600)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: reportedResetAt
+        ),
+        fetchedAt: now
+    )
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+
+    model.setManualResetAt(now.addingTimeInterval(2 * 3_600))
+    model.clearManualReset()
+
+    #expect(model.displayedResetAt == reportedResetAt)
+    #expect(!model.isManualResetActive)
+    #expect(defaults.object(forKey: "manualResetAt") == nil)
+}
+
+@MainActor
+@Test func countsDownToEarliestBankedResetExpiryBeforeNaturalReset() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let naturalResetAt = now.addingTimeInterval(4 * 24 * 3_600)
+    let earliestExpiry = now.addingTimeInterval(18 * 3_600)
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: naturalResetAt
+        ),
+        fetchedAt: now,
+        rateLimitResetCredits: RateLimitResetCredits(
+            availableCount: 3,
+            credits: [
+                RateLimitResetCredit(
+                    id: "later",
+                    resetType: "codexRateLimits",
+                    status: "available",
+                    grantedAt: now.addingTimeInterval(-3_600),
+                    expiresAt: now.addingTimeInterval(2 * 24 * 3_600)
+                ),
+                RateLimitResetCredit(
+                    id: "earlier",
+                    resetType: "codexRateLimits",
+                    status: "available",
+                    grantedAt: now.addingTimeInterval(-3_600),
+                    expiresAt: earliestExpiry
+                ),
+            ]
+        )
+    )
+    let defaultsSuiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: defaultsSuiteName)!
+    defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+
+    #expect(
+        model.resetCountdownTarget
+            == ResetCountdownTarget(date: earliestExpiry, kind: .bankedResetExpiry)
+    )
+    #expect(model.availableBankedResetCount == 3)
+    #expect(model.availableBankedResetCredits.map(\.id) == ["earlier", "later"])
+    #expect(model.bankedResetCountWithoutDetails == 1)
+
+    let manualEstimate = now.addingTimeInterval(6 * 3_600)
+    model.setManualResetAt(manualEstimate)
+    #expect(
+        model.resetCountdownTarget
+            == ResetCountdownTarget(date: manualEstimate, kind: .manualEstimate)
+    )
+
+    let afterExpiryModel = PaceViewModel(
+        snapshot: snapshot,
+        now: earliestExpiry,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    #expect(
+        afterExpiryModel.resetCountdownTarget
+            == ResetCountdownTarget(
+                date: now.addingTimeInterval(2 * 24 * 3_600),
+                kind: .bankedResetExpiry
+            )
+    )
+}
+
+@MainActor
+@Test func ignoresBankedExpiryAfterNaturalResetAndPreservesCountOnlyUncertainty() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let naturalResetAt = now.addingTimeInterval(24 * 3_600)
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: naturalResetAt
+        ),
+        fetchedAt: now,
+        rateLimitResetCredits: RateLimitResetCredits(
+            availableCount: 2,
+            credits: [
+                RateLimitResetCredit(
+                    id: "too-late",
+                    resetType: "codexRateLimits",
+                    status: "available",
+                    grantedAt: now.addingTimeInterval(-3_600),
+                    expiresAt: now.addingTimeInterval(2 * 24 * 3_600)
+                ),
+            ]
+        )
+    )
+    let defaultsSuiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: defaultsSuiteName)!
+    defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+
+    #expect(
+        model.resetCountdownTarget
+            == ResetCountdownTarget(date: naturalResetAt, kind: .natural)
+    )
+    #expect(model.availableBankedResetCount == 2)
+    #expect(model.availableBankedResetCredits.count == 1)
+    #expect(model.bankedResetCountWithoutDetails == 1)
+}
+
+@MainActor
+@Test func preservesBankedResetCountWhenCreditDetailsAreUnavailable() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 24,
+            durationMinutes: 10_080,
+            resetsAt: now.addingTimeInterval(4 * 24 * 3_600)
+        ),
+        fetchedAt: now,
+        rateLimitResetCredits: RateLimitResetCredits(
+            availableCount: 2,
+            credits: nil
+        )
+    )
+    let defaultsSuiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: defaultsSuiteName)!
+    defer { defaults.removePersistentDomain(forName: defaultsSuiteName) }
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+
+    #expect(model.availableBankedResetCount == 2)
+    #expect(model.availableBankedResetCredits.isEmpty)
+    #expect(model.bankedResetCountWithoutDetails == 2)
+    #expect(model.resetCountdownTarget?.kind == .natural)
+}

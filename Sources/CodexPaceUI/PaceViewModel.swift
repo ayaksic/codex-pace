@@ -13,25 +13,54 @@ public struct DurationFields: Equatable, Sendable {
     }
 }
 
+public enum ResetCountdownKind: Equatable, Sendable {
+    case natural
+    case manualEstimate
+    case bankedResetExpiry
+}
+
+public struct ResetCountdownTarget: Equatable, Sendable {
+    public let date: Date
+    public let kind: ResetCountdownKind
+
+    public init(date: Date, kind: ResetCountdownKind) {
+        self.date = date
+        self.kind = kind
+    }
+}
+
 @MainActor
 public final class PaceViewModel: ObservableObject {
     private static let autoRefreshInterval: TimeInterval = 2 * 60
+    private static let manualResetAtKey = "manualResetAt"
 
     @Published public private(set) var snapshot: PaceSnapshot?
     @Published public private(set) var now: Date
     @Published public private(set) var errorMessage: String?
     @Published public private(set) var isRefreshing = false
+    @Published public private(set) var manualResetAt: Date?
 
     private var timer: Timer?
     private var lastAttempt: Date?
+    private let defaults: UserDefaults
 
     public init(
         snapshot: PaceSnapshot? = nil,
         now: Date = Date(),
-        pollingEnabled: Bool = true
+        pollingEnabled: Bool = true,
+        defaults: UserDefaults = .standard
     ) {
         self.snapshot = snapshot
         self.now = now
+        self.defaults = defaults
+
+        if let storedDate = defaults.object(forKey: Self.manualResetAtKey) as? Date,
+           storedDate > now {
+            manualResetAt = storedDate
+        } else {
+            manualResetAt = nil
+            defaults.removeObject(forKey: Self.manualResetAtKey)
+        }
 
         guard pollingEnabled else { return }
         Task { await refresh() }
@@ -39,6 +68,7 @@ public final class PaceViewModel: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.now = Date()
+                self.clearExpiredManualResetIfNeeded()
                 if self.lastAttempt.map({ self.now.timeIntervalSince($0) >= Self.autoRefreshInterval }) ?? true {
                     await self.refresh()
                 }
@@ -135,6 +165,74 @@ public final class PaceViewModel: ObservableObject {
         return durationFields(totalSeconds: totalSeconds)
     }
 
+    public var resetCountdownTarget: ResetCountdownTarget? {
+        guard let naturalResetAt = snapshot?.weeklyWindow.resetsAt else { return nil }
+        var target = ResetCountdownTarget(date: naturalResetAt, kind: .natural)
+
+        if let manualResetAt, manualResetAt > now, manualResetAt < target.date {
+            target = ResetCountdownTarget(date: manualResetAt, kind: .manualEstimate)
+        }
+
+        let earliestBankedResetExpiry = availableBankedResetCredits
+            .filter {
+                $0.resetType.caseInsensitiveCompare("codexRateLimits") == .orderedSame
+            }
+            .compactMap(\.expiresAt)
+            .min()
+        if let earliestExpiry = earliestBankedResetExpiry, earliestExpiry < target.date {
+            target = ResetCountdownTarget(date: earliestExpiry, kind: .bankedResetExpiry)
+        }
+
+        return target
+    }
+
+    public var displayedResetAt: Date? {
+        resetCountdownTarget?.date
+    }
+
+    public var isManualResetActive: Bool {
+        manualResetAt.map { $0 > now } ?? false
+    }
+
+    public var availableBankedResetCount: Int {
+        max(0, snapshot?.rateLimitResetCredits?.availableCount ?? 0)
+    }
+
+    public var availableBankedResetCredits: [RateLimitResetCredit] {
+        (snapshot?.rateLimitResetCredits?.credits ?? [])
+            .filter { credit in
+                credit.status.caseInsensitiveCompare("available") == .orderedSame
+                    && (credit.expiresAt.map { $0 > now } ?? true)
+            }
+            .sorted { left, right in
+                switch (left.expiresAt, right.expiresAt) {
+                case let (leftDate?, rightDate?):
+                    leftDate < rightDate
+                case (_?, nil):
+                    true
+                case (nil, _?):
+                    false
+                case (nil, nil):
+                    left.grantedAt < right.grantedAt
+                }
+            }
+    }
+
+    public var bankedResetCountWithoutDetails: Int {
+        max(0, availableBankedResetCount - availableBankedResetCredits.count)
+    }
+
+    public func setManualResetAt(_ date: Date) {
+        guard date > now else { return }
+        manualResetAt = date
+        defaults.set(date, forKey: Self.manualResetAtKey)
+    }
+
+    public func clearManualReset() {
+        manualResetAt = nil
+        defaults.removeObject(forKey: Self.manualResetAtKey)
+    }
+
     private func formatDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = max(1, Int((interval / 60).rounded()))
         let hours = totalMinutes / 60
@@ -155,6 +253,11 @@ public final class PaceViewModel: ObservableObject {
             minutes: totalSeconds % 3_600 / 60,
             seconds: totalSeconds % 60
         )
+    }
+
+    private func clearExpiredManualResetIfNeeded() {
+        guard let manualResetAt, manualResetAt <= now else { return }
+        clearManualReset()
     }
 
     public func refresh() async {

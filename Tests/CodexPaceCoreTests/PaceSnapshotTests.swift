@@ -104,7 +104,21 @@ import Testing
           "credits": {"balance": "0"},
           "planType": "pro"
         },
-        "rateLimitsByLimitId": null
+        "rateLimitsByLimitId": null,
+        "rateLimitResetCredits": {
+          "availableCount": 2,
+          "credits": [
+            {
+              "id": "RateLimitResetCredit_1",
+              "resetType": "codexRateLimits",
+              "status": "available",
+              "grantedAt": 1787010000,
+              "expiresAt": 1787200000,
+              "title": "Rate-limit reset",
+              "description": "Reset an eligible Codex rate-limit window."
+            }
+          ]
+        }
       }
     }
     """#.data(using: .utf8)!
@@ -116,6 +130,13 @@ import Testing
     #expect(snapshot.shortWindow?.durationMinutes == 300)
     #expect(snapshot.planType == "pro")
     #expect(snapshot.creditBalance == "0")
+    #expect(snapshot.rateLimitResetCredits?.availableCount == 2)
+    #expect(snapshot.rateLimitResetCredits?.credits?.count == 1)
+    #expect(snapshot.rateLimitResetCredits?.credits?.first?.id == "RateLimitResetCredit_1")
+    #expect(
+        snapshot.rateLimitResetCredits?.credits?.first?.expiresAt
+            == Date(timeIntervalSince1970: 1_787_200_000)
+    )
 }
 
 @Test func prefersCodexBucketInMultiBucketResponse() throws {

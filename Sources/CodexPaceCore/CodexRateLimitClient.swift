@@ -224,7 +224,23 @@ public struct CodexRateLimitClient: Sendable {
             shortWindow: shortCandidate.flatMap { usageWindow(from: $0.0) },
             fetchedAt: fetchedAt,
             planType: weeklyCandidate.1.planType,
-            creditBalance: weeklyCandidate.1.credits?.balance
+            creditBalance: weeklyCandidate.1.credits?.balance,
+            rateLimitResetCredits: response.rateLimitResetCredits.map {
+                RateLimitResetCredits(
+                    availableCount: max(0, $0.availableCount),
+                    credits: $0.credits?.map { credit in
+                        RateLimitResetCredit(
+                            id: credit.id,
+                            resetType: credit.resetType,
+                            status: credit.status,
+                            grantedAt: Date(timeIntervalSince1970: credit.grantedAt),
+                            expiresAt: credit.expiresAt.map(Date.init(timeIntervalSince1970:)),
+                            title: credit.title,
+                            description: credit.description
+                        )
+                    }
+                )
+            }
         )
     }
 
@@ -265,6 +281,7 @@ private struct RPCErrorDTO: Decodable {
 private struct GetAccountRateLimitsResponseDTO: Decodable {
     let rateLimits: RateLimitSnapshotDTO
     let rateLimitsByLimitId: [String: RateLimitSnapshotDTO]?
+    let rateLimitResetCredits: RateLimitResetCreditsDTO?
 }
 
 private struct RateLimitSnapshotDTO: Decodable {
@@ -282,4 +299,19 @@ private struct RateLimitWindowDTO: Decodable {
 
 private struct CreditsDTO: Decodable {
     let balance: String?
+}
+
+private struct RateLimitResetCreditsDTO: Decodable {
+    let availableCount: Int
+    let credits: [RateLimitResetCreditDTO]?
+}
+
+private struct RateLimitResetCreditDTO: Decodable {
+    let id: String
+    let resetType: String
+    let status: String
+    let grantedAt: TimeInterval
+    let expiresAt: TimeInterval?
+    let title: String?
+    let description: String?
 }
