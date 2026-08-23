@@ -33,6 +33,7 @@ public struct ResetCountdownTarget: Equatable, Sendable {
 public final class PaceViewModel: ObservableObject {
     private static let autoRefreshInterval: TimeInterval = 2 * 60
     private static let manualResetAtKey = "manualResetAt"
+    private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
 
     @Published public private(set) var snapshot: PaceSnapshot?
     @Published public private(set) var now: Date
@@ -42,6 +43,7 @@ public final class PaceViewModel: ObservableObject {
 
     private var timer: Timer?
     private var lastAttempt: Date?
+    private var lastWeeklyUsageRemainingPercent: Double?
     private let defaults: UserDefaults
 
     public init(
@@ -53,6 +55,9 @@ public final class PaceViewModel: ObservableObject {
         self.snapshot = snapshot
         self.now = now
         self.defaults = defaults
+        self.lastWeeklyUsageRemainingPercent = defaults.object(
+            forKey: Self.lastWeeklyUsageRemainingPercentKey
+        ) as? Double
 
         if let storedDate = defaults.object(forKey: Self.manualResetAtKey) as? Date,
            storedDate > now {
@@ -254,6 +259,9 @@ public final class PaceViewModel: ObservableObject {
         guard date > now else { return }
         manualResetAt = date
         defaults.set(date, forKey: Self.manualResetAtKey)
+        if let usageRemainingPercent = snapshot?.weeklyWindow.usageRemainingPercent {
+            rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
+        }
     }
 
     public func clearManualReset() {
@@ -288,6 +296,28 @@ public final class PaceViewModel: ObservableObject {
         clearManualReset()
     }
 
+    func applyFreshSnapshot(_ freshSnapshot: PaceSnapshot, now: Date = Date()) {
+        let usageRemainingPercent = freshSnapshot.weeklyWindow.usageRemainingPercent
+        if isManualResetActive,
+           let lastWeeklyUsageRemainingPercent,
+           lastWeeklyUsageRemainingPercent < 100,
+           usageRemainingPercent == 100 {
+            clearManualReset()
+        }
+
+        rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
+        snapshot = freshSnapshot
+        self.now = now
+    }
+
+    private func rememberWeeklyUsageRemainingPercent(_ usageRemainingPercent: Double) {
+        lastWeeklyUsageRemainingPercent = usageRemainingPercent
+        defaults.set(
+            usageRemainingPercent,
+            forKey: Self.lastWeeklyUsageRemainingPercentKey
+        )
+    }
+
     public func refresh() async {
         guard !isRefreshing else { return }
         isRefreshing = true
@@ -298,8 +328,7 @@ public final class PaceViewModel: ObservableObject {
             let freshSnapshot = try await Task.detached(priority: .utility) {
                 try CodexRateLimitClient().fetch()
             }.value
-            snapshot = freshSnapshot
-            now = Date()
+            applyFreshSnapshot(freshSnapshot)
             errorMessage = nil
         } catch {
             errorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription

@@ -24,7 +24,8 @@ to return to the standard size. The menu-bar popover stays compact.
 Use the calendar-and-clock button in the header when a one-off usage reset is
 expected before the timestamp reported by Codex. Codex Pace shows the manual
 value as **Reset by (est.)**, remembers it across launches, and automatically
-returns to the Codex-reported timestamp after the estimate passes.
+returns to the Codex-reported timestamp after the estimate passes or Codex
+reports that the weekly usage allowance has reset to 100% remaining.
 
 Available banked resets appear at the bottom with their expiration countdowns
 and timestamps. When a known banked reset expires before the natural reset, the

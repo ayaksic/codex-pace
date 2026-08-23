@@ -266,6 +266,122 @@ import CodexPaceCore
 }
 
 @MainActor
+@Test func fullUsageRefreshClearsManualResetAndUsesNewReportedTimestamp() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let originalResetAt = now.addingTimeInterval(4 * 24 * 3_600)
+    let estimatedResetAt = now.addingTimeInterval(2 * 3_600)
+    let newReportedResetAt = now.addingTimeInterval(7 * 24 * 3_600)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let model = PaceViewModel(
+        snapshot: PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: 76,
+                durationMinutes: 10_080,
+                resetsAt: originalResetAt
+            ),
+            fetchedAt: now
+        ),
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    model.setManualResetAt(estimatedResetAt)
+
+    let refreshAt = now.addingTimeInterval(60)
+    model.applyFreshSnapshot(
+        PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: 0,
+                durationMinutes: 10_080,
+                resetsAt: newReportedResetAt
+            ),
+            fetchedAt: refreshAt
+        ),
+        now: refreshAt
+    )
+
+    #expect(model.manualResetAt == nil)
+    #expect(!model.isManualResetActive)
+    #expect(model.displayedResetAt == newReportedResetAt)
+    #expect(defaults.object(forKey: "manualResetAt") == nil)
+}
+
+@MainActor
+@Test func fullUsageResetDetectionSurvivesRelaunch() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let estimatedResetAt = now.addingTimeInterval(2 * 3_600)
+    let newReportedResetAt = now.addingTimeInterval(7 * 24 * 3_600)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let beforeResetModel = PaceViewModel(
+        snapshot: PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: 76,
+                durationMinutes: 10_080,
+                resetsAt: now.addingTimeInterval(4 * 24 * 3_600)
+            ),
+            fetchedAt: now
+        ),
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    beforeResetModel.setManualResetAt(estimatedResetAt)
+
+    let relaunchedModel = PaceViewModel(
+        now: now.addingTimeInterval(60),
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    relaunchedModel.applyFreshSnapshot(
+        PaceSnapshot(
+            weeklyWindow: UsageWindow(
+                usedPercent: 0,
+                durationMinutes: 10_080,
+                resetsAt: newReportedResetAt
+            ),
+            fetchedAt: now.addingTimeInterval(60)
+        ),
+        now: now.addingTimeInterval(60)
+    )
+
+    #expect(relaunchedModel.manualResetAt == nil)
+    #expect(relaunchedModel.displayedResetAt == newReportedResetAt)
+}
+
+@MainActor
+@Test func fullUsageRefreshDoesNotClearEstimateSetAtFullUsage() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let estimatedResetAt = now.addingTimeInterval(2 * 3_600)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let fullUsageSnapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 0,
+            durationMinutes: 10_080,
+            resetsAt: now.addingTimeInterval(7 * 24 * 3_600)
+        ),
+        fetchedAt: now
+    )
+    let model = PaceViewModel(
+        snapshot: fullUsageSnapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+    model.setManualResetAt(estimatedResetAt)
+
+    model.applyFreshSnapshot(fullUsageSnapshot, now: now.addingTimeInterval(60))
+
+    #expect(model.manualResetAt == estimatedResetAt)
+    #expect(model.displayedResetAt == estimatedResetAt)
+}
+
+@MainActor
 @Test func countsDownToEarliestBankedResetExpiryBeforeNaturalReset() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let naturalResetAt = now.addingTimeInterval(4 * 24 * 3_600)
