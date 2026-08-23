@@ -110,32 +110,34 @@ public struct PaceMenuView: View {
     }
 
     private func metrics(_ snapshot: PaceSnapshot) -> some View {
-        HStack(spacing: 0) {
+        let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
+        return HStack(spacing: 0) {
             MetricView(
                 label: "Usage left",
-                value: percent(snapshot.weeklyWindow.usageRemainingPercent, places: 0)
+                value: percent(weeklyWindow.usageRemainingPercent, places: 0)
             )
             Divider()
                 .frame(height: 35)
                 .padding(.horizontal, 12)
             MetricView(
                 label: "Week left",
-                value: percent(snapshot.weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
+                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
             )
         }
         .frame(maxWidth: .infinity)
     }
 
     private func comparison(_ snapshot: PaceSnapshot) -> some View {
-        VStack(spacing: 6) {
+        let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
+        return VStack(spacing: 6) {
             ComparisonBar(
                 label: "Usage",
-                value: snapshot.weeklyWindow.usageRemainingPercent,
+                value: weeklyWindow.usageRemainingPercent,
                 color: .accentColor
             )
             ComparisonBar(
                 label: "Time",
-                value: snapshot.weeklyWindow.timeRemainingPercent(at: model.now),
+                value: weeklyWindow.timeRemainingPercent(at: model.now),
                 color: .purple
             )
         }
@@ -373,8 +375,8 @@ public struct PaceMenuView: View {
     }
 
     private var headerColor: Color {
-        guard let snapshot = model.snapshot else { return .secondary }
-        return statusColor(snapshot.paceState(at: model.now))
+        guard let state = model.currentPaceState else { return .secondary }
+        return statusColor(state)
     }
 
     private var displayScale: CGFloat {

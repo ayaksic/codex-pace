@@ -30,9 +30,11 @@ Available banked resets appear at the bottom with their expiration countdowns
 and timestamps. When a known banked reset expires before the natural reset, the
 main reset row becomes **Banked reset expires** and counts down to that earlier
 deadline. Codex Pace preserves the server's authoritative available count even
-when the server omits or caps detailed expiration rows. Manual estimates and
-banked-reset expirations change only the reset row; **Week left**, pace, and
-stoppage time remain based on Codex's reported seven-day window.
+when the server omits or caps detailed expiration rows. A manual estimate also
+becomes the effective end of the seven-day window, recalculating **Week left**,
+pace, and stoppage or time-ahead values. A banked-reset expiration remains a
+deadline indicator only; it does not change the pace calculation until a reset
+is actually applied.
 
 ## Build
 

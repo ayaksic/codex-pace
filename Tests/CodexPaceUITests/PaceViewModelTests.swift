@@ -21,6 +21,51 @@ import CodexPaceCore
 }
 
 @MainActor
+@Test func manualResetRecalculatesWeekRemainingAndPaceTiming() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let naturalResetAt = now.addingTimeInterval(80 * 60)
+    let manualResetAt = now.addingTimeInterval(40 * 60)
+    let suiteName = "PaceViewModelTests.\(UUID().uuidString)"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    let snapshot = PaceSnapshot(
+        weeklyWindow: UsageWindow(
+            usedPercent: 50,
+            durationMinutes: 100,
+            resetsAt: naturalResetAt
+        ),
+        fetchedAt: now
+    )
+    let model = PaceViewModel(
+        snapshot: snapshot,
+        now: now,
+        pollingEnabled: false,
+        defaults: defaults
+    )
+
+    #expect(model.menuBarText == "50% / 80.0%")
+    #expect(model.paceText == "Slow down (-30.0%)")
+    #expect(model.paceTimeLabel == "Stoppage time")
+    #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 30, seconds: 0))
+    #expect(model.stoppageEndsAt == now.addingTimeInterval(30 * 60))
+
+    model.setManualResetAt(manualResetAt)
+
+    #expect(model.effectiveWeeklyWindow?.resetsAt == manualResetAt)
+    #expect(model.menuBarText == "50% / 40.0%")
+    #expect(model.paceText == "Speed up (+10.0%)")
+    #expect(model.paceTimeLabel == "Time ahead")
+    #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 10, seconds: 0))
+    #expect(model.stoppageEndsAt == nil)
+
+    model.clearManualReset()
+
+    #expect(model.effectiveWeeklyWindow?.resetsAt == naturalResetAt)
+    #expect(model.menuBarText == "50% / 80.0%")
+    #expect(model.paceTimeLabel == "Stoppage time")
+}
+
+@MainActor
 @Test func formatsPaceAsUsageGuidance() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
 

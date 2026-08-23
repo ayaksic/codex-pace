@@ -77,13 +77,13 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var menuBarText: String {
-        guard let snapshot else { return "— / —" }
-        let usage = snapshot.weeklyWindow.usageRemainingPercent.formatted(
+        guard let weeklyWindow = effectiveWeeklyWindow else { return "— / —" }
+        let usage = weeklyWindow.usageRemainingPercent.formatted(
             .number
                 .precision(.fractionLength(0))
                 .locale(Locale(identifier: "en_US_POSIX"))
         )
-        let time = snapshot.weeklyWindow.timeRemainingPercent(at: now).formatted(
+        let time = weeklyWindow.timeRemainingPercent(at: now).formatted(
             .number
                 .precision(.fractionLength(1))
                 .locale(Locale(identifier: "en_US_POSIX"))
@@ -92,12 +92,13 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceText: String {
-        guard let snapshot else { return "Unavailable" }
-        let delta = snapshot.paceDeltaPercentagePoints(at: now)
+        guard let state = currentPaceState, let delta = currentPaceDelta else {
+            return "Unavailable"
+        }
         let formattedDelta = delta.formatted(
             .number.sign(strategy: .always()).precision(.fractionLength(1))
         )
-        switch snapshot.paceState(at: now) {
+        switch state {
         case .ahead:
             return "Speed up (\(formattedDelta)%)"
         case .onPace:
@@ -109,7 +110,7 @@ public final class PaceViewModel: ObservableObject {
 
     public var zeroUsageCatchUpText: String? {
         guard
-            let interval = snapshot?.weeklyWindow.zeroUsageCatchUpTimeInterval(at: now)
+            let interval = effectiveWeeklyWindow?.zeroUsageCatchUpTimeInterval(at: now)
         else {
             return nil
         }
@@ -118,8 +119,8 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceTimeLabel: String? {
-        guard let snapshot else { return nil }
-        switch snapshot.paceState(at: now) {
+        guard let state = currentPaceState else { return nil }
+        switch state {
         case .ahead:
             return "Time ahead"
         case .onPace:
@@ -130,20 +131,47 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceTimeFields: DurationFields? {
-        guard let snapshot, snapshot.paceState(at: now) != .onPace else { return nil }
+        guard let weeklyWindow = effectiveWeeklyWindow,
+              currentPaceState != .onPace else { return nil }
         return durationFields(
             totalSeconds: max(
                 0,
-                Int(abs(snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)).rounded(.down))
+                Int(abs(weeklyWindow.paceTimeDeltaInterval(at: now)).rounded(.down))
             )
         )
     }
 
     public var stoppageEndsAt: Date? {
-        guard let snapshot, snapshot.paceState(at: now) == .behind else { return nil }
+        guard let weeklyWindow = effectiveWeeklyWindow,
+              currentPaceState == .behind else { return nil }
         return now.addingTimeInterval(
-            -snapshot.weeklyWindow.paceTimeDeltaInterval(at: now)
+            -weeklyWindow.paceTimeDeltaInterval(at: now)
         )
+    }
+
+    public var effectiveWeeklyWindow: UsageWindow? {
+        guard let weeklyWindow = snapshot?.weeklyWindow else { return nil }
+        guard let manualResetAt,
+              manualResetAt > now,
+              manualResetAt < weeklyWindow.resetsAt else {
+            return weeklyWindow
+        }
+        return UsageWindow(
+            usedPercent: weeklyWindow.usedPercent,
+            durationMinutes: weeklyWindow.durationMinutes,
+            resetsAt: manualResetAt
+        )
+    }
+
+    public var currentPaceDelta: Double? {
+        guard let weeklyWindow = effectiveWeeklyWindow else { return nil }
+        return weeklyWindow.usageRemainingPercent - weeklyWindow.timeRemainingPercent(at: now)
+    }
+
+    public var currentPaceState: PaceState? {
+        guard let delta = currentPaceDelta else { return nil }
+        if delta == 0 { return .onPace }
+        return delta > 0 ? .ahead : .behind
     }
 
     public func remainingTimeFields(until date: Date) -> DurationFields {
