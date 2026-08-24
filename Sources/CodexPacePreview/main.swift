@@ -16,7 +16,13 @@ struct CodexPacePreview {
         let isLargeDisplay = arguments.contains("--double")
         let hasResetOverride = arguments.contains("--reset-override")
         let hasBankedResets = arguments.contains("--banked-resets")
-        let usedPercent = arguments.contains("--ahead") ? 17.5 : 18
+        let usedPercent = if arguments.contains("--zero-usage") {
+            100.0
+        } else if arguments.contains("--ahead") {
+            17.5
+        } else {
+            18.0
+        }
         let now = Date(timeIntervalSince1970: 1_787_181_600)
         let snapshot = PaceSnapshot(
             weeklyWindow: UsageWindow(

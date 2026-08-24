@@ -6,6 +6,7 @@ public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
     @Binding private var isLargeDisplay: Bool
     @State private var isShowingResetEditor = false
+    @State private var isShowingBankedResets = false
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
 
@@ -37,9 +38,6 @@ public struct PaceMenuView: View {
                     Divider()
                     bankedResets
                 }
-
-                Divider()
-                footer
             }
             .padding(12)
             .frame(width: 412)
@@ -104,6 +102,14 @@ public struct PaceMenuView: View {
                     .help("Open Codex Pace window")
                     .accessibilityLabel("Open Codex Pace window")
                 }
+                Button {
+                    NSApplication.shared.terminate(nil)
+                } label: {
+                    Image(systemName: "power")
+                }
+                .buttonStyle(.plain)
+                .help("Quit Codex Pace")
+                .accessibilityLabel("Quit Codex Pace")
             }
         }
         .frame(maxWidth: .infinity)
@@ -198,43 +204,58 @@ public struct PaceMenuView: View {
 
     private var bankedResets: some View {
         VStack(spacing: 6) {
-            HStack {
-                Text("Banked resets")
-                    .fontWeight(.medium)
-                Spacer()
-                Text("\(model.availableBankedResetCount)")
-                    .font(.caption)
-                    .fontWeight(.semibold)
-                    .monospacedDigit()
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 2)
-                    .background(.quaternary, in: Capsule())
+            Button {
+                withAnimation {
+                    isShowingBankedResets.toggle()
+                }
+            } label: {
+                HStack {
+                    Text("Banked resets")
+                        .fontWeight(.medium)
+                    Spacer()
+                    Text("\(model.availableBankedResetCount)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .monospacedDigit()
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 2)
+                        .background(.quaternary, in: Capsule())
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .rotationEffect(.degrees(isShowingBankedResets ? 90 : 0))
+                }
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Banked resets, \(model.availableBankedResetCount)")
+            .accessibilityValue(isShowingBankedResets ? "Expanded" : "Collapsed")
 
-            Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
-                ForEach(model.availableBankedResetCredits) { credit in
-                    GridRow {
-                        detailLabel("Expires")
-                        if let expiresAt = credit.expiresAt {
-                            durationValue(model.remainingTimeFields(until: expiresAt))
-                            timestampSeparator
-                            timestampDate(expiresAt)
-                            timestampTime(expiresAt)
-                        } else {
-                            Text("No expiration reported")
-                                .foregroundStyle(.secondary)
-                                .gridCellColumns(4)
+            if isShowingBankedResets {
+                Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
+                    ForEach(model.availableBankedResetCredits) { credit in
+                        GridRow {
+                            detailLabel("Expires")
+                            if let expiresAt = credit.expiresAt {
+                                durationValue(model.remainingTimeFields(until: expiresAt))
+                                timestampSeparator
+                                timestampDate(expiresAt)
+                                timestampTime(expiresAt)
+                            } else {
+                                Text("No expiration reported")
+                                    .foregroundStyle(.secondary)
+                                    .gridCellColumns(4)
+                            }
                         }
                     }
                 }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            if model.bankedResetCountWithoutDetails > 0 {
-                Text(expirationDetailsUnavailableText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                if model.bankedResetCountWithoutDetails > 0 {
+                    Text(expirationDetailsUnavailableText)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             }
         }
         .font(.callout)
@@ -256,19 +277,6 @@ public struct PaceMenuView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 72)
-    }
-
-    private var footer: some View {
-        HStack {
-            Text("usage / time remaining")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
-            Spacer()
-            Button("Quit") {
-                NSApplication.shared.terminate(nil)
-            }
-            .buttonStyle(.plain)
-        }
     }
 
     private func percent(_ value: Double, places: Int) -> String {

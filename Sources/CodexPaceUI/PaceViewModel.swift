@@ -97,6 +97,9 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceText: String {
+        if effectiveWeeklyWindow?.usageRemainingPercent == 0 {
+            return "Stopped"
+        }
         guard let state = currentPaceState, let delta = currentPaceDelta else {
             return "Unavailable"
         }

@@ -12,7 +12,7 @@ shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of the
 week remain. Click it for the exact values, pace, and reset time. When the pace
 says **Slow down**, the **Stoppage time** row shows how long it would take to get
 back on pace if weekly usage stopped increasing, followed by the date and time
-when usage could resume.
+when usage could resume. At 0% usage remaining, the pace label says **Stopped**.
 
 Use the window button in the popover header to focus the main Codex Pace window.
 The window shares the menu bar's live reading and refresh cycle. Closing it
@@ -27,15 +27,15 @@ value as **Reset by (est.)**, remembers it across launches, and automatically
 returns to the Codex-reported timestamp after the estimate passes or Codex
 reports that the weekly usage allowance has reset to 100% remaining.
 
-Available banked resets appear at the bottom with their expiration countdowns
-and timestamps. When a known banked reset expires before the natural reset, the
-main reset row becomes **Banked reset expires** and counts down to that earlier
-deadline. Codex Pace preserves the server's authoritative available count even
-when the server omits or caps detailed expiration rows. A manual estimate also
-becomes the effective end of the seven-day window, recalculating **Week left**,
-pace, and stoppage or time-ahead values. A banked-reset expiration remains a
-deadline indicator only; it does not change the pace calculation until a reset
-is actually applied.
+Available banked resets appear in a collapsed section; click the section to show
+their expiration countdowns and timestamps. When a known banked reset expires
+before the natural reset, the main reset row becomes **Banked reset expires** and
+counts down to that earlier deadline. Codex Pace preserves the server's
+authoritative available count even when the server omits or caps detailed
+expiration rows. A manual estimate also becomes the effective end of the
+seven-day window, recalculating **Week left**, pace, and stoppage or time-ahead
+values. A banked-reset expiration remains a deadline indicator only; it does not
+change the pace calculation until a reset is actually applied.
 
 ## Build
 

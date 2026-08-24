@@ -84,6 +84,7 @@ import CodexPaceCore
     #expect(paceText(usedPercent: 51.6) == "Slow down (-1.6%)")
     #expect(paceText(usedPercent: 50) == "On pace")
     #expect(paceText(usedPercent: 48.4) == "Speed up (+1.6%)")
+    #expect(paceText(usedPercent: 100) == "Stopped")
 }
 
 @MainActor
