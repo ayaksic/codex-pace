@@ -19,7 +19,9 @@ The window shares the menu bar's live reading and refresh cycle. Closing it
 leaves the app running; click its Dock icon to reopen the window.
 Use the `2×` control in the main window to double the window and everything
 inside it for viewing from farther away. The selection is remembered; use `1×`
-to return to the standard size. The menu-bar popover stays compact.
+to return to the standard size. Near a display's right edge, the window expands
+left and keeps that right edge in place when returning to `1×`. The menu-bar
+popover stays compact.
 
 Use the calendar-and-clock button in the header when a one-off usage reset is
 expected before the timestamp reported by Codex. Codex Pace shows the manual
