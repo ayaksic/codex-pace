@@ -86,7 +86,9 @@ import CodexPaceCore
     }
 
     #expect(paceText(usedPercent: 51.6) == "Slow down (-1.6%)")
+    #expect(paceText(usedPercent: 50.04) == "On pace")
     #expect(paceText(usedPercent: 50) == "On pace")
+    #expect(paceText(usedPercent: 49.96) == "On pace")
     #expect(paceText(usedPercent: 48.4) == "Speed up (+1.6%)")
     #expect(paceText(usedPercent: 100) == "Stopped")
 }
@@ -112,12 +114,48 @@ import CodexPaceCore
 
     #expect(model(usedPercent: 51.6).paceMetricLabel == "Slow down")
     #expect(model(usedPercent: 51.6).paceMetricValue == "-1.6%")
+    #expect(model(usedPercent: 50.04).paceMetricLabel == "On pace")
+    #expect(model(usedPercent: 50.04).paceMetricValue == "0.0%")
     #expect(model(usedPercent: 50).paceMetricLabel == "On pace")
     #expect(model(usedPercent: 50).paceMetricValue == "0.0%")
+    #expect(model(usedPercent: 49.96).paceMetricLabel == "On pace")
+    #expect(model(usedPercent: 49.96).paceMetricValue == "0.0%")
     #expect(model(usedPercent: 48.4).paceMetricLabel == "Speed up")
     #expect(model(usedPercent: 48.4).paceMetricValue == "+1.6%")
     #expect(model(usedPercent: 100).paceMetricLabel == "Stopped")
     #expect(model(usedPercent: 100).paceMetricValue == nil)
+}
+
+@MainActor
+@Test func keepsExactTimingDetailWhenRoundedHeadlineIsOnPace() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+    func model(usedPercent: Double) -> PaceViewModel {
+        PaceViewModel(
+            snapshot: PaceSnapshot(
+                weeklyWindow: UsageWindow(
+                    usedPercent: usedPercent,
+                    durationMinutes: 10_080,
+                    resetsAt: now.addingTimeInterval(0.5 * 10_080 * 60)
+                ),
+                fetchedAt: now
+            ),
+            now: now,
+            pollingEnabled: false
+        )
+    }
+
+    let slightlyBehind = model(usedPercent: 50.04)
+    #expect(slightlyBehind.paceMetricState == .onPace)
+    #expect(slightlyBehind.currentPaceState == .behind)
+    #expect(slightlyBehind.paceTimeLabel == "Stoppage time")
+    #expect(slightlyBehind.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
+
+    let slightlyAhead = model(usedPercent: 49.96)
+    #expect(slightlyAhead.paceMetricState == .onPace)
+    #expect(slightlyAhead.currentPaceState == .ahead)
+    #expect(slightlyAhead.paceTimeLabel == "Time ahead")
+    #expect(slightlyAhead.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
 }
 
 @MainActor

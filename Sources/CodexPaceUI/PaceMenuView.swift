@@ -50,6 +50,25 @@ public struct PaceMenuView: View {
 
     private var header: some View {
         HStack(spacing: 7) {
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+            }
+            .buttonStyle(.plain)
+            .help("Quit Codex Pace")
+            .accessibilityLabel("Quit Codex Pace")
+            Button {
+                isShowingResetEditor = true
+            } label: {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundStyle(model.isManualResetActive ? Color.accentColor : .primary)
+            }
+            .buttonStyle(.plain)
+            .help(model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate")
+            .accessibilityLabel(
+                model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
+            )
             Spacer()
             if model.isRefreshing {
                 ProgressView()
@@ -64,17 +83,6 @@ public struct PaceMenuView: View {
             .buttonStyle(.plain)
             .help("Refresh usage")
             .disabled(model.isRefreshing)
-            Button {
-                isShowingResetEditor = true
-            } label: {
-                Image(systemName: "calendar.badge.clock")
-                    .foregroundStyle(model.isManualResetActive ? Color.accentColor : .primary)
-            }
-            .buttonStyle(.plain)
-            .help(model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate")
-            .accessibilityLabel(
-                model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
-            )
             if showsDisplaySizeControl {
                 Button {
                     isLargeDisplay.toggle()
@@ -97,14 +105,6 @@ public struct PaceMenuView: View {
                 .help("Open Codex Pace window")
                 .accessibilityLabel("Open Codex Pace window")
             }
-            Button {
-                NSApplication.shared.terminate(nil)
-            } label: {
-                Image(systemName: "power")
-            }
-            .buttonStyle(.plain)
-            .help("Quit Codex Pace")
-            .accessibilityLabel("Quit Codex Pace")
         }
         .frame(maxWidth: .infinity)
     }
@@ -388,7 +388,7 @@ public struct PaceMenuView: View {
     }
 
     private var headerColor: Color {
-        guard let state = model.currentPaceState else { return .secondary }
+        guard let state = model.paceMetricState else { return .secondary }
         return statusColor(state)
     }
 
