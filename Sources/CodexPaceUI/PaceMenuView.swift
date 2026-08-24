@@ -38,6 +38,9 @@ public struct PaceMenuView: View {
                     Divider()
                     bankedResets
                 }
+
+                Divider()
+                versionStatus
             }
             .padding(12)
             .frame(width: 412)
@@ -279,6 +282,68 @@ public struct PaceMenuView: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 72)
+    }
+
+    private var versionStatus: some View {
+        Button {
+            Task { await model.checkForUpdates() }
+        } label: {
+            HStack(spacing: 4) {
+                Text(model.appBuildInfo.versionText)
+                Text("·")
+                Text(model.appBuildInfo.shortRevision)
+                    .monospaced()
+                Spacer()
+                HStack(spacing: 4) {
+                    if model.appUpdateStatus == .checking {
+                        ProgressView()
+                            .controlSize(.mini)
+                            .scaleEffect(0.7)
+                    } else {
+                        Image(systemName: appUpdateStatusSymbol)
+                    }
+                    Text(model.appUpdateStatusText)
+                }
+                .foregroundStyle(appUpdateStatusColor)
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(model.appUpdateStatus == .checking)
+        .help("Check whether this installed build matches the latest commit on GitHub")
+        .accessibilityLabel(
+            "Codex Pace \(model.appBuildInfo.versionText), revision "
+                + "\(model.appBuildInfo.shortRevision), \(model.appUpdateStatusText)"
+        )
+    }
+
+    private var appUpdateStatusSymbol: String {
+        switch model.appUpdateStatus {
+        case .latest:
+            "checkmark.circle.fill"
+        case .notLatest:
+            "arrow.down.circle.fill"
+        case .developmentBuild:
+            "hammer.circle.fill"
+        case .failed:
+            "exclamationmark.triangle.fill"
+        case .notChecked, .checking:
+            "arrow.clockwise.circle"
+        }
+    }
+
+    private var appUpdateStatusColor: Color {
+        switch model.appUpdateStatus {
+        case .latest:
+            .green
+        case .notLatest, .failed:
+            .orange
+        case .notChecked, .checking, .developmentBuild:
+            .secondary
+        }
     }
 
     private func percent(_ value: Double, places: Int) -> String {

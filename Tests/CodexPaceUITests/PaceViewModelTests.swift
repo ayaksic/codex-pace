@@ -3,6 +3,54 @@ import Testing
 import CodexPaceCore
 @testable import CodexPaceUI
 
+private let cleanBuildInfo = AppBuildInfo(
+    version: "1.0.0",
+    build: "28",
+    sourceRevision: "1111111111111111111111111111111111111111",
+    sourceState: "clean"
+)
+
+@MainActor
+@Test func identifiesWhetherInstalledBuildIsLatest() async {
+    let latestModel = PaceViewModel(
+        pollingEnabled: false,
+        appBuildInfo: cleanBuildInfo,
+        latestRevisionProvider: { cleanBuildInfo.sourceRevision }
+    )
+    await latestModel.checkForUpdates()
+    #expect(latestModel.appUpdateStatus == .latest)
+    #expect(latestModel.appUpdateStatusText == "Latest")
+
+    let newerRevision = "2222222222222222222222222222222222222222"
+    let olderModel = PaceViewModel(
+        pollingEnabled: false,
+        appBuildInfo: cleanBuildInfo,
+        latestRevisionProvider: { newerRevision }
+    )
+    await olderModel.checkForUpdates()
+    #expect(olderModel.appUpdateStatus == .notLatest(latestRevision: newerRevision))
+    #expect(olderModel.appUpdateStatusText == "Not latest")
+}
+
+@MainActor
+@Test func labelsModifiedBuildWithoutClaimingItIsLatest() async {
+    let model = PaceViewModel(
+        pollingEnabled: false,
+        appBuildInfo: AppBuildInfo(
+            version: "1.0.0",
+            build: "28",
+            sourceRevision: cleanBuildInfo.sourceRevision,
+            sourceState: "modified"
+        ),
+        latestRevisionProvider: { cleanBuildInfo.sourceRevision }
+    )
+
+    await model.checkForUpdates()
+
+    #expect(model.appUpdateStatus == .developmentBuild)
+    #expect(model.appUpdateStatusText == "Development build")
+}
+
 @MainActor
 @Test func formatsUsageAndWeekRemainingForMenuBar() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)

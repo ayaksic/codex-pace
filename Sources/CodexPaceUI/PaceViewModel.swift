@@ -21,6 +21,15 @@ public enum ResetCountdownKind: Equatable, Sendable {
     case bankedResetExpiry
 }
 
+public enum AppUpdateStatus: Equatable, Sendable {
+    case notChecked
+    case checking
+    case latest
+    case notLatest(latestRevision: String)
+    case developmentBuild
+    case failed
+}
+
 public struct ResetCountdownTarget: Equatable, Sendable {
     public let date: Date
     public let kind: ResetCountdownKind
@@ -34,6 +43,7 @@ public struct ResetCountdownTarget: Equatable, Sendable {
 @MainActor
 public final class PaceViewModel: ObservableObject {
     private static let autoRefreshInterval: TimeInterval = 2 * 60
+    private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
     private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
 
@@ -42,21 +52,32 @@ public final class PaceViewModel: ObservableObject {
     @Published public private(set) var errorMessage: String?
     @Published public private(set) var isRefreshing = false
     @Published public private(set) var manualResetAt: Date?
+    @Published public private(set) var appUpdateStatus: AppUpdateStatus = .notChecked
+
+    public let appBuildInfo: AppBuildInfo
 
     private var timer: Timer?
     private var lastAttempt: Date?
     private var lastWeeklyUsageRemainingPercent: Double?
+    private var lastUpdateCheckAttempt: Date?
     private let defaults: UserDefaults
+    private let latestRevisionProvider: @Sendable () async throws -> String
 
     public init(
         snapshot: PaceSnapshot? = nil,
         now: Date = Date(),
         pollingEnabled: Bool = true,
-        defaults: UserDefaults = .standard
+        defaults: UserDefaults = .standard,
+        appBuildInfo: AppBuildInfo = AppBuildInfo(),
+        latestRevisionProvider: @escaping @Sendable () async throws -> String = {
+            try await GitHubLatestRevisionClient.shared.latestRevision()
+        }
     ) {
         self.snapshot = snapshot
         self.now = now
         self.defaults = defaults
+        self.appBuildInfo = appBuildInfo
+        self.latestRevisionProvider = latestRevisionProvider
         self.lastWeeklyUsageRemainingPercent = defaults.object(
             forKey: Self.lastWeeklyUsageRemainingPercentKey
         ) as? Double
@@ -71,6 +92,7 @@ public final class PaceViewModel: ObservableObject {
 
         guard pollingEnabled else { return }
         Task { await refresh() }
+        Task { await checkForUpdates() }
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             Task { @MainActor [weak self] in
                 guard let self else { return }
@@ -79,7 +101,50 @@ public final class PaceViewModel: ObservableObject {
                 if self.lastAttempt.map({ self.now.timeIntervalSince($0) >= Self.autoRefreshInterval }) ?? true {
                     await self.refresh()
                 }
+                if self.lastUpdateCheckAttempt.map({
+                    self.now.timeIntervalSince($0) >= Self.updateCheckInterval
+                }) ?? true {
+                    await self.checkForUpdates()
+                }
             }
+        }
+    }
+
+    public var appUpdateStatusText: String {
+        switch appUpdateStatus {
+        case .notChecked:
+            "Check latest"
+        case .checking:
+            "Checking…"
+        case .latest:
+            "Latest"
+        case .notLatest:
+            "Not latest"
+        case .developmentBuild:
+            "Development build"
+        case .failed:
+            "Check failed"
+        }
+    }
+
+    public func checkForUpdates() async {
+        guard appUpdateStatus != .checking else { return }
+        guard appBuildInfo.canCheckLatestRevision else {
+            appUpdateStatus = .developmentBuild
+            return
+        }
+
+        lastUpdateCheckAttempt = Date()
+        appUpdateStatus = .checking
+        do {
+            let latestRevision = try await latestRevisionProvider()
+            if latestRevision == appBuildInfo.sourceRevision {
+                appUpdateStatus = .latest
+            } else {
+                appUpdateStatus = .notLatest(latestRevision: latestRevision)
+            }
+        } catch {
+            appUpdateStatus = .failed
         }
     }
 

@@ -64,7 +64,13 @@ struct CodexPacePreview {
             snapshot: snapshot,
             now: now,
             pollingEnabled: false,
-            defaults: defaults
+            defaults: defaults,
+            appBuildInfo: AppBuildInfo(
+                version: "1.0.0",
+                build: "29",
+                sourceRevision: "5e5cebda2253db729256233ba8ceee78ea809db0",
+                sourceState: "clean"
+            )
         )
         if hasResetOverride {
             model.setManualResetAt(now.addingTimeInterval(11 * 3_600))

@@ -50,6 +50,12 @@ This creates:
 - `dist/Codex Pace.app`
 - `dist/bin/codex-pace`
 
+Each app bundle is stamped with a build number derived from the Git commit count
+and the exact source revision. The footer compares that revision with the public
+repository's `main` branch on launch, every six hours, and whenever the footer is
+clicked. Modified local builds are labeled as development builds instead of being
+reported as current.
+
 ## Install
 
 ```sh
