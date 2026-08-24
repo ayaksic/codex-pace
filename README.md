@@ -8,8 +8,8 @@ with the percentage of the current seven-day window remaining.
 > trademarks of their respective owners.
 
 Codex Pace opens as a regular Dock app with one main window. The menu bar also
-shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of the
-week remain. Click it for the exact values, pace, and reset time. When the pace
+shows `time / usage`, so `83.0% / 82%` means roughly 83% of the week and 82% of
+usage remain. Click it for the exact values, pace, and reset time. When the pace
 says **Slow down**, the **Stoppage time** row shows how long it would take to get
 back on pace if weekly usage stopped increasing, followed by the date and time
 when usage could resume. At 0% usage remaining, the pace label says **Stopped**.

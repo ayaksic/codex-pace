@@ -2,11 +2,13 @@ import CodexPaceCore
 import Foundation
 
 public struct DurationFields: Equatable, Sendable {
+    public let days: Int
     public let hours: Int
     public let minutes: Int
     public let seconds: Int
 
-    public init(hours: Int, minutes: Int, seconds: Int) {
+    public init(days: Int = 0, hours: Int, minutes: Int, seconds: Int) {
+        self.days = days
         self.hours = hours
         self.minutes = minutes
         self.seconds = seconds
@@ -93,27 +95,37 @@ public final class PaceViewModel: ObservableObject {
                 .precision(.fractionLength(1))
                 .locale(Locale(identifier: "en_US_POSIX"))
         )
-        return "\(usage)% / \(time)%"
+        return "\(time)% / \(usage)%"
     }
 
     public var paceText: String {
-        if effectiveWeeklyWindow?.usageRemainingPercent == 0 {
-            return "Stopped"
-        }
-        guard let state = currentPaceState, let delta = currentPaceDelta else {
-            return "Unavailable"
-        }
-        let formattedDelta = delta.formatted(
-            .number.sign(strategy: .always()).precision(.fractionLength(1))
-        )
-        switch state {
+        if currentPaceState == .onPace { return paceMetricLabel }
+        guard let paceMetricValue else { return paceMetricLabel }
+        return "\(paceMetricLabel) (\(paceMetricValue))"
+    }
+
+    public var paceMetricLabel: String {
+        if effectiveWeeklyWindow?.usageRemainingPercent == 0 { return "Stopped" }
+        switch currentPaceState {
         case .ahead:
-            return "Speed up (\(formattedDelta)%)"
+            return "Speed up"
         case .onPace:
             return "On pace"
         case .behind:
-            return "Slow down (\(formattedDelta)%)"
+            return "Slow down"
+        case nil:
+            return "Unavailable"
         }
+    }
+
+    public var paceMetricValue: String? {
+        guard effectiveWeeklyWindow?.usageRemainingPercent != 0,
+              let delta = currentPaceDelta,
+              let state = currentPaceState else { return nil }
+        if state == .onPace { return "0.0%" }
+        return delta.formatted(
+            .number.sign(strategy: .always()).precision(.fractionLength(1))
+        ) + "%"
     }
 
     public var zeroUsageCatchUpText: String? {
@@ -274,21 +286,23 @@ public final class PaceViewModel: ObservableObject {
 
     private func formatDuration(_ interval: TimeInterval) -> String {
         let totalMinutes = max(1, Int((interval / 60).rounded()))
-        let hours = totalMinutes / 60
+        let days = totalMinutes / (24 * 60)
+        let hours = totalMinutes % (24 * 60) / 60
         let minutes = totalMinutes % 60
 
-        if hours == 0 {
-            return "\(minutes)m"
-        }
-        if minutes == 0 {
-            return "\(hours)h"
-        }
-        return "\(hours)h \(minutes)m"
+        return [
+            days == 0 ? nil : "\(days)d",
+            hours == 0 ? nil : "\(hours)h",
+            minutes == 0 ? nil : "\(minutes)m",
+        ]
+        .compactMap { $0 }
+        .joined(separator: " ")
     }
 
     private func durationFields(totalSeconds: Int) -> DurationFields {
         DurationFields(
-            hours: totalSeconds / 3_600,
+            days: totalSeconds / 86_400,
+            hours: totalSeconds % 86_400 / 3_600,
             minutes: totalSeconds % 3_600 / 60,
             seconds: totalSeconds % 60
         )

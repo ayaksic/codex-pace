@@ -17,7 +17,7 @@ import CodexPaceCore
 
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
-    #expect(model.menuBarText == "76% / 80.1%")
+    #expect(model.menuBarText == "80.1% / 76%")
 }
 
 @MainActor
@@ -43,8 +43,10 @@ import CodexPaceCore
         defaults: defaults
     )
 
-    #expect(model.menuBarText == "50% / 80.0%")
+    #expect(model.menuBarText == "80.0% / 50%")
     #expect(model.paceText == "Slow down (-30.0%)")
+    #expect(model.paceMetricLabel == "Slow down")
+    #expect(model.paceMetricValue == "-30.0%")
     #expect(model.paceTimeLabel == "Stoppage time")
     #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 30, seconds: 0))
     #expect(model.stoppageEndsAt == now.addingTimeInterval(30 * 60))
@@ -52,8 +54,10 @@ import CodexPaceCore
     model.setManualResetAt(manualResetAt)
 
     #expect(model.effectiveWeeklyWindow?.resetsAt == manualResetAt)
-    #expect(model.menuBarText == "50% / 40.0%")
+    #expect(model.menuBarText == "40.0% / 50%")
     #expect(model.paceText == "Speed up (+10.0%)")
+    #expect(model.paceMetricLabel == "Speed up")
+    #expect(model.paceMetricValue == "+10.0%")
     #expect(model.paceTimeLabel == "Time ahead")
     #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 10, seconds: 0))
     #expect(model.stoppageEndsAt == nil)
@@ -61,7 +65,7 @@ import CodexPaceCore
     model.clearManualReset()
 
     #expect(model.effectiveWeeklyWindow?.resetsAt == naturalResetAt)
-    #expect(model.menuBarText == "50% / 80.0%")
+    #expect(model.menuBarText == "80.0% / 50%")
     #expect(model.paceTimeLabel == "Stoppage time")
 }
 
@@ -85,6 +89,35 @@ import CodexPaceCore
     #expect(paceText(usedPercent: 50) == "On pace")
     #expect(paceText(usedPercent: 48.4) == "Speed up (+1.6%)")
     #expect(paceText(usedPercent: 100) == "Stopped")
+}
+
+@MainActor
+@Test func formatsPaceMetricForEveryState() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+
+    func model(usedPercent: Double) -> PaceViewModel {
+        PaceViewModel(
+            snapshot: PaceSnapshot(
+                weeklyWindow: UsageWindow(
+                    usedPercent: usedPercent,
+                    durationMinutes: 100,
+                    resetsAt: now.addingTimeInterval(50 * 60)
+                ),
+                fetchedAt: now
+            ),
+            now: now,
+            pollingEnabled: false
+        )
+    }
+
+    #expect(model(usedPercent: 51.6).paceMetricLabel == "Slow down")
+    #expect(model(usedPercent: 51.6).paceMetricValue == "-1.6%")
+    #expect(model(usedPercent: 50).paceMetricLabel == "On pace")
+    #expect(model(usedPercent: 50).paceMetricValue == "0.0%")
+    #expect(model(usedPercent: 48.4).paceMetricLabel == "Speed up")
+    #expect(model(usedPercent: 48.4).paceMetricValue == "+1.6%")
+    #expect(model(usedPercent: 100).paceMetricLabel == "Stopped")
+    #expect(model(usedPercent: 100).paceMetricValue == nil)
 }
 
 @MainActor
@@ -153,8 +186,12 @@ import CodexPaceCore
     let model = PaceViewModel(now: now, pollingEnabled: false)
 
     #expect(
+        model.remainingTimeFields(until: now.addingTimeInterval(166 * 3_600))
+            == DurationFields(days: 6, hours: 22, minutes: 0, seconds: 0)
+    )
+    #expect(
         model.remainingTimeFields(until: now.addingTimeInterval(66 * 3_600 + 39 * 60 + 14))
-            == DurationFields(hours: 66, minutes: 39, seconds: 14)
+            == DurationFields(days: 2, hours: 18, minutes: 39, seconds: 14)
     )
     #expect(
         model.remainingTimeFields(until: now.addingTimeInterval(39 * 60 + 14))

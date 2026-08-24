@@ -49,68 +49,62 @@ public struct PaceMenuView: View {
     }
 
     private var header: some View {
-        ZStack {
-            Text(model.paceText)
-                .font(.headline)
-                .foregroundStyle(headerColor)
-
-            HStack(spacing: 7) {
-                Spacer()
-                if model.isRefreshing {
-                    ProgressView()
-                        .controlSize(.small)
-                        .scaleEffect(0.75)
-                }
-                Button {
-                    Task { await model.refresh() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
-                }
-                .buttonStyle(.plain)
-                .help("Refresh usage")
-                .disabled(model.isRefreshing)
-                Button {
-                    isShowingResetEditor = true
-                } label: {
-                    Image(systemName: "calendar.badge.clock")
-                        .foregroundStyle(model.isManualResetActive ? Color.accentColor : .primary)
-                }
-                .buttonStyle(.plain)
-                .help(model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate")
-                .accessibilityLabel(
-                    model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
-                )
-                if showsDisplaySizeControl {
-                    Button {
-                        isLargeDisplay.toggle()
-                    } label: {
-                        Text(isLargeDisplay ? "1×" : "2×")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                    }
-                    .buttonStyle(.plain)
-                    .help(isLargeDisplay ? "Use standard window size" : "Double window size")
-                    .accessibilityLabel(
-                        isLargeDisplay ? "Use standard window size" : "Double window size"
-                    )
-                }
-                if let popOutAction {
-                    Button(action: popOutAction) {
-                        Image(systemName: "macwindow")
-                    }
-                    .buttonStyle(.plain)
-                    .help("Open Codex Pace window")
-                    .accessibilityLabel("Open Codex Pace window")
-                }
-                Button {
-                    NSApplication.shared.terminate(nil)
-                } label: {
-                    Image(systemName: "power")
-                }
-                .buttonStyle(.plain)
-                .help("Quit Codex Pace")
-                .accessibilityLabel("Quit Codex Pace")
+        HStack(spacing: 7) {
+            Spacer()
+            if model.isRefreshing {
+                ProgressView()
+                    .controlSize(.small)
+                    .scaleEffect(0.75)
             }
+            Button {
+                Task { await model.refresh() }
+            } label: {
+                Image(systemName: "arrow.clockwise")
+            }
+            .buttonStyle(.plain)
+            .help("Refresh usage")
+            .disabled(model.isRefreshing)
+            Button {
+                isShowingResetEditor = true
+            } label: {
+                Image(systemName: "calendar.badge.clock")
+                    .foregroundStyle(model.isManualResetActive ? Color.accentColor : .primary)
+            }
+            .buttonStyle(.plain)
+            .help(model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate")
+            .accessibilityLabel(
+                model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
+            )
+            if showsDisplaySizeControl {
+                Button {
+                    isLargeDisplay.toggle()
+                } label: {
+                    Text(isLargeDisplay ? "1×" : "2×")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
+                .buttonStyle(.plain)
+                .help(isLargeDisplay ? "Use standard window size" : "Double window size")
+                .accessibilityLabel(
+                    isLargeDisplay ? "Use standard window size" : "Double window size"
+                )
+            }
+            if let popOutAction {
+                Button(action: popOutAction) {
+                    Image(systemName: "macwindow")
+                }
+                .buttonStyle(.plain)
+                .help("Open Codex Pace window")
+                .accessibilityLabel("Open Codex Pace window")
+            }
+            Button {
+                NSApplication.shared.terminate(nil)
+            } label: {
+                Image(systemName: "power")
+            }
+            .buttonStyle(.plain)
+            .help("Quit Codex Pace")
+            .accessibilityLabel("Quit Codex Pace")
         }
         .frame(maxWidth: .infinity)
     }
@@ -119,15 +113,23 @@ public struct PaceMenuView: View {
         let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
         return HStack(spacing: 0) {
             MetricView(
+                label: "Week left",
+                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
+            )
+            Divider()
+                .frame(height: 35)
+                .padding(.horizontal, 8)
+            MetricView(
                 label: "Usage left",
                 value: percent(weeklyWindow.usageRemainingPercent, places: 0)
             )
             Divider()
                 .frame(height: 35)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 8)
             MetricView(
-                label: "Week left",
-                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
+                label: model.paceMetricLabel,
+                value: model.paceMetricValue ?? "—",
+                color: headerColor
             )
         }
         .frame(maxWidth: .infinity)
@@ -313,12 +315,14 @@ public struct PaceMenuView: View {
         hidesZeroMinutes: Bool = false
     ) -> some View {
         HStack(spacing: 5) {
+            Text(fields.days == 0 ? "" : "\(fields.days)d")
+                .frame(width: 24, alignment: .trailing)
             Text(fields.hours == 0 ? "" : "\(fields.hours)h")
-                .frame(width: 38, alignment: .trailing)
+                .frame(width: 28, alignment: .trailing)
             Text(hidesZeroMinutes && fields.minutes == 0 ? "" : "\(fields.minutes)m")
-                .frame(width: 30, alignment: .trailing)
+                .frame(width: 28, alignment: .trailing)
             Text("\(fields.seconds)s")
-                .frame(width: 30, alignment: .trailing)
+                .frame(width: 29, alignment: .trailing)
         }
             .fontWeight(.medium)
             .monospacedDigit()
@@ -333,11 +337,12 @@ public struct PaceMenuView: View {
         _ fields: DurationFields,
         hidesZeroMinutes: Bool
     ) -> String {
+        let dayText = fields.days == 0 ? nil : "\(fields.days) days"
         let hourText = fields.hours == 0 ? nil : "\(fields.hours) hours"
         let minuteText = hidesZeroMinutes && fields.minutes == 0
             ? nil
             : "\(fields.minutes) minutes"
-        return [hourText, minuteText, "\(fields.seconds) seconds"]
+        return [dayText, hourText, minuteText, "\(fields.seconds) seconds"]
             .compactMap { $0 }
             .joined(separator: ", ")
     }
@@ -515,15 +520,17 @@ private struct ScaledLayout: Layout {
 private struct MetricView: View {
     let label: String
     let value: String
+    var color: Color?
 
     var body: some View {
         VStack(spacing: 1) {
             Text(value)
                 .font(.system(size: 22, weight: .semibold, design: .rounded))
                 .monospacedDigit()
+                .foregroundStyle(color ?? .primary)
             Text(label)
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(color ?? .secondary)
         }
         .frame(maxWidth: .infinity)
     }
