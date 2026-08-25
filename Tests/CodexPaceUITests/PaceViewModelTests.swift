@@ -10,6 +10,44 @@ private let cleanBuildInfo = AppBuildInfo(
     sourceState: "clean"
 )
 
+@Test func durationDisplayOmitsOnlyLeadingZeroUnits() {
+    let days = DurationDisplay(
+        fields: DurationFields(days: 6, hours: 0, minutes: 47, seconds: 18)
+    )
+    #expect(days.days == "6d")
+    #expect(days.hours == "0h")
+    #expect(days.minutes == "47m")
+    #expect(days.seconds == "18s")
+    #expect(days.accessibilityLabel == "6 days, 0 hours, 47 minutes, 18 seconds")
+
+    let hours = DurationDisplay(
+        fields: DurationFields(hours: 13, minutes: 0, seconds: 54)
+    )
+    #expect(hours.days == nil)
+    #expect(hours.hours == "13h")
+    #expect(hours.minutes == "0m")
+    #expect(hours.seconds == "54s")
+    #expect(hours.accessibilityLabel == "13 hours, 0 minutes, 54 seconds")
+
+    let minutes = DurationDisplay(
+        fields: DurationFields(hours: 0, minutes: 47, seconds: 18)
+    )
+    #expect(minutes.days == nil)
+    #expect(minutes.hours == nil)
+    #expect(minutes.minutes == "47m")
+    #expect(minutes.seconds == "18s")
+    #expect(minutes.accessibilityLabel == "47 minutes, 18 seconds")
+
+    let seconds = DurationDisplay(
+        fields: DurationFields(hours: 0, minutes: 0, seconds: 39)
+    )
+    #expect(seconds.days == nil)
+    #expect(seconds.hours == nil)
+    #expect(seconds.minutes == "0m")
+    #expect(seconds.seconds == "39s")
+    #expect(seconds.accessibilityLabel == "0 minutes, 39 seconds")
+}
+
 @MainActor
 @Test func identifiesWhetherInstalledBuildIsLatest() async {
     let latestModel = PaceViewModel(

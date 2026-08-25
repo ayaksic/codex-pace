@@ -188,7 +188,7 @@ public struct PaceMenuView: View {
                    let countdown = model.nextRefreshCountdownFields {
                     GridRow {
                         detailLabel("Next update")
-                        durationValue(countdown, hidesZeroMinutes: true)
+                        durationValue(countdown)
                         timestampSeparator
                         timestampDate(nextRefreshAt)
                         timestampTime(nextRefreshAt)
@@ -376,40 +376,24 @@ public struct PaceMenuView: View {
     }
 
     private func durationValue(
-        _ fields: DurationFields,
-        hidesZeroMinutes: Bool = false
+        _ fields: DurationFields
     ) -> some View {
-        HStack(spacing: 5) {
-            Text(fields.days == 0 ? "" : "\(fields.days)d")
+        let display = DurationDisplay(fields: fields)
+        return HStack(spacing: 5) {
+            Text(display.days ?? "")
                 .frame(width: 24, alignment: .trailing)
-            Text(fields.hours == 0 ? "" : "\(fields.hours)h")
+            Text(display.hours ?? "")
                 .frame(width: 28, alignment: .trailing)
-            Text(hidesZeroMinutes && fields.minutes == 0 ? "" : "\(fields.minutes)m")
+            Text(display.minutes)
                 .frame(width: 28, alignment: .trailing)
-            Text("\(fields.seconds)s")
+            Text(display.seconds)
                 .frame(width: 29, alignment: .trailing)
         }
             .fontWeight(.medium)
             .monospacedDigit()
             .lineLimit(1)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(
-                durationAccessibilityLabel(fields, hidesZeroMinutes: hidesZeroMinutes)
-            )
-    }
-
-    private func durationAccessibilityLabel(
-        _ fields: DurationFields,
-        hidesZeroMinutes: Bool
-    ) -> String {
-        let dayText = fields.days == 0 ? nil : "\(fields.days) days"
-        let hourText = fields.hours == 0 ? nil : "\(fields.hours) hours"
-        let minuteText = hidesZeroMinutes && fields.minutes == 0
-            ? nil
-            : "\(fields.minutes) minutes"
-        return [dayText, hourText, minuteText, "\(fields.seconds) seconds"]
-            .compactMap { $0 }
-            .joined(separator: ", ")
+            .accessibilityLabel(display.accessibilityLabel)
     }
 
     private func timestampDate(_ value: Date) -> some View {
@@ -579,6 +563,34 @@ private struct ScaledLayout: Layout {
                 height: bounds.height / scale
             )
         )
+    }
+}
+
+struct DurationDisplay {
+    let days: String?
+    let hours: String?
+    let minutes: String
+    let seconds: String
+    let accessibilityLabel: String
+
+    init(fields: DurationFields) {
+        days = fields.days > 0 ? "\(fields.days)d" : nil
+        hours = fields.days > 0 || fields.hours > 0 ? "\(fields.hours)h" : nil
+        minutes = "\(fields.minutes)m"
+        seconds = "\(fields.seconds)s"
+
+        let dayText = fields.days > 0 ? "\(fields.days) days" : nil
+        let hourText = fields.days > 0 || fields.hours > 0
+            ? "\(fields.hours) hours"
+            : nil
+        accessibilityLabel = [
+            dayText,
+            hourText,
+            "\(fields.minutes) minutes",
+            "\(fields.seconds) seconds",
+        ]
+        .compactMap { $0 }
+        .joined(separator: ", ")
     }
 }
 
