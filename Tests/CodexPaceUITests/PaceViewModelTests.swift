@@ -10,7 +10,7 @@ private let cleanBuildInfo = AppBuildInfo(
     sourceState: "clean"
 )
 
-@Test func durationDisplayOmitsOnlyLeadingZeroUnits() {
+@Test func durationDisplayOmitsZeroUnitsWithoutLargerUnitsToTheirLeft() {
     let days = DurationDisplay(
         fields: DurationFields(days: 6, hours: 0, minutes: 47, seconds: 18)
     )
@@ -43,9 +43,18 @@ private let cleanBuildInfo = AppBuildInfo(
     )
     #expect(seconds.days == nil)
     #expect(seconds.hours == nil)
-    #expect(seconds.minutes == "0m")
+    #expect(seconds.minutes == nil)
     #expect(seconds.seconds == "39s")
-    #expect(seconds.accessibilityLabel == "0 minutes, 39 seconds")
+    #expect(seconds.accessibilityLabel == "39 seconds")
+
+    let zero = DurationDisplay(
+        fields: DurationFields(hours: 0, minutes: 0, seconds: 0)
+    )
+    #expect(zero.days == nil)
+    #expect(zero.hours == nil)
+    #expect(zero.minutes == nil)
+    #expect(zero.seconds == "0s")
+    #expect(zero.accessibilityLabel == "0 seconds")
 }
 
 @MainActor

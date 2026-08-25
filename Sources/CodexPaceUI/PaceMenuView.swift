@@ -384,7 +384,7 @@ public struct PaceMenuView: View {
                 .frame(width: 24, alignment: .trailing)
             Text(display.hours ?? "")
                 .frame(width: 28, alignment: .trailing)
-            Text(display.minutes)
+            Text(display.minutes ?? "")
                 .frame(width: 28, alignment: .trailing)
             Text(display.seconds)
                 .frame(width: 29, alignment: .trailing)
@@ -569,24 +569,29 @@ private struct ScaledLayout: Layout {
 struct DurationDisplay {
     let days: String?
     let hours: String?
-    let minutes: String
+    let minutes: String?
     let seconds: String
     let accessibilityLabel: String
 
     init(fields: DurationFields) {
         days = fields.days > 0 ? "\(fields.days)d" : nil
         hours = fields.days > 0 || fields.hours > 0 ? "\(fields.hours)h" : nil
-        minutes = "\(fields.minutes)m"
+        minutes = fields.days > 0 || fields.hours > 0 || fields.minutes > 0
+            ? "\(fields.minutes)m"
+            : nil
         seconds = "\(fields.seconds)s"
 
         let dayText = fields.days > 0 ? "\(fields.days) days" : nil
         let hourText = fields.days > 0 || fields.hours > 0
             ? "\(fields.hours) hours"
             : nil
+        let minuteText = fields.days > 0 || fields.hours > 0 || fields.minutes > 0
+            ? "\(fields.minutes) minutes"
+            : nil
         accessibilityLabel = [
             dayText,
             hourText,
-            "\(fields.minutes) minutes",
+            minuteText,
             "\(fields.seconds) seconds",
         ]
         .compactMap { $0 }
