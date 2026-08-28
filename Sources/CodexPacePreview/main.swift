@@ -16,6 +16,7 @@ struct CodexPacePreview {
         let isLargeDisplay = arguments.contains("--double")
         let hasResetOverride = arguments.contains("--reset-override")
         let hasBankedResets = arguments.contains("--banked-resets")
+        let showsWeeklyTimeline = arguments.contains("--timeline")
         let usedPercent = if arguments.contains("--zero-usage") {
             100.0
         } else if arguments.contains("--ahead") {
@@ -78,6 +79,7 @@ struct CodexPacePreview {
         let content = PaceMenuView(
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),
+            showsWeeklyTimelineInitially: showsWeeklyTimeline,
             popOutAction: {}
         )
             .background(Color(nsColor: .windowBackgroundColor))

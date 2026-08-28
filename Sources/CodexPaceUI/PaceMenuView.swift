@@ -4,19 +4,25 @@ import SwiftUI
 
 public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var isLargeDisplay: Bool
     @State private var isShowingResetEditor = false
     @State private var isShowingBankedResets = false
+    @State private var isShowingWeeklyTimeline: Bool
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
 
     public init(
         model: PaceViewModel,
         isLargeDisplay: Binding<Bool>? = nil,
+        showsWeeklyTimelineInitially: Bool = false,
         popOutAction: (() -> Void)? = nil
     ) {
         self.model = model
         self._isLargeDisplay = isLargeDisplay ?? .constant(false)
+        self._isShowingWeeklyTimeline = State(
+            initialValue: showsWeeklyTimelineInitially
+        )
         self.showsDisplaySizeControl = isLargeDisplay != nil
         self.popOutAction = popOutAction
     }
@@ -140,18 +146,68 @@ public struct PaceMenuView: View {
 
     private func comparison(_ snapshot: PaceSnapshot) -> some View {
         let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
-        return VStack(spacing: 6) {
-            ComparisonBar(
-                label: "Usage",
-                value: weeklyWindow.usageRemainingPercent,
-                color: .accentColor
-            )
-            ComparisonBar(
-                label: "Time",
-                value: weeklyWindow.timeRemainingPercent(at: model.now),
-                color: .purple
-            )
+        let timelineProgress = WeeklyTimelineProgress(
+            window: weeklyWindow,
+            at: model.now
+        )
+        return Button {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
+                isShowingWeeklyTimeline.toggle()
+            }
+        } label: {
+            Group {
+                if isShowingWeeklyTimeline {
+                    WeeklyTimelineBar(progress: timelineProgress)
+                        .transition(.opacity)
+                } else {
+                    VStack(spacing: 6) {
+                        ComparisonBar(
+                            label: "Usage",
+                            value: weeklyWindow.usageRemainingPercent,
+                            color: .accentColor
+                        )
+                        ComparisonBar(
+                            label: "Time",
+                            value: weeklyWindow.timeRemainingPercent(at: model.now),
+                            color: .purple
+                        )
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .frame(height: 32)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
+        .help(
+            isShowingWeeklyTimeline
+                ? "Show remaining usage and time bars"
+                : "Show seven-day usage timeline"
+        )
+        .accessibilityLabel(
+            isShowingWeeklyTimeline
+                ? "Seven-day usage timeline"
+                : "Usage and time remaining"
+        )
+        .accessibilityValue(
+            isShowingWeeklyTimeline
+                ? timelineProgress.accessibilityValue
+                : comparisonAccessibilityValue(for: weeklyWindow)
+        )
+        .accessibilityHint(
+            isShowingWeeklyTimeline
+                ? "Shows the remaining usage and time bars"
+                : "Shows usage consumed across the seven-day window"
+        )
+    }
+
+    private func comparisonAccessibilityValue(for window: UsageWindow) -> String {
+        let usageRemaining = percent(window.usageRemainingPercent, places: 0)
+        let timeRemaining = percent(
+            window.timeRemainingPercent(at: model.now),
+            places: 1
+        )
+        return "\(usageRemaining) usage remaining, \(timeRemaining) time remaining"
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
@@ -671,6 +727,100 @@ private struct ComparisonBar: View {
                 }
             }
             .frame(height: 5)
+        }
+    }
+}
+
+struct WeeklyTimelineProgress: Equatable {
+    let usageUsedFraction: Double
+    let elapsedFraction: Double
+
+    init(window: UsageWindow, at date: Date) {
+        usageUsedFraction = Self.clamp(window.usedPercent / 100)
+        elapsedFraction = Self.clamp(
+            1 - window.timeRemainingPercent(at: date) / 100
+        )
+    }
+
+    var accessibilityValue: String {
+        let usage = Int((usageUsedFraction * 100).rounded())
+        let elapsed = Int((elapsedFraction * 100).rounded())
+        return "\(usage)% usage consumed, \(elapsed)% of the window elapsed"
+    }
+
+    private static func clamp(_ value: Double) -> Double {
+        min(1, max(0, value))
+    }
+}
+
+private struct WeeklyTimelineBar: View {
+    private static let dayCount = 7
+
+    let progress: WeeklyTimelineProgress
+
+    var body: some View {
+        HStack(spacing: 7) {
+            Text("Week")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+                .frame(width: 34, alignment: .leading)
+            GeometryReader { proxy in
+                let usageWidth = proxy.size.width * progress.usageUsedFraction
+                let markerX = proxy.size.width * progress.elapsedFraction
+
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(.quaternary)
+                    Rectangle()
+                        .fill(Color.accentColor)
+                        .frame(width: usageWidth)
+                    Canvas { context, size in
+                        let dayWidth = size.width / Double(Self.dayCount)
+
+                        for day in 1..<Self.dayCount {
+                            let x = dayWidth * Double(day)
+                            var divider = Path()
+                            divider.move(to: CGPoint(x: x, y: 0))
+                            divider.addLine(to: CGPoint(x: x, y: size.height))
+                            context.stroke(
+                                divider,
+                                with: .color(.primary.opacity(0.45)),
+                                lineWidth: 0.5
+                            )
+                        }
+
+                        let constrainedMarkerX = min(
+                            size.width - 1.5,
+                            max(1.5, markerX)
+                        )
+                        let markerHeight = min(14, size.height - 4)
+                        let markerTop = (size.height - markerHeight) / 2
+                        var marker = Path()
+                        marker.move(
+                            to: CGPoint(x: constrainedMarkerX, y: markerTop)
+                        )
+                        marker.addLine(
+                            to: CGPoint(
+                                x: constrainedMarkerX,
+                                y: markerTop + markerHeight
+                            )
+                        )
+                        context.stroke(
+                            marker,
+                            with: .color(.white),
+                            lineWidth: 3
+                        )
+                        context.stroke(
+                            marker,
+                            with: .color(.black),
+                            lineWidth: 1
+                        )
+                    }
+                    RoundedRectangle(cornerRadius: 2)
+                        .strokeBorder(.primary.opacity(0.22), lineWidth: 0.5)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+            }
         }
     }
 }

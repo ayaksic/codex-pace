@@ -10,6 +10,44 @@ private let cleanBuildInfo = AppBuildInfo(
     sourceState: "clean"
 )
 
+@Test func mapsWeeklyUsageAndElapsedTimeOntoTimeline() {
+    let reset = Date(timeIntervalSince1970: 2_000_000_000)
+    let window = UsageWindow(
+        usedPercent: 35,
+        durationMinutes: 7 * 24 * 60,
+        resetsAt: reset
+    )
+    let twoDaysAfterStart = reset.addingTimeInterval(-5 * 24 * 3_600)
+
+    let progress = WeeklyTimelineProgress(window: window, at: twoDaysAfterStart)
+
+    #expect(abs(progress.usageUsedFraction - 0.35) < 0.000_001)
+    #expect(abs(progress.elapsedFraction - 2.0 / 7.0) < 0.000_001)
+    #expect(progress.accessibilityValue == "35% usage consumed, 29% of the window elapsed")
+}
+
+@Test func clampsWeeklyTimelineProgressAtWindowBoundaries() {
+    let reset = Date(timeIntervalSince1970: 2_000_000_000)
+    let window = UsageWindow(
+        usedPercent: 120,
+        durationMinutes: 7 * 24 * 60,
+        resetsAt: reset
+    )
+
+    let beforeWindow = WeeklyTimelineProgress(
+        window: window,
+        at: reset.addingTimeInterval(-8 * 24 * 3_600)
+    )
+    let afterWindow = WeeklyTimelineProgress(
+        window: window,
+        at: reset.addingTimeInterval(60)
+    )
+
+    #expect(beforeWindow.usageUsedFraction == 1)
+    #expect(beforeWindow.elapsedFraction == 0)
+    #expect(afterWindow.elapsedFraction == 1)
+}
+
 @Test func durationDisplayOmitsZeroUnitsWithoutLargerUnitsToTheirLeft() {
     let days = DurationDisplay(
         fields: DurationFields(days: 6, hours: 0, minutes: 47, seconds: 18)
