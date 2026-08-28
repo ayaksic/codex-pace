@@ -145,6 +145,7 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(model.paceTimeLabel == "Stoppage time")
     #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 30, seconds: 0))
     #expect(model.stoppageEndsAt == now.addingTimeInterval(30 * 60))
+    #expect(model.projectedRunoutAt == now.addingTimeInterval(20 * 60))
 
     model.setManualResetAt(manualResetAt)
 
@@ -156,12 +157,14 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(model.paceTimeLabel == "Time ahead")
     #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 10, seconds: 0))
     #expect(model.stoppageEndsAt == nil)
+    #expect(model.projectedRunoutAt == nil)
 
     model.clearManualReset()
 
     #expect(model.effectiveWeeklyWindow?.resetsAt == naturalResetAt)
     #expect(model.menuBarText == "80.0% / 50%")
     #expect(model.paceTimeLabel == "Stoppage time")
+    #expect(model.projectedRunoutAt == now.addingTimeInterval(20 * 60))
 }
 
 @MainActor
@@ -245,12 +248,14 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(slightlyBehind.currentPaceState == .behind)
     #expect(slightlyBehind.paceTimeLabel == "Stoppage time")
     #expect(slightlyBehind.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
+    #expect(slightlyBehind.projectedRunoutAt == nil)
 
     let slightlyAhead = model(usedPercent: 49.96)
     #expect(slightlyAhead.paceMetricState == .onPace)
     #expect(slightlyAhead.currentPaceState == .ahead)
     #expect(slightlyAhead.paceTimeLabel == "Time ahead")
     #expect(slightlyAhead.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
+    #expect(slightlyAhead.projectedRunoutAt == nil)
 }
 
 @MainActor

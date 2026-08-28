@@ -47,6 +47,31 @@ import Testing
     #expect(window(usedPercent: 18).zeroUsageCatchUpTimeInterval(at: now) == nil)
 }
 
+@Test func projectsRunoutFromAverageUsageRateSinceWindowStart() {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let window = UsageWindow(
+        usedPercent: 50,
+        durationMinutes: 100,
+        resetsAt: now.addingTimeInterval(80 * 60)
+    )
+
+    #expect(window.projectedRunoutDate(at: now) == now.addingTimeInterval(20 * 60))
+    #expect(
+        UsageWindow(
+            usedPercent: 0,
+            durationMinutes: 100,
+            resetsAt: now.addingTimeInterval(80 * 60)
+        ).projectedRunoutDate(at: now) == nil
+    )
+    #expect(
+        UsageWindow(
+            usedPercent: 100,
+            durationMinutes: 100,
+            resetsAt: now.addingTimeInterval(80 * 60)
+        ).projectedRunoutDate(at: now) == nil
+    )
+}
+
 @Test func classifiesPaceByDeltaSignAndExactEquality() {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
 

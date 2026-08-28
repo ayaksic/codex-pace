@@ -25,6 +25,22 @@ public struct UsageWindow: Codable, Equatable, Sendable {
         max(0, resetsAt.timeIntervalSince(date) / 3_600)
     }
 
+    /// The time when usage would reach 100% if the average consumption rate
+    /// since the window began continued unchanged.
+    public func projectedRunoutDate(at date: Date = Date()) -> Date? {
+        let durationSeconds = Double(durationMinutes) * 60
+        guard durationSeconds > 0, usedPercent > 0, usageRemainingPercent > 0 else {
+            return nil
+        }
+
+        let windowStartedAt = resetsAt.addingTimeInterval(-durationSeconds)
+        let elapsedSeconds = date.timeIntervalSince(windowStartedAt)
+        guard elapsedSeconds > 0 else { return nil }
+
+        let remainingSeconds = elapsedSeconds * usageRemainingPercent / usedPercent
+        return date.addingTimeInterval(remainingSeconds)
+    }
+
     /// Time required for the remaining-window percentage to fall to the
     /// remaining-usage percentage, assuming usage does not increase.
     public func zeroUsageCatchUpTimeInterval(at date: Date = Date()) -> TimeInterval? {
