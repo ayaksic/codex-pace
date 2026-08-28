@@ -237,8 +237,14 @@ public final class PaceViewModel: ObservableObject {
     public var projectedRunoutAt: Date? {
         guard paceMetricState == .behind,
               let weeklyWindow = snapshot?.weeklyWindow,
+              let projectionAt = nextRefreshAt,
               weeklyWindow.usageRemainingPercent > 0 else { return nil }
-        return weeklyWindow.projectedRunoutDate(at: now)
+        return weeklyWindow.projectedRunoutDate(at: projectionAt)
+    }
+
+    public var projectedRunoutCountdownFields: DurationFields? {
+        guard let projectedRunoutAt else { return nil }
+        return remainingTimeFields(until: projectedRunoutAt)
     }
 
     public var effectiveWeeklyWindow: UsageWindow? {

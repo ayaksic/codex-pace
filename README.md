@@ -14,7 +14,13 @@ says **Slow down**, the **Stoppage time** row shows how long it would take to ge
 back on pace if weekly usage stopped increasing, followed by the date and time
 when usage could resume. The **Proj. runout** row beneath it shows when usage
 would reach 0% if the average consumption rate since the window began continued
-unchanged. At 0% usage remaining, the pace label says **Stopped**.
+unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
+label says **Stopped**.
+
+The projected runout calculation uses the fixed **Next update** timestamp as its
+observation point. Its timestamp therefore stays put during each two-minute
+refresh interval while the countdown ticks, then recalculates after the next
+usage reading.
 
 Use the window button in the popover header to focus the main Codex Pace window.
 The window shares the menu bar's live reading and refresh cycle. Closing it

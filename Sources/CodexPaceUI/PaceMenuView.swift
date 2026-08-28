@@ -173,11 +173,12 @@ public struct PaceMenuView: View {
                         }
                     }
                 }
-                if let projectedRunoutAt = model.projectedRunoutAt {
+                if let projectedRunoutAt = model.projectedRunoutAt,
+                   let countdown = model.projectedRunoutCountdownFields {
                     GridRow {
                         detailLabel("Proj. runout")
-                        durationValuePlaceholder
-                        timestampSeparatorPlaceholder
+                        durationValue(countdown)
+                        timestampSeparator
                         timestampDate(projectedRunoutAt)
                         timestampTime(projectedRunoutAt)
                     }
@@ -431,10 +432,6 @@ public struct PaceMenuView: View {
     private var timestampSeparator: some View {
         Text("•")
             .frame(width: 5, alignment: .center)
-    }
-
-    private var durationValuePlaceholder: some View {
-        Color.clear.frame(width: 124, height: 1)
     }
 
     private var timestampDatePlaceholder: some View {
