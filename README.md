@@ -12,7 +12,7 @@ shows `time / usage`, so `83.0% / 82%` means roughly 83% of the week and 82% of
 usage remain. Click it for the exact values, pace, and reset time. When the pace
 says **Slow down**, the **Stoppage time** row shows how long it would take to get
 back on pace if weekly usage stopped increasing, followed by the date and time
-when usage could resume. The **Proj. runout** row beneath it shows when usage
+when usage could resume. The **Projected runout** row beneath it shows when usage
 would reach 0% if the average consumption rate since the window began continued
 unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
 label says **Stopped**.

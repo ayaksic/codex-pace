@@ -232,7 +232,7 @@ public struct PaceMenuView: View {
                 if let projectedRunoutAt = model.projectedRunoutAt,
                    let countdown = model.projectedRunoutCountdownFields {
                     GridRow {
-                        detailLabel("Proj. runout")
+                        detailLabel("Projected runout")
                         durationValue(countdown)
                         timestampSeparator
                         timestampDate(projectedRunoutAt)
