@@ -15,7 +15,7 @@ public struct PaceMenuView: View {
     public init(
         model: PaceViewModel,
         isLargeDisplay: Binding<Bool>? = nil,
-        showsWeeklyTimelineInitially: Bool = false,
+        showsWeeklyTimelineInitially: Bool = true,
         popOutAction: (() -> Void)? = nil
     ) {
         self.model = model
