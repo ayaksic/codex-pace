@@ -35,6 +35,11 @@ public struct PaceMenuView: View {
     public var body: some View {
         responsiveContent
             .fixedSize(horizontal: false, vertical: true)
+            .background {
+                GeometryReader { geometry in
+                    Color.clear.preference(key: PaceContentSizeKey.self, value: geometry.size)
+                }
+            }
             .sheet(isPresented: $isShowingResetEditor) {
                 ResetOverrideEditor(model: model)
             }
@@ -617,6 +622,13 @@ private struct ResetOverrideEditor: View {
             from: date
         )
         return Calendar.current.date(from: components) ?? date
+    }
+}
+
+public struct PaceContentSizeKey: PreferenceKey {
+    public static let defaultValue: CGSize = .zero
+    public static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
     }
 }
 

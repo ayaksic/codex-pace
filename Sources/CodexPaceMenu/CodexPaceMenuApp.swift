@@ -30,101 +30,36 @@ struct CodexPaceMenuApp: App {
 private struct MainWindowContent: View {
     @ObservedObject var model: PaceViewModel
     @Binding var isLargeDisplay: Bool
-    @StateObject private var resizeCoordinator = WindowResizeCoordinator()
+    @StateObject private var resizeCoordinator = PaceWindowSizer()
     @State private var maximumContentHeight = (NSScreen.main?.visibleFrame.height ?? 800) - 40
 
     var body: some View {
         PaceMenuView(
             model: model,
-            isLargeDisplay: displaySizeBinding,
+            isLargeDisplay: $isLargeDisplay,
             maximumHeight: maximumContentHeight
         )
         .background {
             WindowAccessor { window in
                 resizeCoordinator.window = window
                 if let window, let screen = window.screen {
-                    maximumContentHeight = window.contentRect(forFrameRect: screen.visibleFrame).height
+                    maximumContentHeight = screen.visibleFrame.height - (window.frame.height - window.contentLayoutRect.height)
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) {
-            notification in
-            resizeCoordinator.windowDidResize(notification.object as? NSWindow)
+        .onPreferenceChange(PaceContentSizeKey.self) { size in
+            DispatchQueue.main.async {
+                resizeCoordinator.updateContentSize(size)
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeScreenNotification)) { notification in
             if let window = notification.object as? NSWindow,
                window === resizeCoordinator.window, let screen = window.screen {
-                maximumContentHeight = window.contentRect(forFrameRect: screen.visibleFrame).height
+                maximumContentHeight = screen.visibleFrame.height - (window.frame.height - window.contentLayoutRect.height)
             }
         }
     }
 
-    private var displaySizeBinding: Binding<Bool> {
-        Binding(
-            get: { isLargeDisplay },
-            set: { newValue in
-                resizeCoordinator.setLargeDisplay(
-                    newValue,
-                    isLargeDisplay: $isLargeDisplay
-                )
-            }
-        )
-    }
-}
-
-@MainActor
-private final class WindowResizeCoordinator: ObservableObject {
-    weak var window: NSWindow?
-    private var pendingResize: PendingResize?
-
-    func setLargeDisplay(_ newValue: Bool, isLargeDisplay: Binding<Bool>) {
-        guard newValue != isLargeDisplay.wrappedValue else {
-            return
-        }
-
-        if
-            let window,
-            let visibleFrame = window.screen?.visibleFrame
-        {
-            pendingResize = PendingResize(
-                previousFrame: window.frame,
-                visibleFrame: visibleFrame,
-                preservesRightEdge: !newValue
-            )
-        } else {
-            pendingResize = nil
-        }
-
-        isLargeDisplay.wrappedValue = newValue
-    }
-
-    func windowDidResize(_ resizedWindow: NSWindow?) {
-        guard
-            let resizedWindow,
-            resizedWindow === window,
-            let pendingResize,
-            resizedWindow.frame.size != pendingResize.previousFrame.size
-        else {
-            return
-        }
-
-        self.pendingResize = nil
-        let adjustedFrame = WindowFramePlacement.frameKeepingResizeVisible(
-            resizedFrame: resizedWindow.frame,
-            previousFrame: pendingResize.previousFrame,
-            visibleFrame: pendingResize.visibleFrame,
-            preservesRightEdge: pendingResize.preservesRightEdge
-        )
-        if adjustedFrame.origin != resizedWindow.frame.origin {
-            resizedWindow.setFrameOrigin(adjustedFrame.origin)
-        }
-    }
-
-    private struct PendingResize {
-        let previousFrame: CGRect
-        let visibleFrame: CGRect
-        let preservesRightEdge: Bool
-    }
 }
 
 private struct WindowAccessor: NSViewRepresentable {
