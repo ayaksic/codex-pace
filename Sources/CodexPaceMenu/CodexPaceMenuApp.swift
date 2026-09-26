@@ -31,20 +31,31 @@ private struct MainWindowContent: View {
     @ObservedObject var model: PaceViewModel
     @Binding var isLargeDisplay: Bool
     @StateObject private var resizeCoordinator = WindowResizeCoordinator()
+    @State private var maximumContentHeight = (NSScreen.main?.visibleFrame.height ?? 800) - 40
 
     var body: some View {
         PaceMenuView(
             model: model,
-            isLargeDisplay: displaySizeBinding
+            isLargeDisplay: displaySizeBinding,
+            maximumHeight: maximumContentHeight
         )
         .background {
             WindowAccessor { window in
                 resizeCoordinator.window = window
+                if let window, let screen = window.screen {
+                    maximumContentHeight = window.contentRect(forFrameRect: screen.visibleFrame).height
+                }
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didResizeNotification)) {
             notification in
             resizeCoordinator.windowDidResize(notification.object as? NSWindow)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeScreenNotification)) { notification in
+            if let window = notification.object as? NSWindow,
+               window === resizeCoordinator.window, let screen = window.screen {
+                maximumContentHeight = window.contentRect(forFrameRect: screen.visibleFrame).height
+            }
         }
     }
 

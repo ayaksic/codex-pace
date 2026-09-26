@@ -80,12 +80,17 @@ struct CodexPacePreview {
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),
             showsWeeklyTimelineInitially: showsWeeklyTimeline,
+            showsBankedResetsInitially: arguments.contains("--expanded-resets"),
+            maximumHeight: arguments.contains("--short-screen") ? 500 : .infinity,
             popOutAction: {}
         )
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2
+        if arguments.contains("--constrained-height") {
+            renderer.proposedSize = ProposedViewSize(width: nil, height: isLargeDisplay ? 400 : 200)
+        }
 
         guard
             let image = renderer.nsImage,

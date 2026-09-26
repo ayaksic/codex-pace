@@ -11,11 +11,14 @@ public struct PaceMenuView: View {
     @State private var isShowingWeeklyTimeline: Bool
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
+    private let maximumHeight: CGFloat
 
     public init(
         model: PaceViewModel,
         isLargeDisplay: Binding<Bool>? = nil,
         showsWeeklyTimelineInitially: Bool = true,
+        showsBankedResetsInitially: Bool = false,
+        maximumHeight: CGFloat = .infinity,
         popOutAction: (() -> Void)? = nil
     ) {
         self.model = model
@@ -23,11 +26,34 @@ public struct PaceMenuView: View {
         self._isShowingWeeklyTimeline = State(
             initialValue: showsWeeklyTimelineInitially
         )
+        self._isShowingBankedResets = State(initialValue: showsBankedResetsInitially)
         self.showsDisplaySizeControl = isLargeDisplay != nil
         self.popOutAction = popOutAction
+        self.maximumHeight = maximumHeight
     }
 
     public var body: some View {
+        responsiveContent
+            .fixedSize(horizontal: false, vertical: true)
+            .sheet(isPresented: $isShowingResetEditor) {
+                ResetOverrideEditor(model: model)
+            }
+    }
+
+    @ViewBuilder private var responsiveContent: some View {
+        if maximumHeight.isInfinite {
+            scaledContent
+        } else {
+            BoundedContentLayout(maximumHeight: maximumHeight) {
+                scaledContent.hidden().accessibilityHidden(true)
+                ScrollView(.vertical) {
+                    scaledContent
+                }
+            }
+        }
+    }
+
+    private var scaledContent: some View {
         ScaledLayout(scale: displayScale) {
             VStack(spacing: 10) {
                 header
@@ -52,9 +78,7 @@ public struct PaceMenuView: View {
             .frame(width: 412)
             .scaleEffect(displayScale, anchor: .topLeading)
         }
-        .sheet(isPresented: $isShowingResetEditor) {
-            ResetOverrideEditor(model: model)
-        }
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     private var header: some View {
@@ -593,6 +617,23 @@ private struct ResetOverrideEditor: View {
             from: date
         )
         return Calendar.current.date(from: components) ?? date
+    }
+}
+
+// Measure the full content independently of the current window proposal. Grow
+// with disclosure rows, then scroll once the display's available height is used.
+private struct BoundedContentLayout: Layout {
+    let maximumHeight: CGFloat
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let natural = subviews[0].sizeThatFits(.unspecified)
+        return CGSize(width: natural.width, height: min(natural.height, maximumHeight))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: bounds.origin, anchor: .topLeading, proposal: .unspecified)
+        subviews[1].place(at: bounds.origin, anchor: .topLeading,
+                          proposal: ProposedViewSize(bounds.size))
     }
 }
 
