@@ -42,7 +42,8 @@ import CodexPaceCore
     }
 }
 
-@Test @MainActor func nativeHostedContentResizesWhenResetRowsArrive() throws {
+@Test(arguments: [false, true]) @MainActor
+func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let suiteName = "PaceMenuLayoutTests.\(UUID())"
     let defaults = UserDefaults(suiteName: suiteName)!
@@ -64,12 +65,16 @@ import CodexPaceCore
     let expandedSnapshot = try #require(model.snapshot)
     model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: expandedSnapshot.weeklyWindow, fetchedAt: now), now: now)
     let sizer = PaceWindowSizer()
-    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 412, height: 240),
-                          styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    let initialFrame = CGRect(x: 100, y: 100, width: 412, height: 240)
+    let window: NSWindow = menuPanel
+        ? NSPanel(contentRect: initialFrame, styleMask: [.borderless, .nonactivatingPanel],
+                  backing: .buffered, defer: false)
+        : NSWindow(contentRect: initialFrame, styleMask: [.titled, .resizable],
+                   backing: .buffered, defer: false)
     window.isReleasedWhenClosed = false
     defer { window.close() }
     var measurements: [CGSize] = []
-    let content = PaceMenuView(model: model, isLargeDisplay: .constant(false),
+    let content = PaceMenuView(model: model, isLargeDisplay: menuPanel ? nil : .constant(false),
                               showsBankedResetsInitially: true, maximumHeight: 700)
         .onPreferenceChange(PaceContentSizeKey.self) { size in
             measurements.append(size)
@@ -78,7 +83,7 @@ import CodexPaceCore
     window.contentView = NSHostingView(rootView: content)
     sizer.window = window
     func settle() {
-        for _ in 0..<20 {
+        for _ in 0..<60 {
             window.contentView?.layoutSubtreeIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(0.01))
         }
@@ -88,6 +93,12 @@ import CodexPaceCore
     let measurementsBefore = measurements.count
     withAnimation { model.applyFreshSnapshot(expandedSnapshot, now: now) }
     settle()
+    if menuPanel, let outputPath = ProcessInfo.processInfo.environment["CODEX_PACE_PANEL_RENDER_PATH"],
+       let view = window.contentView,
+       let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        try bitmap.representation(using: .png, properties: [:])?.write(to: URL(fileURLWithPath: outputPath))
+    }
     #expect(measurements.count > measurementsBefore)
     #expect(window.contentLayoutRect.height > collapsedHeight + 30)
     #expect(abs(window.contentLayoutRect.height - (measurements.last?.height ?? 0)) < 1)
