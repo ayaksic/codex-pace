@@ -157,7 +157,9 @@ public struct CodexRateLimitClient: Sendable {
         }
 
         candidates.append(contentsOf: [
+            "/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex",
             "/Applications/ChatGPT.app/Contents/Resources/codex",
+            "/Applications/Codex.app/Contents/Resources/codex-cli/bin/codex",
             "/Applications/Codex.app/Contents/Resources/codex",
         ])
 
