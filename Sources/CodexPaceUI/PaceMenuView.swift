@@ -628,7 +628,10 @@ private struct ResetOverrideEditor: View {
 public struct PaceContentSizeKey: PreferenceKey {
     public static let defaultValue: CGSize = .zero
     public static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
+        let next = nextValue()
+        if next.width > 0, next.height > 0 {
+            value = next
+        }
     }
 }
 
