@@ -47,6 +47,9 @@ public final class PaceViewModel: ObservableObject {
     private static let manualResetAtKey = "manualResetAt"
     private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
 
+    public static let creditExpirationNoteKey = "usageCreditExpirationNote"
+    @Published public private(set) var creditExpirationNote: CreditExpirationNote?
+
     @Published public private(set) var snapshot: PaceSnapshot?
     @Published public private(set) var now: Date
     @Published public private(set) var errorMessage: String?
@@ -60,6 +63,7 @@ public final class PaceViewModel: ObservableObject {
     private var lastAttempt: Date?
     private var lastWeeklyUsageRemainingPercent: Double?
     private var lastUpdateCheckAttempt: Date?
+    private let snapshotProvider: @Sendable () async throws -> PaceSnapshot
     private let defaults: UserDefaults
     private let latestRevisionProvider: @Sendable () async throws -> String
 
@@ -69,10 +73,15 @@ public final class PaceViewModel: ObservableObject {
         pollingEnabled: Bool = true,
         defaults: UserDefaults = .standard,
         appBuildInfo: AppBuildInfo = AppBuildInfo(),
+        snapshotProvider: @escaping @Sendable () async throws -> PaceSnapshot = {
+            try await Task.detached(priority: .utility) { try CodexRateLimitClient().fetch() }.value
+        },
         latestRevisionProvider: @escaping @Sendable () async throws -> String = {
             try await GitHubLatestRevisionClient.shared.latestRevision()
         }
     ) {
+        self.snapshotProvider = snapshotProvider
+        self.creditExpirationNote = defaults.string(forKey: Self.creditExpirationNoteKey).flatMap(CreditExpirationNote.init)
         self.snapshot = snapshot
         self.now = now
         self.defaults = defaults
@@ -108,6 +117,33 @@ public final class PaceViewModel: ObservableObject {
                 }
             }
         }
+    }
+
+    public var usageCreditBalanceText: String {
+        UsageCreditBalance.formatted(snapshot?.creditBalance) ?? "Unavailable"
+    }
+
+    public var usageCreditReadingLabel: String {
+        errorMessage != nil && UsageCreditBalance.formatted(snapshot?.creditBalance) != nil
+            ? "Last known balance" : "Balance"
+    }
+
+    public var creditExpirationDayText: String? {
+        guard let note = creditExpirationNote else { return nil }
+        let days = note.daysRemaining(at: now)
+        if days < 0 { return "Noted date passed" }
+        if days == 0 { return "0 days" }
+        return "\(days) day\(days == 1 ? "" : "s")"
+    }
+
+    public func setCreditExpirationNote(_ note: CreditExpirationNote) {
+        creditExpirationNote = note
+        defaults.set(note.isoDate, forKey: Self.creditExpirationNoteKey)
+    }
+
+    public func removeCreditExpirationNote() {
+        creditExpirationNote = nil
+        defaults.removeObject(forKey: Self.creditExpirationNoteKey)
     }
 
     public var appUpdateStatusText: String {
@@ -401,6 +437,7 @@ public final class PaceViewModel: ObservableObject {
     }
 
     func applyFreshSnapshot(_ freshSnapshot: PaceSnapshot, now: Date = Date()) {
+        errorMessage = nil
         let usageRemainingPercent = freshSnapshot.weeklyWindow.usageRemainingPercent
         if isManualResetActive,
            let lastWeeklyUsageRemainingPercent,
@@ -429,9 +466,7 @@ public final class PaceViewModel: ObservableObject {
         defer { isRefreshing = false }
 
         do {
-            let freshSnapshot = try await Task.detached(priority: .utility) {
-                try CodexRateLimitClient().fetch()
-            }.value
+            let freshSnapshot = try await snapshotProvider()
             applyFreshSnapshot(freshSnapshot)
             errorMessage = nil
         } catch {

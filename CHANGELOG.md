@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.0 — 2026-10-01
+
+- Show live usage credits separately from weekly pacing and banked resets, with last-known labeling after refresh failures.
+- Add editable, removable local calendar-date expiration notes without assuming a universal expiration or a gift ledger.
+
 ## 1.11.1 — 2026-10-01 retrospective baseline
 
 - Adopt the estimated semantic version for existing capabilities through `b2bbfb8563a5`.

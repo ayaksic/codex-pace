@@ -33,7 +33,7 @@ struct CodexPacePreview {
             ),
             fetchedAt: now,
             planType: "pro",
-            creditBalance: "0",
+            creditBalance: arguments.contains("--credits") ? "62500.125" : "0",
             rateLimitResetCredits: hasBankedResets
                 ? RateLimitResetCredits(
                     availableCount: 3,
@@ -73,6 +73,9 @@ struct CodexPacePreview {
                 sourceState: "clean"
             )
         )
+        if arguments.contains("--credits") {
+            model.setCreditExpirationNote(CreditExpirationNote("2026-12-31")!)
+        }
         if hasResetOverride {
             model.setManualResetAt(now.addingTimeInterval(11 * 3_600))
         }

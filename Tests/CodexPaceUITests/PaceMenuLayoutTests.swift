@@ -53,6 +53,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
             weeklyWindow: UsageWindow(usedPercent: 100, durationMinutes: 10_080,
                                      resetsAt: now.addingTimeInterval(3_600)),
             fetchedAt: now,
+            creditBalance: "62500",
             rateLimitResetCredits: RateLimitResetCredits(availableCount: 2, credits: (0..<2).map {
                 RateLimitResetCredit(id: "fixture-\($0)", resetType: "codexRateLimits",
                                      status: "available", grantedAt: now,
@@ -62,6 +63,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
         ), now: now, pollingEnabled: false, defaults: defaults
     )
 
+    model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
     let expandedSnapshot = try #require(model.snapshot)
     model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: expandedSnapshot.weeklyWindow, fetchedAt: now), now: now)
     let sizer = PaceWindowSizer()
@@ -76,6 +78,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     var measurements: [CGSize] = []
     let content = PaceMenuView(model: model, isLargeDisplay: menuPanel ? nil : .constant(false),
                               showsBankedResetsInitially: true, maximumHeight: 700)
+        .background(Color(nsColor: .windowBackgroundColor))
         .onPreferenceChange(PaceContentSizeKey.self) { size in
             measurements.append(size)
             DispatchQueue.main.async { sizer.updateContentSize(size) }
@@ -116,4 +119,32 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     #expect(size == CGSize(width: 412, height: 313))
     PaceContentSizeKey.reduce(value: &size, nextValue: { CGSize(width: 412, height: 233) })
     #expect(size == CGSize(width: 412, height: 233))
+}
+
+@Test @MainActor func creditNoteLayoutsScaleAndStayBounded() throws {
+    let suite = "CreditLayoutTests.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let now = Date(timeIntervalSince1970: 1_787_181_600)
+    let model = PaceViewModel(snapshot: PaceSnapshot(
+        weeklyWindow: UsageWindow(usedPercent: 20, durationMinutes: 10_080,
+                                 resetsAt: now.addingTimeInterval(86_400)),
+        fetchedAt: now, creditBalance: "62500.125"), now: now, pollingEnabled: false, defaults: defaults)
+    func size(_ large: Bool, bounded: Bool = false) throws -> CGSize {
+        try #require(ImageRenderer(content: PaceMenuView(model: model,
+            isLargeDisplay: .constant(large), maximumHeight: bounded ? 400 : .infinity)).nsImage).size
+    }
+    let withoutNote = try size(false)
+    model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
+    let single = try size(false)
+    let double = try size(true)
+    #expect(single.height > withoutNote.height)
+    #expect(single.width == 412)
+    #expect(double.width == single.width * 2)
+    #expect(abs(double.height - single.height * 2) < 1)
+    #expect(try size(true, bounded: true).height == 400)
+    model.removeCreditExpirationNote()
+    #expect(try size(false) == withoutNote)
+    let editor = try #require(ImageRenderer(content: CreditExpirationEditor(model: model)).nsImage)
+    #expect(editor.size.width == 380)
 }

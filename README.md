@@ -47,6 +47,15 @@ seven-day window, recalculating **Week left**, pace, and stoppage or time-ahead
 values. A banked-reset expiration remains a deadline indicator only; it does not
 change the pace calculation until a reset is actually applied.
 
+Usage credits appear separately in both windows, using the balance from the same
+Codex refresh. A failed refresh labels the retained reading **Last known balance**;
+missing or invalid balances show **Unavailable**, rather than zero.
+Use **Add expiration note** or **Edit note** to save a local `YYYY-MM-DD` calendar
+date or remove the note. The manually entered note is independent of the total:
+credits can have different expirations. Calendar days use this Mac’s current
+time zone; passing the date does not change the balance or remove the note.
+New installations have no expiration note.
+
 ## Build
 
 ```sh

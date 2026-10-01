@@ -6,6 +6,7 @@ public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var isLargeDisplay: Bool
+    @State private var isShowingCreditEditor = false
     @State private var isShowingResetEditor = false
     @State private var isShowingBankedResets = false
     @State private var isShowingWeeklyTimeline: Bool
@@ -40,6 +41,9 @@ public struct PaceMenuView: View {
                     Color.clear.preference(key: PaceContentSizeKey.self, value: geometry.size)
                 }
             }
+            .sheet(isPresented: $isShowingCreditEditor) {
+                CreditExpirationEditor(model: model)
+            }
             .sheet(isPresented: $isShowingResetEditor) {
                 ResetOverrideEditor(model: model)
             }
@@ -70,6 +74,9 @@ public struct PaceMenuView: View {
                 } else {
                     unavailable
                 }
+
+                Divider()
+                usageCredits
 
                 if model.availableBankedResetCount > 0 {
                     Divider()
@@ -300,6 +307,42 @@ public struct PaceMenuView: View {
             }
         }
         .font(.callout)
+    }
+
+    private var usageCredits: some View {
+        // Peer rows share one parent-owned gap at both display scales.
+        VStack(alignment: .leading, spacing: 6) {
+            HStack {
+                Text("Usage credits").fontWeight(.medium)
+                Spacer()
+                Button(model.creditExpirationNote == nil ? "Add expiration note" : "Edit note") {
+                    isShowingCreditEditor = true
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(Color.accentColor)
+                .accessibilityLabel("Edit usage credit expiration note")
+            }
+            HStack {
+                Text(model.usageCreditReadingLabel).foregroundStyle(.secondary)
+                Spacer()
+                if let dayText = model.creditExpirationDayText {
+                    Text(dayText).monospacedDigit()
+                        .help("Calendar days to the manually noted date, using this Mac’s time zone")
+                    Text("•").foregroundStyle(.secondary)
+                }
+                Text(model.usageCreditBalanceText).monospacedDigit().textSelection(.enabled)
+                    .lineLimit(1).minimumScaleFactor(0.7)
+            }
+            if let note = model.creditExpirationNote {
+                HStack {
+                    Text("Expiration note (manual)").foregroundStyle(.secondary)
+                    Spacer()
+                    Text(note.isoDate).monospacedDigit()
+                }
+            }
+        }
+        .font(.callout)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var bankedResets: some View {
@@ -547,6 +590,49 @@ public struct PaceMenuView: View {
         case .behind:
             .orange
         }
+    }
+}
+
+struct CreditExpirationEditor: View {
+    @ObservedObject var model: PaceViewModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var dateText: String
+
+    init(model: PaceViewModel) {
+        self.model = model
+        _dateText = State(initialValue: model.creditExpirationNote?.isoDate ?? "")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Expiration note (manual)").font(.headline)
+            TextField("Date (YYYY-MM-DD)", text: $dateText)
+                .textFieldStyle(.roundedBorder)
+                .accessibilityLabel("Expiration date, YYYY-MM-DD")
+            Text("A local note for some credits. Codex reports only the total balance here, without a gift-by-gift ledger or an exact expiration time.")
+                .font(.caption).foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                if model.creditExpirationNote != nil {
+                    Button("Remove note", role: .destructive) {
+                        model.removeCreditExpirationNote()
+                        dismiss()
+                    }
+                }
+                Spacer()
+                Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
+                Button("Save") {
+                    if let note = CreditExpirationNote(dateText) {
+                        model.setCreditExpirationNote(note)
+                        dismiss()
+                    }
+                }
+                .disabled(CreditExpirationNote(dateText) == nil)
+                .keyboardShortcut(.defaultAction)
+            }
+        }
+        .padding(20)
+        .frame(width: 380)
     }
 }
 
