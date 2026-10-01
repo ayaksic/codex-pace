@@ -3,6 +3,7 @@
 set -euo pipefail
 
 project_dir="${0:A:h:h}"
+python3 "$project_dir/Scripts/sync-version.py" --check
 app_bundle="$project_dir/dist/Codex Pace.app"
 contents_dir="$app_bundle/Contents"
 macos_dir="$contents_dir/MacOS"

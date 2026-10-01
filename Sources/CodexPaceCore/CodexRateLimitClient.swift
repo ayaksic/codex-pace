@@ -75,7 +75,7 @@ public struct CodexRateLimitClient: Sendable {
                     "clientInfo": [
                         "name": "codex-pace",
                         "title": "Codex Pace",
-                        "version": "1.0.0",
+                        "version": ApplicationVersion.current,
                     ],
                     "capabilities": [
                         "experimentalApi": true,

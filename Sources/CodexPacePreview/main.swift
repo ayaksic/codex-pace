@@ -67,7 +67,7 @@ struct CodexPacePreview {
             pollingEnabled: false,
             defaults: defaults,
             appBuildInfo: AppBuildInfo(
-                version: "1.0.0",
+                version: ApplicationVersion.current,
                 build: "29",
                 sourceRevision: "5e5cebda2253db729256233ba8ceee78ea809db0",
                 sourceState: "clean"
