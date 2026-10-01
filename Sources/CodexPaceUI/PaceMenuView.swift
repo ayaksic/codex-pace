@@ -315,19 +315,19 @@ public struct PaceMenuView: View {
             HStack {
                 Text("Usage credits").fontWeight(.medium)
                 Spacer()
-                Button(model.creditExpirationNote == nil ? "Add expiration note" : "Edit note") {
+                Button(model.creditExpirationNote == nil ? "Add expiration date" : "Edit expiration date") {
                     isShowingCreditEditor = true
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.accentColor)
-                .accessibilityLabel("Edit usage credit expiration note")
+                .accessibilityLabel("Edit usage credit expiration date")
             }
             HStack {
                 Text(model.usageCreditReadingLabel).foregroundStyle(.secondary)
                 Spacer()
                 if let dayText = model.creditExpirationDayText {
                     Text(dayText).monospacedDigit()
-                        .help("Calendar days to the manually noted date, using this Mac’s time zone")
+                        .help("Calendar days to the manually entered expiration date, using this Mac’s time zone")
                     Text("•").foregroundStyle(.secondary)
                 }
                 Text(model.usageCreditBalanceText).monospacedDigit().textSelection(.enabled)
@@ -335,7 +335,7 @@ public struct PaceMenuView: View {
             }
             if let note = model.creditExpirationNote {
                 HStack {
-                    Text("Expiration note (manual)").foregroundStyle(.secondary)
+                    Text("Expiration date (manual)").foregroundStyle(.secondary)
                     Spacer()
                     Text(note.isoDate).monospacedDigit()
                 }
@@ -605,16 +605,16 @@ struct CreditExpirationEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Expiration note (manual)").font(.headline)
+            Text("Expiration date (manual)").font(.headline)
             TextField("Date (YYYY-MM-DD)", text: $dateText)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityLabel("Expiration date, YYYY-MM-DD")
-            Text("A local note for some credits. Codex reports only the total balance here, without a gift-by-gift ledger or an exact expiration time.")
+            Text("A manually entered date for some usage credits. Codex reports their total balance here, without individual expiration dates.")
                 .font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 if model.creditExpirationNote != nil {
-                    Button("Remove note", role: .destructive) {
+                    Button("Remove expiration date", role: .destructive) {
                         model.removeCreditExpirationNote()
                         dismiss()
                     }

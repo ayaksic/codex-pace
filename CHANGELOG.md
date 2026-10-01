@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.12.1 — 2026-10-01
+
+- Label the manual usage-credit date as an expiration date throughout the display and editor.
+- Clarify that usage-credit expiration dates are manually entered, separate from Codex-reported banked reset expirations.
+
 ## 1.12.0 — 2026-10-01
 
 - Show live usage credits separately from weekly pacing and banked resets, with last-known labeling after refresh failures.

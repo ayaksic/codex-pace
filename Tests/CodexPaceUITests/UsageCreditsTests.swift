@@ -71,7 +71,7 @@ import CodexPaceCore
     let window = model.effectiveWeeklyWindow
     let reset = model.resetCountdownTarget
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
-    #expect(model.creditExpirationDayText == "Noted date passed")
+    #expect(model.creditExpirationDayText == "Expiration date passed")
     #expect(model.usageCreditBalanceText == "62,500")
     #expect(model.effectiveWeeklyWindow == window)
     #expect(model.resetCountdownTarget == reset)

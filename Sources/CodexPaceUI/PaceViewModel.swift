@@ -131,7 +131,7 @@ public final class PaceViewModel: ObservableObject {
     public var creditExpirationDayText: String? {
         guard let note = creditExpirationNote else { return nil }
         let days = note.daysRemaining(at: now)
-        if days < 0 { return "Noted date passed" }
+        if days < 0 { return "Expiration date passed" }
         if days == 0 { return "0 days" }
         return "\(days) day\(days == 1 ? "" : "s")"
     }
