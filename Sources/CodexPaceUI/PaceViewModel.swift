@@ -42,7 +42,7 @@ public struct ResetCountdownTarget: Equatable, Sendable {
 
 @MainActor
 public final class PaceViewModel: ObservableObject {
-    private static let autoRefreshInterval: TimeInterval = 2 * 60
+    private static let autoRefreshInterval: TimeInterval = 60
     private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
     private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
