@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.12.2 – 2026-10-12
+- Change refresh interval from 120 seconds to 60 seconds.
+
 ## 1.12.1 — 2026-10-01
 
 - Label the manual usage-credit date as an expiration date throughout the display and editor.
