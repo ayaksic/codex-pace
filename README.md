@@ -18,9 +18,20 @@ unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
 label says **Stopped**.
 
 The projected runout calculation uses the fixed **Next update** timestamp as its
-observation point. Its timestamp therefore stays put during each two-minute
-refresh interval while the countdown ticks, then recalculates after the next
-usage reading.
+observation point. Its timestamp therefore stays put between refreshes while the
+countdown ticks, then recalculates after the next usage reading. Refreshes happen
+every 60 seconds at a displayed 2% or higher weekly usage remaining, and every
+15 seconds at 1% or 0%. The next-update countdown uses the same interval.
+
+Codex Pace shows a separate alert window when Codex explicitly reports that
+included usage is unavailable, weekly usage remaining is 0%, and the usage-credit
+balance decreases between fresh readings for the same account and weekly window.
+The alert appears once per exhaustion period, including across relaunches, and
+updates continue while it is open. A displayed 0% alone does not trigger it.
+If Codex omits account identity, included-usage permission, or a valid balance,
+Codex Pace cannot confirm credit consumption and does not alert. The balance is
+the Codex usage-credit balance; this does not monitor separate API billing or
+stop active Codex work.
 
 Use the window button in the popover header to focus the main Codex Pace window.
 The window shares the menu bar's live reading and refresh cycle. Closing it

@@ -183,10 +183,10 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(model.paceTimeLabel == "Stoppage time")
     #expect(model.paceTimeFields == DurationFields(hours: 0, minutes: 30, seconds: 0))
     #expect(model.stoppageEndsAt == now.addingTimeInterval(30 * 60))
-    #expect(model.projectedRunoutAt == now.addingTimeInterval(24 * 60))
+    #expect(model.projectedRunoutAt == now.addingTimeInterval(22 * 60))
     #expect(
         model.projectedRunoutCountdownFields
-            == DurationFields(hours: 0, minutes: 24, seconds: 0)
+            == DurationFields(hours: 0, minutes: 22, seconds: 0)
     )
 
     let oneMinuteLater = PaceViewModel(
@@ -195,10 +195,10 @@ private let cleanBuildInfo = AppBuildInfo(
         pollingEnabled: false,
         defaults: defaults
     )
-    #expect(oneMinuteLater.projectedRunoutAt == now.addingTimeInterval(24 * 60))
+    #expect(oneMinuteLater.projectedRunoutAt == now.addingTimeInterval(22 * 60))
     #expect(
         oneMinuteLater.projectedRunoutCountdownFields
-            == DurationFields(hours: 0, minutes: 23, seconds: 0)
+            == DurationFields(hours: 0, minutes: 21, seconds: 0)
     )
 
     model.setManualResetAt(manualResetAt)
@@ -219,10 +219,10 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(model.effectiveWeeklyWindow?.resetsAt == naturalResetAt)
     #expect(model.menuBarText == "80.0% / 50%")
     #expect(model.paceTimeLabel == "Stoppage time")
-    #expect(model.projectedRunoutAt == now.addingTimeInterval(24 * 60))
+    #expect(model.projectedRunoutAt == now.addingTimeInterval(22 * 60))
     #expect(
         model.projectedRunoutCountdownFields
-            == DurationFields(hours: 0, minutes: 24, seconds: 0)
+            == DurationFields(hours: 0, minutes: 22, seconds: 0)
     )
 }
 
@@ -415,10 +415,10 @@ private let cleanBuildInfo = AppBuildInfo(
     )
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
-    #expect(model.nextRefreshAt == now.addingTimeInterval(2 * 60))
+    #expect(model.nextRefreshAt == now.addingTimeInterval(60))
     #expect(
         model.nextRefreshCountdownFields
-            == DurationFields(hours: 0, minutes: 2, seconds: 0)
+            == DurationFields(hours: 0, minutes: 1, seconds: 0)
     )
 }
 

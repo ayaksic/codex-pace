@@ -242,7 +242,9 @@ public struct CodexRateLimitClient: Sendable {
                         )
                     }
                 )
-            }
+            },
+            ordinaryUsageAllowed: response.ordinaryUsageAllowed,
+            accountID: response.accountId
         )
     }
 
@@ -281,6 +283,8 @@ private struct RPCErrorDTO: Decodable {
 }
 
 private struct GetAccountRateLimitsResponseDTO: Decodable {
+    let ordinaryUsageAllowed: Bool?
+    let accountId: String?
     let rateLimits: RateLimitSnapshotDTO
     let rateLimitsByLimitId: [String: RateLimitSnapshotDTO]?
     let rateLimitResetCredits: RateLimitResetCreditsDTO?

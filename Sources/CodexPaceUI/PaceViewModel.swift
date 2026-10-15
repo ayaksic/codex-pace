@@ -42,7 +42,7 @@ public struct ResetCountdownTarget: Equatable, Sendable {
 
 @MainActor
 public final class PaceViewModel: ObservableObject {
-    private static let autoRefreshInterval: TimeInterval = 60
+    private static let lastCreditConsumptionAlertKey = "lastCreditConsumptionAlert"
     private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
     private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
@@ -66,6 +66,7 @@ public final class PaceViewModel: ObservableObject {
     private let snapshotProvider: @Sendable () async throws -> PaceSnapshot
     private let defaults: UserDefaults
     private let latestRevisionProvider: @Sendable () async throws -> String
+    private let creditConsumptionAlert: @MainActor () -> Void
 
     public init(
         snapshot: PaceSnapshot? = nil,
@@ -78,7 +79,8 @@ public final class PaceViewModel: ObservableObject {
         },
         latestRevisionProvider: @escaping @Sendable () async throws -> String = {
             try await GitHubLatestRevisionClient.shared.latestRevision()
-        }
+        },
+        creditConsumptionAlert: (@MainActor () -> Void)? = nil
     ) {
         self.snapshotProvider = snapshotProvider
         self.creditExpirationNote = defaults.string(forKey: Self.creditExpirationNoteKey).flatMap(CreditExpirationNote.init)
@@ -87,6 +89,9 @@ public final class PaceViewModel: ObservableObject {
         self.defaults = defaults
         self.appBuildInfo = appBuildInfo
         self.latestRevisionProvider = latestRevisionProvider
+        self.creditConsumptionAlert = creditConsumptionAlert ?? {
+            UsageCreditAlertPresenter.shared.show()
+        }
         self.lastWeeklyUsageRemainingPercent = defaults.object(
             forKey: Self.lastWeeklyUsageRemainingPercentKey
         ) as? Double
@@ -107,7 +112,7 @@ public final class PaceViewModel: ObservableObject {
                 guard let self else { return }
                 self.now = Date()
                 self.clearExpiredManualResetIfNeeded()
-                if self.lastAttempt.map({ self.now.timeIntervalSince($0) >= Self.autoRefreshInterval }) ?? true {
+                if self.isAutoRefreshDue(at: self.now) {
                     await self.refresh()
                 }
                 if self.lastUpdateCheckAttempt.map({
@@ -324,7 +329,17 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var nextRefreshAt: Date? {
-        (lastAttempt ?? snapshot?.fetchedAt)?.addingTimeInterval(Self.autoRefreshInterval)
+        (lastAttempt ?? snapshot?.fetchedAt)?.addingTimeInterval(autoRefreshInterval)
+    }
+
+    public var autoRefreshInterval: TimeInterval {
+        guard let remaining = snapshot?.weeklyWindow.usageRemainingPercent else { return 60 }
+        // Match the whole-percent menu display, including fractional protocol readings.
+        return remaining.rounded(.toNearestOrEven) < 2 ? 15 : 60
+    }
+
+    func isAutoRefreshDue(at date: Date) -> Bool {
+        nextRefreshAt.map { date >= $0 } ?? true
     }
 
     public var nextRefreshCountdownFields: DurationFields? {
@@ -446,9 +461,43 @@ public final class PaceViewModel: ObservableObject {
             clearManualReset()
         }
 
+        let shouldAlert = shouldAlertForCreditConsumption(freshSnapshot)
         rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
         snapshot = freshSnapshot
         self.now = now
+        if shouldAlert { creditConsumptionAlert() }
+    }
+
+    private func shouldAlertForCreditConsumption(_ fresh: PaceSnapshot) -> Bool {
+        guard let accountID = fresh.accountID, !accountID.isEmpty else { return false }
+        let alertKey = "\(Self.lastCreditConsumptionAlertKey).\(accountID)"
+        if fresh.ordinaryUsageAllowed == true {
+            // Only an explicit permission reading confirms that included usage recovered.
+            defaults.removeObject(forKey: alertKey)
+            return false
+        }
+        guard fresh.ordinaryUsageAllowed == false,
+              fresh.weeklyWindow.usageRemainingPercent == 0,
+              fresh.weeklyWindow.resetsAt > fresh.fetchedAt,
+              let previous = snapshot,
+              previous.accountID == accountID,
+              previous.weeklyWindow.resetsAt == fresh.weeklyWindow.resetsAt,
+              fresh.fetchedAt > previous.fetchedAt,
+              let previousBalance = creditBalanceValue(previous.creditBalance),
+              let balance = creditBalanceValue(fresh.creditBalance),
+              balance < previousBalance,
+              defaults.object(forKey: alertKey) as? Date != fresh.weeklyWindow.resetsAt else {
+            return false
+        }
+        defaults.set(fresh.weeklyWindow.resetsAt, forKey: alertKey)
+        return true
+    }
+
+    private func creditBalanceValue(_ raw: String?) -> Decimal? {
+        guard let raw, UsageCreditBalance.formatted(raw) != nil,
+              let value = Decimal(string: raw, locale: Locale(identifier: "en_US_POSIX")),
+              !value.isNaN else { return nil }
+        return value
     }
 
     private func rememberWeeklyUsageRemainingPercent(_ usageRemainingPercent: Double) {

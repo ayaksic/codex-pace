@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.13.0 — 2026-10-14
+
+- Refresh every 15 seconds at a displayed 1% or 0% weekly usage remaining; keep 60-second updates at 2% or higher, including the next-update countdown and projection timestamp.
+- Show a separate, nonblocking alert once per exhaustion period when Codex confirms included usage is unavailable and a fresh reading shows a lower usage-credit balance for the same account and weekly window. A displayed 0% alone does not trigger an alert; missing confirmation or balance data remains unknown.
+
 ## 1.12.2 – 2026-10-12
 - Change refresh interval from 120 seconds to 60 seconds.
 

@@ -79,16 +79,42 @@ struct CodexPacePreview {
         if hasResetOverride {
             model.setManualResetAt(now.addingTimeInterval(11 * 3_600))
         }
-        let content = PaceMenuView(
+        let content = (arguments.contains("--credit-alert")
+            ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}))
+            : AnyView(PaceMenuView(
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),
             showsWeeklyTimelineInitially: showsWeeklyTimeline,
             showsBankedResetsInitially: arguments.contains("--expanded-resets"),
             maximumHeight: arguments.contains("--short-screen") ? 500 : .infinity,
             popOutAction: {}
-        )
+        )))
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
+        if arguments.contains("--credit-alert") {
+            // Native macOS buttons cannot be captured by SwiftUI's ImageRenderer.
+            let app = NSApplication.shared
+            app.appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
+            let view = NSHostingView(rootView: content)
+            let window = NSPanel(contentRect: NSRect(origin: .zero, size: view.fittingSize),
+                                 styleMask: [.titled, .closable], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            window.contentView = view
+            window.orderFront(nil)
+            defer { window.close() }
+            view.layoutSubtreeIfNeeded()
+            RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            guard let png = bitmap.representation(using: .png, properties: [:]) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            try png.write(to: URL(fileURLWithPath: outputPath))
+            print(outputPath)
+            return
+        }
         let renderer = ImageRenderer(content: content)
         renderer.scale = 2
         if arguments.contains("--constrained-height") {

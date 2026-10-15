@@ -112,6 +112,9 @@ public struct PaceSnapshot: Codable, Equatable, Sendable {
     public let planType: String?
     public let creditBalance: String?
     public let rateLimitResetCredits: RateLimitResetCredits?
+    /// Server-confirmed permission for included usage; nil means unavailable.
+    public let ordinaryUsageAllowed: Bool?
+    public let accountID: String?
 
     public init(
         weeklyWindow: UsageWindow,
@@ -119,7 +122,9 @@ public struct PaceSnapshot: Codable, Equatable, Sendable {
         fetchedAt: Date,
         planType: String? = nil,
         creditBalance: String? = nil,
-        rateLimitResetCredits: RateLimitResetCredits? = nil
+        rateLimitResetCredits: RateLimitResetCredits? = nil,
+        ordinaryUsageAllowed: Bool? = nil,
+        accountID: String? = nil
     ) {
         self.weeklyWindow = weeklyWindow
         self.shortWindow = shortWindow
@@ -127,6 +132,8 @@ public struct PaceSnapshot: Codable, Equatable, Sendable {
         self.planType = planType
         self.creditBalance = creditBalance
         self.rateLimitResetCredits = rateLimitResetCredits
+        self.ordinaryUsageAllowed = ordinaryUsageAllowed
+        self.accountID = accountID
     }
 
     public func paceDeltaPercentagePoints(at date: Date = Date()) -> Double {

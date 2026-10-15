@@ -155,6 +155,8 @@ import Testing
     #expect(snapshot.shortWindow?.durationMinutes == 300)
     #expect(snapshot.planType == "pro")
     #expect(snapshot.creditBalance == "0")
+    #expect(snapshot.ordinaryUsageAllowed == nil)
+    #expect(snapshot.accountID == nil)
     #expect(snapshot.rateLimitResetCredits?.availableCount == 2)
     #expect(snapshot.rateLimitResetCredits?.credits?.count == 1)
     #expect(snapshot.rateLimitResetCredits?.credits?.first?.id == "RateLimitResetCredit_1")
@@ -162,6 +164,29 @@ import Testing
         snapshot.rateLimitResetCredits?.credits?.first?.expiresAt
             == Date(timeIntervalSince1970: 1_787_200_000)
     )
+}
+
+@Test(arguments: [true, false])
+func decodesExplicitIncludedUsagePermissionAndAccountIdentity(allowed: Bool) throws {
+    let response: [String: Any] = [
+        "id": 2,
+        "result": [
+            "ordinaryUsageAllowed": allowed,
+            "accountId": "fixture-account",
+            "rateLimits": [
+                "primary": ["usedPercent": 100, "windowDurationMins": 10_080, "resetsAt": 2_000_003_600],
+                "credits": ["balance": "99.999"],
+            ],
+        ],
+    ]
+    let snapshot = try CodexRateLimitClient.decodeRateLimitResponse(
+        JSONSerialization.data(withJSONObject: response)
+    )
+    #expect(snapshot.ordinaryUsageAllowed == allowed)
+    #expect(snapshot.accountID == "fixture-account")
+    #expect(snapshot.creditBalance == "99.999")
+    let decoded = try JSONDecoder().decode(PaceSnapshot.self, from: JSONEncoder().encode(snapshot))
+    #expect(decoded == snapshot)
 }
 
 @Test func prefersCodexBucketInMultiBucketResponse() throws {
