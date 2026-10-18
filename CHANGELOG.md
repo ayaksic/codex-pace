@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.14.0 — 2026-10-17
+
+- Show a separate, nonblocking alert when a fresh weekly usage reading returns to exactly 100% remaining. Repeated full readings do not repeat the alert; saved readings for each known account preserve detection across relaunches.
+
 ## 1.13.0 — 2026-10-14
 
 - Refresh every 15 seconds at a displayed 1% or 0% weekly usage remaining; keep 60-second updates at 2% or higher, including the next-update countdown and projection timestamp.

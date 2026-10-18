@@ -40,7 +40,7 @@ private func creditReading(
 
     let relaunched = PaceViewModel(snapshot: creditReading(balance: "99.998", offset: 30),
                                    pollingEnabled: false, defaults: defaults,
-                                   creditConsumptionAlert: { alerts += 1 })
+                                   creditConsumptionAlert: { alerts += 1 }, usageResetAlert: {})
     relaunched.applyFreshSnapshot(creditReading(balance: "99.997", offset: 45))
     #expect(alerts == 1)
     // Rounded percentages and missing permission must not infer recovery.

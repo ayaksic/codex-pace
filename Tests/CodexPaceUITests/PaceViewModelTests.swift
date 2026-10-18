@@ -522,7 +522,8 @@ private let cleanBuildInfo = AppBuildInfo(
         ),
         now: now,
         pollingEnabled: false,
-        defaults: defaults
+        defaults: defaults,
+        usageResetAlert: {}
     )
     model.setManualResetAt(estimatedResetAt)
 

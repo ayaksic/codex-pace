@@ -30,7 +30,8 @@ func adaptiveRefreshMatchesDisplayedRemainingUsage(usedPercent: Double) {
     let suiteName = "AdaptiveRefreshTests.\(UUID())"
     let defaults = UserDefaults(suiteName: suiteName)!
     defer { defaults.removePersistentDomain(forName: suiteName) }
-    let model = PaceViewModel(now: now, pollingEnabled: false, defaults: defaults)
+    let model = PaceViewModel(now: now, pollingEnabled: false, defaults: defaults,
+                              usageResetAlert: {})
     #expect(model.autoRefreshInterval == 60)
     #expect(model.nextRefreshAt == nil)
     #expect(model.isAutoRefreshDue(at: now))

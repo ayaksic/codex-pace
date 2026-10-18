@@ -16,6 +16,7 @@ struct CodexPacePreview {
         let isLargeDisplay = arguments.contains("--double")
         let hasResetOverride = arguments.contains("--reset-override")
         let hasBankedResets = arguments.contains("--banked-resets")
+        let showsUsageResetAlert = arguments.contains("--usage-reset-alert")
         let showsWeeklyTimeline = arguments.contains("--timeline")
         let usedPercent = if arguments.contains("--zero-usage") {
             100.0
@@ -81,6 +82,7 @@ struct CodexPacePreview {
         }
         let content = (arguments.contains("--credit-alert")
             ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}))
+            : showsUsageResetAlert ? AnyView(UsageResetAlertView(dismiss: {}))
             : AnyView(PaceMenuView(
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),
@@ -91,7 +93,7 @@ struct CodexPacePreview {
         )))
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
-        if arguments.contains("--credit-alert") {
+        if arguments.contains("--credit-alert") || showsUsageResetAlert {
             // Native macOS buttons cannot be captured by SwiftUI's ImageRenderer.
             let app = NSApplication.shared
             app.appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)

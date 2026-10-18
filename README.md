@@ -33,6 +33,13 @@ Codex Pace cannot confirm credit consumption and does not alert. The balance is
 the Codex usage-credit balance; this does not monitor separate API billing or
 stop active Codex work.
 
+Codex Pace also shows a separate alert when weekly usage changes from below 100%
+to exactly 100% remaining. The alert stays visible until dismissed, and refreshes
+continue while it is open. Repeated readings at 100% do not repeat the alert.
+The last reading is saved separately for each known account so resets can be
+detected across relaunches. A first reading at 100% without an earlier reading
+does not trigger an alert. Reset estimates and countdowns alone do not trigger it.
+
 Use the window button in the popover header to focus the main Codex Pace window.
 The window shares the menu bar's live reading and refresh cycle. Closing it
 leaves the app running; click its Dock icon to reopen the window.

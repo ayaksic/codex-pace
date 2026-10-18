@@ -42,6 +42,17 @@ public struct ResetCountdownTarget: Equatable, Sendable {
 
 @MainActor
 public final class PaceViewModel: ObservableObject {
+    private struct UsageResetReading: Codable {
+        let usedPercent: Double
+        let fetchedAt: Date
+
+        init(_ snapshot: PaceSnapshot) {
+            usedPercent = snapshot.weeklyWindow.usedPercent
+            fetchedAt = snapshot.fetchedAt
+        }
+    }
+
+    private static let usageResetReadingKey = "usageResetReading"
     private static let lastCreditConsumptionAlertKey = "lastCreditConsumptionAlert"
     private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
@@ -67,6 +78,8 @@ public final class PaceViewModel: ObservableObject {
     private let defaults: UserDefaults
     private let latestRevisionProvider: @Sendable () async throws -> String
     private let creditConsumptionAlert: @MainActor () -> Void
+    private let usageResetAlert: @MainActor () -> Void
+    private var lastUsageResetReading: (accountID: String?, reading: UsageResetReading)?
 
     public init(
         snapshot: PaceSnapshot? = nil,
@@ -80,7 +93,8 @@ public final class PaceViewModel: ObservableObject {
         latestRevisionProvider: @escaping @Sendable () async throws -> String = {
             try await GitHubLatestRevisionClient.shared.latestRevision()
         },
-        creditConsumptionAlert: (@MainActor () -> Void)? = nil
+        creditConsumptionAlert: (@MainActor () -> Void)? = nil,
+        usageResetAlert: (@MainActor () -> Void)? = nil
     ) {
         self.snapshotProvider = snapshotProvider
         self.creditExpirationNote = defaults.string(forKey: Self.creditExpirationNoteKey).flatMap(CreditExpirationNote.init)
@@ -92,6 +106,10 @@ public final class PaceViewModel: ObservableObject {
         self.creditConsumptionAlert = creditConsumptionAlert ?? {
             UsageCreditAlertPresenter.shared.show()
         }
+        self.usageResetAlert = usageResetAlert ?? {
+            UsageResetAlertPresenter.shared.show()
+        }
+        self.lastUsageResetReading = snapshot.map { ($0.accountID, UsageResetReading($0)) }
         self.lastWeeklyUsageRemainingPercent = defaults.object(
             forKey: Self.lastWeeklyUsageRemainingPercentKey
         ) as? Double
@@ -462,10 +480,36 @@ public final class PaceViewModel: ObservableObject {
         }
 
         let shouldAlert = shouldAlertForCreditConsumption(freshSnapshot)
+        let didResetUsage = shouldAlertForUsageReset(freshSnapshot)
         rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
         snapshot = freshSnapshot
         self.now = now
         if shouldAlert { creditConsumptionAlert() }
+        if didResetUsage { usageResetAlert() }
+    }
+
+    private func shouldAlertForUsageReset(_ fresh: PaceSnapshot) -> Bool {
+        // Use the raw percentage: rounding or clamping must not imply a full reset.
+        guard (0...100).contains(fresh.weeklyWindow.usedPercent),
+              fresh.weeklyWindow.resetsAt > fresh.fetchedAt else { return false }
+
+        let key = fresh.accountID.flatMap { $0.isEmpty ? nil : "\(Self.usageResetReadingKey).\($0)" }
+        let stored = key.flatMap { defaults.data(forKey: $0) }
+            .flatMap { try? JSONDecoder().decode(UsageResetReading.self, from: $0) }
+        let previous = lastUsageResetReading.flatMap {
+            $0.accountID == fresh.accountID ? $0.reading : nil
+        }
+        let baseline = [stored, previous].compactMap { $0 }
+            .filter { (0...100).contains($0.usedPercent) }
+            .max { $0.fetchedAt < $1.fetchedAt }
+
+        // Do not let duplicate or out-of-order readings rearm the alert.
+        if let baseline, fresh.fetchedAt <= baseline.fetchedAt { return false }
+        lastUsageResetReading = (fresh.accountID, UsageResetReading(fresh))
+        if let key, let data = try? JSONEncoder().encode(UsageResetReading(fresh)) {
+            defaults.set(data, forKey: key)
+        }
+        return fresh.weeklyWindow.usedPercent == 0 && (baseline?.usedPercent ?? 0) > 0
     }
 
     private func shouldAlertForCreditConsumption(_ fresh: PaceSnapshot) -> Bool {
