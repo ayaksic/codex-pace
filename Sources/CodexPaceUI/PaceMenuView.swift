@@ -158,7 +158,7 @@ public struct PaceMenuView: View {
         let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
         return HStack(spacing: 0) {
             MetricView(
-                label: "Week left",
+                label: model.timeRemainingLabel,
                 value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
             )
             Divider()
@@ -193,7 +193,7 @@ public struct PaceMenuView: View {
         } label: {
             Group {
                 if isShowingWeeklyTimeline {
-                    WeeklyTimelineBar(progress: timelineProgress)
+                    WeeklyTimelineBar(progress: timelineProgress, label: model.timelineLabel)
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 6) {
@@ -203,7 +203,7 @@ public struct PaceMenuView: View {
                             color: .accentColor
                         )
                         ComparisonBar(
-                            label: "Time",
+                            label: model.resetCountdownTarget?.kind == .bankedResetExpiry ? "Expiry" : "Time",
                             value: weeklyWindow.timeRemainingPercent(at: model.now),
                             color: .purple
                         )
@@ -218,11 +218,11 @@ public struct PaceMenuView: View {
         .help(
             isShowingWeeklyTimeline
                 ? "Show remaining usage and time bars"
-                : "Show seven-day usage timeline"
+                : model.timelineDescription
         )
         .accessibilityLabel(
             isShowingWeeklyTimeline
-                ? "Seven-day usage timeline"
+                ? model.timelineDescription
                 : "Usage and time remaining"
         )
         .accessibilityValue(
@@ -233,7 +233,7 @@ public struct PaceMenuView: View {
         .accessibilityHint(
             isShowingWeeklyTimeline
                 ? "Shows the remaining usage and time bars"
-                : "Shows usage consumed across the seven-day window"
+                : model.timelineDescription
         )
     }
 
@@ -243,7 +243,7 @@ public struct PaceMenuView: View {
             window.timeRemainingPercent(at: model.now),
             places: 1
         )
-        return "\(usageRemaining) usage remaining, \(timeRemaining) time remaining"
+        return "\(usageRemaining) usage remaining, \(timeRemaining) time remaining. \(model.timelineDescription)"
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
@@ -284,6 +284,15 @@ public struct PaceMenuView: View {
                         timestampSeparator
                         timestampDate(resetTarget.date)
                         timestampTime(resetTarget.date)
+                    }
+                    if resetTarget.kind != .natural {
+                        GridRow {
+                            detailLabel("Weekly reset")
+                            durationValue(model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt))
+                            timestampSeparator
+                            timestampDate(snapshot.weeklyWindow.resetsAt)
+                            timestampTime(snapshot.weeklyWindow.resetsAt)
+                        }
                     }
                 }
                 if let nextRefreshAt = model.nextRefreshAt,
@@ -491,7 +500,7 @@ public struct PaceMenuView: View {
     private func resetLabel(for kind: ResetCountdownKind) -> String {
         switch kind {
         case .natural:
-            "Resets"
+            "Weekly reset"
         case .manualEstimate:
             "Reset by (est.)"
         case .bankedResetExpiry:
@@ -675,7 +684,7 @@ private struct ResetOverrideEditor: View {
                 .font(.callout)
             }
 
-            Text("This changes the displayed reset countdown only. Week left and pace continue to use the window reported by Codex. Times use this Mac's time zone.")
+            Text("Time left, bars and pace target the earliest of this estimate, a banked reset expiration, or the weekly reset. Percentages use a seven-day scale. Times use this Mac's time zone.")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -899,10 +908,11 @@ private struct WeeklyTimelineBar: View {
     private static let dayCount = 7
 
     let progress: WeeklyTimelineProgress
+    let label: String
 
     var body: some View {
         HStack(spacing: 7) {
-            Text("Week")
+            Text(label)
                 .font(.caption2)
                 .foregroundStyle(.secondary)
                 .frame(width: 34, alignment: .leading)

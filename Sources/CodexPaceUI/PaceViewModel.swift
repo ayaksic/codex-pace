@@ -80,6 +80,8 @@ public final class PaceViewModel: ObservableObject {
     private let creditConsumptionAlert: @MainActor () -> Void
     private let usageResetAlert: @MainActor () -> Void
     private var lastUsageResetReading: (accountID: String?, reading: UsageResetReading)?
+    private var bankedResetReminders: BankedResetReminderHistory
+    private let bankedResetWarning: @MainActor ([BankedResetExpiryWarning], Bool) -> Void
 
     public init(
         snapshot: PaceSnapshot? = nil,
@@ -94,7 +96,8 @@ public final class PaceViewModel: ObservableObject {
             try await GitHubLatestRevisionClient.shared.latestRevision()
         },
         creditConsumptionAlert: (@MainActor () -> Void)? = nil,
-        usageResetAlert: (@MainActor () -> Void)? = nil
+        usageResetAlert: (@MainActor () -> Void)? = nil,
+        bankedResetWarning: (@MainActor ([BankedResetExpiryWarning], Bool) -> Void)? = nil
     ) {
         self.snapshotProvider = snapshotProvider
         self.creditExpirationNote = defaults.string(forKey: Self.creditExpirationNoteKey).flatMap(CreditExpirationNote.init)
@@ -108,6 +111,10 @@ public final class PaceViewModel: ObservableObject {
         }
         self.usageResetAlert = usageResetAlert ?? {
             UsageResetAlertPresenter.shared.show()
+        }
+        self.bankedResetReminders = BankedResetReminderHistory(defaults: defaults)
+        self.bankedResetWarning = bankedResetWarning ?? { warnings, shouldPresent in
+            BankedResetExpiryAlertPresenter.shared.update(warnings, shouldPresent: shouldPresent)
         }
         self.lastUsageResetReading = snapshot.map { ($0.accountID, UsageResetReading($0)) }
         self.lastWeeklyUsageRemainingPercent = defaults.object(
@@ -133,6 +140,7 @@ public final class PaceViewModel: ObservableObject {
                 if self.isAutoRefreshDue(at: self.now) {
                     await self.refresh()
                 }
+                self.checkBankedResetReminders()
                 if self.lastUpdateCheckAttempt.map({
                     self.now.timeIntervalSince($0) >= Self.updateCheckInterval
                 }) ?? true {
@@ -294,6 +302,8 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var projectedRunoutAt: Date? {
+        // The observed consumption rate belongs to the actual server window;
+        // target-relative pace guidance uses effectiveWeeklyWindow separately.
         guard paceMetricState == .behind,
               let weeklyWindow = snapshot?.weeklyWindow,
               let projectionAt = nextRefreshAt,
@@ -307,17 +317,37 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var effectiveWeeklyWindow: UsageWindow? {
-        guard let weeklyWindow = snapshot?.weeklyWindow else { return nil }
-        guard let manualResetAt,
-              manualResetAt > now,
-              manualResetAt < weeklyWindow.resetsAt else {
-            return weeklyWindow
-        }
+        guard let weeklyWindow = snapshot?.weeklyWindow,
+              let target = resetCountdownTarget else { return nil }
         return UsageWindow(
             usedPercent: weeklyWindow.usedPercent,
             durationMinutes: weeklyWindow.durationMinutes,
-            resetsAt: manualResetAt
+            resetsAt: target.date
         )
+    }
+
+    public var timeRemainingLabel: String {
+        switch resetCountdownTarget?.kind {
+        case .bankedResetExpiry: "To expiry"
+        case .manualEstimate: "To estimate"
+        default: "Week left"
+        }
+    }
+
+    public var timelineLabel: String {
+        switch resetCountdownTarget?.kind {
+        case .bankedResetExpiry: "Expiry"
+        case .manualEstimate: "Est."
+        default: "Week"
+        }
+    }
+
+    public var timelineDescription: String {
+        switch resetCountdownTarget?.kind {
+        case .bankedResetExpiry: "Seven-day scale ending at banked reset expiration"
+        case .manualEstimate: "Seven-day scale ending at estimated reset"
+        default: "Seven-day usage timeline"
+        }
     }
 
     public var currentPaceDelta: Double? {
@@ -470,6 +500,8 @@ public final class PaceViewModel: ObservableObject {
     }
 
     func applyFreshSnapshot(_ freshSnapshot: PaceSnapshot, now: Date = Date()) {
+        if let snapshot, snapshot.accountID == freshSnapshot.accountID,
+           freshSnapshot.fetchedAt < snapshot.fetchedAt { return }
         errorMessage = nil
         let usageRemainingPercent = freshSnapshot.weeklyWindow.usageRemainingPercent
         if isManualResetActive,
@@ -486,6 +518,25 @@ public final class PaceViewModel: ObservableObject {
         self.now = now
         if shouldAlert { creditConsumptionAlert() }
         if didResetUsage { usageResetAlert() }
+        checkBankedResetReminders()
+    }
+
+    func checkBankedResetReminders() {
+        guard let snapshot else { return }
+        // A failed refresh must not silence a known expiration. Label uncertain availability.
+        let age = now.timeIntervalSince(snapshot.fetchedAt)
+        guard age >= 0 else { return }
+        let warnings = availableBankedResetCredits.compactMap { credit -> BankedResetExpiryWarning? in
+            guard credit.resetType.caseInsensitiveCompare("codexRateLimits") == .orderedSame,
+                  let expiresAt = credit.expiresAt else { return nil }
+            let seconds = expiresAt.timeIntervalSince(now)
+            guard seconds > 0, seconds <= 12 * 3_600 else { return nil }
+            return BankedResetExpiryWarning(creditID: credit.id, expiresAt: expiresAt,
+                                           hoursRemaining: Int(ceil(seconds / 3_600)),
+                                           availabilityIsLastKnown: errorMessage != nil || age > 2 * autoRefreshInterval)
+        }
+        let shouldPresent = bankedResetReminders.recordDue(warnings, accountID: snapshot.accountID, now: now)
+        bankedResetWarning(warnings, shouldPresent)
     }
 
     private func shouldAlertForUsageReset(_ fresh: PaceSnapshot) -> Bool {

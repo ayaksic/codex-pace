@@ -60,10 +60,25 @@ their expiration countdowns and timestamps. When a known banked reset expires
 before the natural reset, the main reset row becomes **Banked reset expires** and
 counts down to that earlier deadline. Codex Pace preserves the server's
 authoritative available count even when the server omits or caps detailed
-expiration rows. A manual estimate also becomes the effective end of the
-seven-day window, recalculating **Week left**, pace, and stoppage or time-ahead
-values. A banked-reset expiration remains a deadline indicator only; it does not
-change the pace calculation until a reset is actually applied.
+expiration rows. The earliest of a banked-reset expiration, manual estimate, or
+regular weekly reset drives the time percentage, both bar views, menu-bar value,
+pace, and stoppage or time-ahead values together. Percentages retain the seven-day
+scale: six days left is 85.7%. The time metric reads **To expiry** or **To estimate**
+for an earlier deadline; the timeline is labeled **Expiry** or **Est.** and ends
+at that deadline. **Weekly reset** remains visible separately. When a credit is
+used, expires, or becomes unavailable, pacing selects the next applicable target.
+The expiration itself does not automatically apply a banked reset.
+
+During each available banked reset's final 12 hours, Codex Pace presents an hourly
+warning at 12, 11, …, 1 hour remaining. A floating window comes forward with a sound
+and an attention request, and remains until acknowledged. Acknowledgment does not
+disable the next hourly warning. Simultaneous warnings share one window; hourly
+history for known accounts survives relaunches. Warnings require Codex Pace to be
+running and the Mac awake. After sleep or a refresh failure, warnings continue
+from the last known expiration with availability explicitly labeled as last
+confirmed until refreshed. Missed hours produce one current warning, not a
+backlog. Unavailable, consumed, expired, or undated credits do not trigger
+warnings. Using the reset remains a manual action in Codex.
 
 Usage credits appear separately in both windows, using the balance from the same
 Codex refresh. A failed refresh labels the retained reading **Last known balance**;

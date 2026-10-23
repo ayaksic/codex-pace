@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.15.0 — 2026-10-23
+
+- Target the earliest banked-reset expiration, manual estimate, or weekly reset consistently across time remaining, menu-bar percentages, both bar views, pace, and pace timing. Label expiration and estimate targets explicitly, retain the seven-day percentage scale, and show the regular weekly reset separately.
+- Warn at 12, 11, …, 1 hour before each available banked reset expires with a persistent foreground window, sound, and attention request. Group simultaneous warnings, retain hourly warning history across relaunches for known accounts, and stop warnings when fresh readings show a reset is no longer available. Refresh failures preserve warnings with availability labeled as last confirmed; missed hours produce one current warning.
+
 ## 1.14.0 — 2026-10-17
 
 - Show a separate, nonblocking alert when a fresh weekly usage reading returns to exactly 100% remaining. Repeated full readings do not repeat the alert; saved readings for each known account preserve detection across relaunches.

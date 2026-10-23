@@ -16,9 +16,12 @@ struct CodexPacePreview {
         let isLargeDisplay = arguments.contains("--double")
         let hasResetOverride = arguments.contains("--reset-override")
         let hasBankedResets = arguments.contains("--banked-resets")
+        let showsExpiryAlert = arguments.contains("--expiry-alert")
         let showsUsageResetAlert = arguments.contains("--usage-reset-alert")
         let showsWeeklyTimeline = arguments.contains("--timeline")
-        let usedPercent = if arguments.contains("--zero-usage") {
+        let usedPercent = if arguments.contains("--banked-reset-week") {
+            0.0
+        } else if arguments.contains("--zero-usage") {
             100.0
         } else if arguments.contains("--ahead") {
             17.5
@@ -30,7 +33,9 @@ struct CodexPacePreview {
             weeklyWindow: UsageWindow(
                 usedPercent: usedPercent,
                 durationMinutes: 10_080,
-                resetsAt: Date(timeIntervalSince1970: 1_787_679_109)
+                resetsAt: arguments.contains("--banked-reset-week")
+                    ? now.addingTimeInterval(7 * 86_400)
+                    : Date(timeIntervalSince1970: 1_787_679_109)
             ),
             fetchedAt: now,
             planType: "pro",
@@ -44,7 +49,7 @@ struct CodexPacePreview {
                             resetType: "codexRateLimits",
                             status: "available",
                             grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(11 * 3_600),
+                            expiresAt: now.addingTimeInterval(arguments.contains("--banked-reset-week") ? 6 * 86_400 + 4_600 : 11 * 3_600),
                             title: "Rate-limit reset"
                         ),
                         RateLimitResetCredit(
@@ -52,7 +57,7 @@ struct CodexPacePreview {
                             resetType: "codexRateLimits",
                             status: "available",
                             grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(35 * 3_600),
+                            expiresAt: now.addingTimeInterval(arguments.contains("--banked-reset-week") ? 14 * 86_400 : 35 * 3_600),
                             title: "Rate-limit reset"
                         ),
                     ]
@@ -82,6 +87,9 @@ struct CodexPacePreview {
         }
         let content = (arguments.contains("--credit-alert")
             ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}))
+            : showsExpiryAlert ? AnyView(BankedResetExpiryAlertView(warnings: [
+                BankedResetExpiryWarning(creditID: "preview-reset", expiresAt: now.addingTimeInterval(3_600), hoursRemaining: 1)
+            ], dismiss: {}))
             : showsUsageResetAlert ? AnyView(UsageResetAlertView(dismiss: {}))
             : AnyView(PaceMenuView(
             model: model,
@@ -93,8 +101,8 @@ struct CodexPacePreview {
         )))
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
-        if arguments.contains("--credit-alert") || showsUsageResetAlert {
-            // Native macOS buttons cannot be captured by SwiftUI's ImageRenderer.
+        if arguments.contains("--credit-alert") || showsUsageResetAlert || showsExpiryAlert || arguments.contains("--native") {
+            // Native hosting also captures scroll views and macOS buttons that ImageRenderer omits.
             let app = NSApplication.shared
             app.appearance = NSAppearance(named: colorScheme == .dark ? .darkAqua : .aqua)
             let view = NSHostingView(rootView: content)

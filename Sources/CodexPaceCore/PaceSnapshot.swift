@@ -52,8 +52,11 @@ public struct UsageWindow: Codable, Equatable, Sendable {
     /// The time-equivalent pace margin. Positive values are time ahead; negative
     /// values are the time usage would need to stop to return to pace.
     public func paceTimeDeltaInterval(at date: Date = Date()) -> TimeInterval {
-        let deltaPercentagePoints = usageRemainingPercent - timeRemainingPercent(at: date)
-        return deltaPercentagePoints / 100 * Double(durationMinutes) * 60
+        let durationSeconds = Double(durationMinutes) * 60
+        guard durationSeconds > 0 else { return 0 }
+        let remainingSeconds = min(durationSeconds, max(0, resetsAt.timeIntervalSince(date)))
+        // Work in seconds rather than round-tripping the deadline through percentages.
+        return usageRemainingPercent / 100 * durationSeconds - remainingSeconds
     }
 
     private static func clamp(_ value: Double) -> Double {
