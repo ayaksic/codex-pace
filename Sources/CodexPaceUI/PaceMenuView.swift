@@ -96,7 +96,8 @@ public struct PaceMenuView: View {
         .fixedSize(horizontal: false, vertical: true)
         .background {
             GeometryReader { geometry in
-                Color.clear.preference(key: PaceNaturalContentSizeKey.self, value: geometry.size)
+                Color.clear.preference(key: PaceNaturalContentSizeKey.self,
+                    value: PaceNaturalMeasurement(size: geometry.size, hasReading: model.snapshot != nil))
             }
         }
     }
@@ -210,11 +211,13 @@ public struct PaceMenuView: View {
                     VStack(spacing: 12) {
                         ComparisonBar(
                             value: weeklyWindow.usageRemainingPercent,
-                            color: PaceColors.usage
+                            color: PaceColors.usage,
+                            contentScale: displayScale
                         )
                         ComparisonBar(
                             value: weeklyWindow.timeRemainingPercent(at: model.now),
-                            color: PaceColors.time
+                            color: PaceColors.time,
+                            contentScale: displayScale
                         )
                     }
                     .transition(.opacity)
@@ -604,10 +607,16 @@ public struct PaceContentSizeKey: PreferenceKey {
     }
 }
 
+struct PaceNaturalMeasurement: Equatable {
+    var size: CGSize = .zero
+    var hasReading = false
+}
+
 struct PaceNaturalContentSizeKey: PreferenceKey {
-    static let defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        PaceContentSizeKey.reduce(value: &value, nextValue: nextValue)
+    static let defaultValue = PaceNaturalMeasurement()
+    static func reduce(value: inout PaceNaturalMeasurement, nextValue: () -> PaceNaturalMeasurement) {
+        let next = nextValue()
+        if next.size.width > 0, next.size.height > 0 { value = next }
     }
 }
 
@@ -763,7 +772,7 @@ private struct MetricView: View {
     var body: some View {
         VStack(spacing: 8) {
             Text(value).font(PaceTypography.metricFont(size: 34)).tracking(-1)
-                .foregroundStyle(color == PaceColors.usage || color == PaceColors.time ? Color.primary : color)
+                .foregroundStyle(color)
             Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(color)
                 .padding(.horizontal, 10).padding(.vertical, 3)
                 .background(Capsule().fill(color.opacity(0.17)))
@@ -772,11 +781,23 @@ private struct MetricView: View {
     }
 }
 
+enum ComparisonBarGeometry {
+    static let segmentCount = 50
+
+    static func ticks(width: CGFloat, pixelScale: CGFloat) -> [CGFloat] {
+        let scale = max(1, pixelScale)
+        return (1..<segmentCount).map { index in
+            (floor(width * CGFloat(index) / CGFloat(segmentCount) * scale) + 0.5) / scale
+        }
+    }
+}
+
 private struct ComparisonBar: View {
-    private static let segmentCount = 100
+    @Environment(\.displayScale) private var backingScale
 
     let value: Double
     let color: Color
+    let contentScale: CGFloat
 
     var body: some View {
         Group {
@@ -788,11 +809,10 @@ private struct ComparisonBar: View {
                         .fill(color)
                         .frame(width: proxy.size.width * min(100, max(0, value)) / 100)
                     Canvas { context, size in
-                        let segmentWidth = size.width / Double(Self.segmentCount)
+                        let pixelScale = max(1, backingScale * contentScale)
                         let fillWidth = size.width * min(100, max(0, value)) / 100
 
-                        for tick in 1..<Self.segmentCount {
-                            let x = segmentWidth * Double(tick)
+                        for x in ComparisonBarGeometry.ticks(width: size.width, pixelScale: pixelScale) {
                             let tickColor: Color = x <= fillWidth
                                 ? .black
                                 : .white.opacity(0.85)
@@ -802,7 +822,7 @@ private struct ComparisonBar: View {
                             context.stroke(
                                 path,
                                 with: .color(tickColor),
-                                lineWidth: 0.5
+                                lineWidth: 1 / pixelScale
                             )
                         }
                     }
@@ -868,32 +888,17 @@ private struct WeeklyTimelineBar: View {
                             )
                         }
 
-                        let constrainedMarkerX = min(
-                            size.width - 1.5,
-                            max(1.5, markerX)
-                        )
-                        let markerHeight = min(14, size.height - 4)
-                        let markerTop = (size.height - markerHeight) / 2
+                        let radius: CGFloat = 3.5
+                        let constrainedMarkerX = min(size.width - radius - 0.5, max(radius + 0.5, markerX))
+                        let centerY = size.height / 2
                         var marker = Path()
-                        marker.move(
-                            to: CGPoint(x: constrainedMarkerX, y: markerTop)
-                        )
-                        marker.addLine(
-                            to: CGPoint(
-                                x: constrainedMarkerX,
-                                y: markerTop + markerHeight
-                            )
-                        )
-                        context.stroke(
-                            marker,
-                            with: .color(.white),
-                            lineWidth: 3
-                        )
-                        context.stroke(
-                            marker,
-                            with: .color(.black),
-                            lineWidth: 1
-                        )
+                        marker.move(to: CGPoint(x: constrainedMarkerX, y: centerY - radius))
+                        marker.addLine(to: CGPoint(x: constrainedMarkerX + radius, y: centerY))
+                        marker.addLine(to: CGPoint(x: constrainedMarkerX, y: centerY + radius))
+                        marker.addLine(to: CGPoint(x: constrainedMarkerX - radius, y: centerY))
+                        marker.closeSubpath()
+                        context.fill(marker, with: .color(.white))
+                        context.stroke(marker, with: .color(.black), lineWidth: 0.75)
                     }
                     RoundedRectangle(cornerRadius: 2)
                         .strokeBorder(.primary.opacity(0.22), lineWidth: 0.5)

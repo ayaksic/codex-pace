@@ -228,3 +228,47 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     if let scroll = view as? NSScrollView { return scroll }
     return view.subviews.lazy.compactMap { findScrollView(in: $0) }.first
 }
+
+@Test(arguments: [false, true]) @MainActor
+func firstReadingFitsStartupWindowOnceUnlessUserAlreadyResized(manualResize: Bool) async throws {
+    let suite = "PaceStartupSizingTests.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let model = PaceViewModel(now: now, pollingEnabled: false, defaults: defaults)
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 466, height: 240),
+                          styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    defer { window.close() }
+    window.contentView = NSHostingView(rootView: PaceMainWindowView(model: model, isLargeDisplay: .constant(false)))
+    func settle() async throws {
+        for _ in 0..<30 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
+    try await settle()
+    if manualResize { window.setContentSize(CGSize(width: 560, height: 300)); try await settle() }
+    let initialSize = window.contentLayoutRect.size
+    let snapshot = PaceSnapshot(weeklyWindow: UsageWindow(usedPercent: 100, durationMinutes: 10_080,
+        resetsAt: now.addingTimeInterval(86_400)), fetchedAt: now, creditBalance: "62500",
+        rateLimitResetCredits: RateLimitResetCredits(availableCount: 2, credits: (0..<2).map {
+            RateLimitResetCredit(id: "startup-fixture-\($0)", resetType: "codexRateLimits", status: "available",
+                grantedAt: now, expiresAt: now.addingTimeInterval(Double($0 + 2) * 86_400))
+        }))
+    model.applyFreshSnapshot(snapshot, now: now)
+    try await settle()
+    if manualResize { #expect(window.contentLayoutRect.size == initialSize) }
+    else {
+        #expect(window.frame.width == PaceMenuLayout.width)
+        #expect(window.contentLayoutRect.height > initialSize.height)
+        let host = try #require(window.contentView)
+        let scroll = try #require(findScrollView(in: host))
+        let document = try #require(scroll.documentView)
+        #expect(document.frame.height <= scroll.contentSize.height + 1)
+    }
+    let fittedSize = window.contentLayoutRect.size
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: snapshot.weeklyWindow, fetchedAt: now), now: now)
+    try await settle()
+    #expect(window.contentLayoutRect.size == fittedSize)
+}

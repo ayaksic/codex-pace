@@ -36,6 +36,20 @@ import CodexPaceCore
     #expect(size.height == PaceMenuLayout.rowHeight)
 }
 
+@Test func barSeparatorsUseEvenlySpacedPhysicalPixelCenters() {
+    #expect(ComparisonBarGeometry.segmentCount == 50)
+    for scale: CGFloat in [1, 2, 2.5, 4] {
+        let ticks = ComparisonBarGeometry.ticks(width: 434, pixelScale: scale)
+        #expect(ticks.count == 49)
+        for position in ticks {
+            let pixelPosition = position * scale
+            #expect(abs(pixelPosition - floor(pixelPosition) - 0.5) < 0.0001)
+        }
+        let gaps = zip(ticks,ticks.dropFirst()).map { ($1 - $0) * scale }
+        #expect((gaps.max()! - gaps.min()!) <= 1.0001)
+    }
+}
+
 @Test func locallyBundledArealWeightsRegisterWithTheirActualFontNames() {
     // Public builds intentionally omit the licensed assets and use the fallback.
     // When supplied locally, verify that SwiftUI will receive the actual family.

@@ -7,6 +7,9 @@ public struct PaceMainWindowView: View {
     @ObservedObject private var model: PaceViewModel
     @Binding private var isLargeDisplay: Bool
     @StateObject private var sizer = PaceWindowSizer(allowsManualResize: true)
+    @State private var awaitingFirstReading = true
+    @State private var initialContentSize: CGSize?
+    @State private var latestMeasurement = PaceNaturalMeasurement()
 
     public init(model: PaceViewModel, isLargeDisplay: Binding<Bool>) {
         self.model = model
@@ -27,14 +30,30 @@ public struct PaceMainWindowView: View {
             MainWindowAccessor { window in
                 guard sizer.window !== window else { return }
                 sizer.window = window
-                sizer.usePreset(scale: isLargeDisplay ? 2 : 1)
+                initialContentSize = window?.contentLayoutRect.size
+                fitFirstReadingIfReady()
             }
         }
-        .onPreferenceChange(PaceNaturalContentSizeKey.self) { size in
-            DispatchQueue.main.async { sizer.updateContentSize(size) }
+        .onPreferenceChange(PaceNaturalContentSizeKey.self) { measurement in
+            DispatchQueue.main.async {
+                latestMeasurement = measurement
+                sizer.updateContentSize(measurement.size)
+                fitFirstReadingIfReady()
+            }
         }
         .onChange(of: isLargeDisplay) { large in
+            awaitingFirstReading = false
             sizer.usePreset(scale: large ? 2 : 1)
+        }
+    }
+
+    private func fitFirstReadingIfReady() {
+        guard awaitingFirstReading, latestMeasurement.hasReading, let window = sizer.window else { return }
+        awaitingFirstReading = false
+        // The readiness flag and size come from the same layout pass, so a fast
+        // refresh cannot fit the older loading view. Respect a resize while waiting.
+        if window.contentLayoutRect.size == initialContentSize {
+            sizer.usePreset(scale: isLargeDisplay ? 2 : 1)
         }
     }
 }
