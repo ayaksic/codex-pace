@@ -1,28 +1,18 @@
 import AppKit
-import Combine
 
-/// Keeps the native window in step with the measured SwiftUI content, including
-/// disclosure changes that do not reliably update a Scene's content-size limits.
+/// Popovers fit content automatically. Manually resizable windows only change
+/// frame for an explicit preset; layout measurements never drive their frame.
 @MainActor
 public final class PaceWindowSizer: ObservableObject {
     public weak var window: NSWindow? {
         didSet {
             guard window !== oldValue else { return }
-            resizeObserver = nil
-            if allowsManualResize, let window {
-                resizeObserver = NotificationCenter.default.publisher(
-                    for: NSWindow.willStartLiveResizeNotification, object: window
-                ).sink { [weak self] _ in
-                    MainActor.assumeIsolated { self?.isManuallySized = true }
-                }
-            }
-            resizeToContent()
+            if !allowsManualResize { resize(to: contentSize) }
         }
     }
-    @Published public private(set) var isManuallySized = false
     private let allowsManualResize: Bool
-    private var resizeObserver: AnyCancellable?
     private var contentSize: CGSize = .zero
+    private var pendingPresetScale: CGFloat?
 
     public init(allowsManualResize: Bool = false) {
         self.allowsManualResize = allowsManualResize
@@ -30,29 +20,37 @@ public final class PaceWindowSizer: ObservableObject {
 
     public func usePreset(scale: CGFloat) {
         guard let window else { return }
-        isManuallySized = false
-        let width = PaceMenuLayout.width * scale
-        if contentSize != .zero {
-            let ratio = width / contentSize.width
-            contentSize = CGSize(width: width, height: contentSize.height * ratio)
-            resizeToContent()
-        } else {
-            window.setContentSize(CGSize(width: width, height: window.contentLayoutRect.height))
+        guard contentSize != .zero else {
+            pendingPresetScale = scale
+            return
         }
+        pendingPresetScale = nil
+        let width = PaceMenuLayout.width * scale
+        let ratio = width / contentSize.width
+        var height = contentSize.height * ratio
+        if let screen = window.screen {
+            let chromeHeight = window.frame.height - window.contentLayoutRect.height
+            height = min(height, screen.visibleFrame.height - chromeHeight)
+        }
+        resize(to: CGSize(width: width, height: max(240, height)))
     }
 
     public func updateContentSize(_ size: CGSize) {
         guard size.width > 0, size.height > 0,
               size.width.isFinite, size.height.isFinite else { return }
         contentSize = size
-        resizeToContent()
+        if let pendingPresetScale {
+            usePreset(scale: pendingPresetScale)
+        } else if !allowsManualResize {
+            resize(to: size)
+        }
     }
 
-    private func resizeToContent() {
-        guard let window, contentSize != .zero, !isManuallySized else { return }
+    private func resize(to size: CGSize) {
+        guard let window, size != .zero else { return }
         let previous = window.frame
         let chromeHeight = previous.height - window.contentLayoutRect.height
-        let desiredSize = CGSize(width: ceil(contentSize.width), height: ceil(contentSize.height) + chromeHeight)
+        let desiredSize = CGSize(width: ceil(size.width), height: ceil(size.height) + chromeHeight)
         guard abs(previous.width - desiredSize.width) > 0.5 ||
               abs(previous.height - desiredSize.height) > 0.5 else { return }
 

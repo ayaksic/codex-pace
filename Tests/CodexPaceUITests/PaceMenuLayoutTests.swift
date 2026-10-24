@@ -183,11 +183,10 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
                 status: "available", grantedAt: now, expiresAt: now.addingTimeInterval(5 * 86_400))])), now: now)
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
     try await settle()
-    #expect(window.contentLayoutRect.height > initialHeight)
+    #expect(window.contentLayoutRect.height == initialHeight)
 
     for size in [CGSize(width: 480, height: 360), CGSize(width: 850, height: 650),
                  CGSize(width: 1050, height: 360)] {
-        NotificationCenter.default.post(name: NSWindow.willStartLiveResizeNotification, object: window)
         window.setContentSize(size)
         try await settle()
         #expect(window.contentLayoutRect.size == size)

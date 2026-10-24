@@ -97,6 +97,11 @@ public struct PaceMenuView: View {
             .scaleEffect(displayScale, anchor: .topLeading)
         }
         .fixedSize(horizontal: false, vertical: true)
+        .background {
+            GeometryReader { geometry in
+                Color.clear.preference(key: PaceNaturalContentSizeKey.self, value: geometry.size)
+            }
+        }
     }
 
     private var header: some View {
@@ -700,6 +705,13 @@ public struct PaceContentSizeKey: PreferenceKey {
         if next.width > 0, next.height > 0 {
             value = next
         }
+    }
+}
+
+struct PaceNaturalContentSizeKey: PreferenceKey {
+    static let defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        PaceContentSizeKey.reduce(value: &value, nextValue: nextValue)
     }
 }
 

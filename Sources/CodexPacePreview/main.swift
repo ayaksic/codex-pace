@@ -82,13 +82,23 @@ struct CodexPacePreview {
                 build: "29",
                 sourceRevision: "5e5cebda2253db729256233ba8ceee78ea809db0",
                 sourceState: "clean"
-            )
+            ),
+            creditConsumptionAlert: {},
+            usageResetAlert: {},
+            bankedResetWarning: { _, _ in }
         )
         if arguments.contains("--credits") {
             model.setCreditExpirationNote(CreditExpirationNote("2026-12-31")!)
         }
         if hasResetOverride {
             model.setManualResetAt(now.addingTimeInterval(11 * 3_600))
+        }
+        if arguments.contains("--resizable-window") {
+            // Exercise a real SwiftUI Window scene, including its native size
+            // negotiation, with isolated sample readings and no account polling.
+            ResizablePacePreviewApp.model = model
+            ResizablePacePreviewApp.main()
+            return
         }
         let content = (arguments.contains("--credit-alert")
             ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}))
@@ -147,5 +157,26 @@ struct CodexPacePreview {
 
         try png.write(to: URL(fileURLWithPath: outputPath))
         print(outputPath)
+    }
+}
+
+@MainActor
+private struct ResizablePacePreviewApp: App {
+    static var model: PaceViewModel!
+    @State private var largePreset = false
+
+    var body: some Scene {
+        Window("Codex Pace Resize Preview", id: "pace-resize-preview") {
+            PaceMainWindowView(model: Self.model, isLargeDisplay: $largePreset)
+                .task {
+                    while !Task.isCancelled {
+                        do { try await Task.sleep(nanoseconds: 1_000_000_000) }
+                        catch { return }
+                        Self.model.objectWillChange.send()
+                    }
+                }
+        }
+        .windowResizability(.automatic)
+        .defaultSize(width: 620, height: 600)
     }
 }

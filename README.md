@@ -55,7 +55,8 @@ left and keeps that right edge in place when returning to `1×`. The menu-bar
 popover stays compact. You can also drag the main window's edges or corners to
 resize it freely. Content scales with the width; shorter windows scroll vertically.
 After a manual resize, content updates preserve your chosen window size. The
-1× and 2× presets return to automatic content fitting.
+1× and 2× presets resize the window once to fit the content. Subsequent layout
+measurements and content updates do not resize the main window.
 
 Use the calendar-and-clock button in the header when a one-off usage reset is
 expected before the timestamp reported by Codex. Codex Pace shows the manual

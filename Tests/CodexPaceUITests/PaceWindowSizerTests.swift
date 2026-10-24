@@ -46,19 +46,25 @@ import Testing
     sizer.window = window
     sizer.updateContentSize(CGSize(width: 620, height: 500))
 
-    NotificationCenter.default.post(name: NSWindow.willStartLiveResizeNotification, object: window)
     window.setContentSize(CGSize(width: 850, height: 400))
     let manuallySizedFrame = window.frame
     sizer.updateContentSize(CGSize(width: 850, height: 700))
-    #expect(sizer.isManuallySized)
     #expect(window.frame == manuallySizedFrame)
 
     sizer.usePreset(scale: 1)
-    #expect(!sizer.isManuallySized)
     #expect(window.frame.width == 620)
+    let presetFrame = window.frame
     sizer.updateContentSize(CGSize(width: 620, height: 520))
-    #expect(window.contentLayoutRect.height == 520)
+    #expect(window.frame == presetFrame)
     sizer.usePreset(scale: 2)
     #expect(window.frame.width == 1240)
-    #expect(window.contentLayoutRect.height == 1040)
+    #expect(window.contentLayoutRect.height <= 1040)
+    let doubleFrame = window.frame
+    // Out-of-date measurements can arrive after a preset or a live drag. They
+    // must never pull the main window back to a previously measured width.
+    for size in [CGSize(width: 620, height: 520), CGSize(width: 1240, height: 1040),
+                 CGSize(width: 620, height: 500), CGSize(width: 850, height: 700)] {
+        sizer.updateContentSize(size)
+        #expect(window.frame == doubleFrame)
+    }
 }

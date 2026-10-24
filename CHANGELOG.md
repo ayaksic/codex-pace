@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.17.1 — 2026-10-24
+
+- Stop layout measurements from resizing the main window, preventing snap-back and flicker during manual resizing and preset changes. Fit the main window only on opening or an explicit 1×/2× selection; content updates preserve its size.
+
 ## 1.17.0 — 2026-10-24
 
 - Allow manual resizing of the main window with continuous content scaling by width and vertical scrolling when needed. Keep 1× and 2× as quick size presets.
