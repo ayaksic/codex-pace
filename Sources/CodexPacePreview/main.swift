@@ -19,12 +19,15 @@ struct CodexPacePreview {
         let showsExpiryAlert = arguments.contains("--expiry-alert")
         let showsUsageResetAlert = arguments.contains("--usage-reset-alert")
         let showsWeeklyTimeline = arguments.contains("--timeline")
+        let showsBehindExample = arguments.contains("--behind")
         let usedPercent = if arguments.contains("--banked-reset-week") {
             0.0
         } else if arguments.contains("--zero-usage") {
             100.0
         } else if arguments.contains("--ahead") {
             17.5
+        } else if showsBehindExample {
+            93.0
         } else {
             18.0
         }
@@ -33,7 +36,9 @@ struct CodexPacePreview {
             weeklyWindow: UsageWindow(
                 usedPercent: usedPercent,
                 durationMinutes: 10_080,
-                resetsAt: arguments.contains("--banked-reset-week")
+                resetsAt: showsBehindExample
+                    ? now.addingTimeInterval(6 * 86_400)
+                    : arguments.contains("--banked-reset-week")
                     ? now.addingTimeInterval(7 * 86_400)
                     : Date(timeIntervalSince1970: 1_787_679_109)
             ),
@@ -49,7 +54,7 @@ struct CodexPacePreview {
                             resetType: "codexRateLimits",
                             status: "available",
                             grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(arguments.contains("--banked-reset-week") ? 6 * 86_400 + 4_600 : 11 * 3_600),
+                            expiresAt: now.addingTimeInterval(showsBehindExample ? 0.718 * 7 * 86_400 : arguments.contains("--banked-reset-week") ? 6 * 86_400 + 4_600 : 11 * 3_600),
                             title: "Rate-limit reset"
                         ),
                         RateLimitResetCredit(
@@ -57,7 +62,7 @@ struct CodexPacePreview {
                             resetType: "codexRateLimits",
                             status: "available",
                             grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(arguments.contains("--banked-reset-week") ? 14 * 86_400 : 35 * 3_600),
+                            expiresAt: now.addingTimeInterval(showsBehindExample ? 8 * 86_400 : arguments.contains("--banked-reset-week") ? 14 * 86_400 : 35 * 3_600),
                             title: "Rate-limit reset"
                         ),
                     ]

@@ -53,7 +53,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
     #expect(window.durationMinutes == 10_080)
     let expectedTime = (6 * 86_400.0 + 4_600) / (7 * 86_400) * 100
     #expect(abs(window.timeRemainingPercent(at: model.now) - expectedTime) < 0.0001)
-    #expect(model.menuBarText == "86.5% / 100%")
+    #expect(model.menuBarText == "100% / 86.5%")
     #expect(model.timeRemainingLabel == "To expiry")
     #expect(model.timelineLabel == "Expiry")
     #expect(model.timelineDescription.contains("banked reset expiration"))
@@ -76,7 +76,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
                              now: expiryFixtureNow)
     #expect(model.effectiveWeeklyWindow?.resetsAt == model.snapshot?.weeklyWindow.resetsAt)
     #expect(model.timeRemainingLabel == "Week left")
-    #expect(model.menuBarText == "100.0% / 100%")
+    #expect(model.menuBarText == "100% / 100.0%")
 }
 
 @MainActor @Test

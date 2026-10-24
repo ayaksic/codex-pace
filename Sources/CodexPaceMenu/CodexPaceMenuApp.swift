@@ -21,7 +21,9 @@ struct CodexPaceMenuApp: App {
             MenuBarContent(model: model)
         } label: {
             Text(model.menuBarText)
+                .font(PaceTypography.font(size: 13, weight: .medium))
                 .monospacedDigit()
+                .accessibilityLabel("Usage left, then time remaining: \(model.menuBarText)")
         }
         .menuBarExtraStyle(.window)
     }

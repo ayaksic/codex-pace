@@ -8,14 +8,19 @@ with the percentage of the current seven-day window remaining.
 > trademarks of their respective owners.
 
 Codex Pace opens as a regular Dock app with one main window. The menu bar also
-shows `time / usage`, so `83.0% / 82%` means roughly 83% of the week and 82% of
-usage remain. Click it for the exact values, pace, and reset time. When the pace
+shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of
+the week remain. The top row uses the same order. Click it for the exact values,
+pace, and reset time. When the pace
 says **Slow down**, the **Stoppage time** row shows how long it would take to get
 back on pace if weekly usage stopped increasing, followed by the date and time
 when usage could resume. The **Projected runout** row beneath it shows when usage
 would reach 0% if the average consumption rate since the window began continued
 unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
 label says **Stopped**.
+
+Countdowns keep seconds visible. The next-update countdown appears in the toolbar;
+its exact timestamp is available in its help text. Build details and the update
+check open from the compact version footer.
 
 The projected runout calculation uses the fixed **Next update** timestamp as its
 observation point. Its timestamp therefore stays put between refreshes while the
@@ -83,7 +88,7 @@ warnings. Using the reset remains a manual action in Codex.
 Usage credits appear separately in both windows, using the balance from the same
 Codex refresh. A failed refresh labels the retained reading **Last known balance**;
 missing or invalid balances show **Unavailable**, rather than zero.
-Use **Add expiration date** or **Edit expiration date** to save a local `YYYY-MM-DD` calendar
+Use **Add expiration** or **Edit expiration** to save a local `YYYY-MM-DD` calendar
 date or remove the date. The manually entered expiration date is independent of the total:
 credits can have different expirations. Calendar days use this Mac’s current
 time zone; passing the date does not change the balance or remove the saved date.
@@ -148,3 +153,13 @@ active Codex CLI session as the supported ways to view current usage:
 ## License
 
 Codex Pace is available under the MIT License. See [LICENSE](LICENSE).
+
+## Local fonts
+
+The interface uses ABC Areal (Regular, Medium, Bold) when locally supplied. Copy
+licensed `ABCAreal-Regular.ttf`, `ABCAreal-Medium.ttf`, and `ABCAreal-Bold.ttf` into
+`Sources/CodexPaceUI/Resources/Fonts/` before building. Font binaries are ignored
+by Git. They are registered only for the app process and carried into local app
+bundles; no system font installation is performed. Builds without the font assets
+fall back to the macOS system font. Distribution of builds containing the font
+requires appropriate font rights.

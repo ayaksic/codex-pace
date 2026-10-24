@@ -39,6 +39,8 @@ mkdir -p "$macos_dir" "$resources_dir" "$cli_dir"
 cp "$build_dir/CodexPaceMenu" "$macos_dir/Codex Pace"
 cp "$build_dir/codex-pace" "$cli_dir/codex-pace"
 cp "$project_dir/Resources/Info.plist" "$contents_dir/Info.plist"
+# SwiftPM resources (including locally supplied licensed fonts) travel with the app.
+cp -R "$build_dir/CodexPace_CodexPaceUI.bundle" "$resources_dir/"
 /usr/libexec/PlistBuddy -c "Set :CFBundleVersion $build_number" "$contents_dir/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CodexPaceSourceRevision $source_revision" "$contents_dir/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CodexPaceSourceState $source_state" "$contents_dir/Info.plist"

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.16.0 — 2026-10-24
+
+- Refresh the native window and menu popover with ABCAreal typography, aligned countdowns with seconds, quieter timestamps and build details, a toolbar update countdown, and compact metadata. Retain the reset/credit editors, paired-bar/timeline toggle, and banked-reset disclosure.
+- Put usage remaining before time remaining in the top metrics and menu-bar text.
+- Load locally supplied ABCAreal fonts as process-local resources; keep licensed font binaries out of the public source repository and use the system font when absent.
+
 ## 1.15.0 — 2026-10-23
 
 - Target the earliest banked-reset expiration, manual estimate, or weekly reset consistently across time remaining, menu-bar percentages, both bar views, pace, and pace timing. Label expiration and estimate targets explicitly, retain the seven-day percentage scale, and show the regular weekly reset separately.

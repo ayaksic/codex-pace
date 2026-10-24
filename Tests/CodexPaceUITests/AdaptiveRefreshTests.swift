@@ -13,7 +13,7 @@ func adaptiveRefreshMatchesDisplayedRemainingUsage(usedPercent: Double) {
         fetchedAt: now
     )
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
-    let fast = model.menuBarText.hasSuffix(" / 1%") || model.menuBarText.hasSuffix(" / 0%")
+    let fast = model.menuBarText.hasPrefix("1% / ") || model.menuBarText.hasPrefix("0% / ")
     let expected: TimeInterval = fast ? 15 : 60
     #expect(model.autoRefreshInterval == expected)
     #expect(model.nextRefreshAt == now.addingTimeInterval(expected))

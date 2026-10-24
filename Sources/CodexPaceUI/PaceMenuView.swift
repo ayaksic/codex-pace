@@ -7,6 +7,7 @@ public struct PaceMenuView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding private var isLargeDisplay: Bool
     @State private var isShowingCreditEditor = false
+    @State private var isShowingBuildDetails = false
     @State private var isShowingResetEditor = false
     @State private var isShowingBankedResets = false
     @State private var isShowingWeeklyTimeline: Bool
@@ -17,7 +18,7 @@ public struct PaceMenuView: View {
     public init(
         model: PaceViewModel,
         isLargeDisplay: Binding<Bool>? = nil,
-        showsWeeklyTimelineInitially: Bool = true,
+        showsWeeklyTimelineInitially: Bool = false,
         showsBankedResetsInitially: Bool = false,
         maximumHeight: CGFloat = .infinity,
         popOutAction: (() -> Void)? = nil
@@ -64,7 +65,7 @@ public struct PaceMenuView: View {
 
     private var scaledContent: some View {
         ScaledLayout(scale: displayScale) {
-            VStack(spacing: 10) {
+            VStack(spacing: PaceMenuLayout.sectionGap) {
                 header
 
                 if let snapshot = model.snapshot {
@@ -86,8 +87,10 @@ public struct PaceMenuView: View {
                 Divider()
                 versionStatus
             }
-            .padding(12)
-            .frame(width: 412)
+            .font(PaceTypography.font(size: 13))
+            .padding(.horizontal, PaceMenuLayout.horizontalPadding)
+            .padding(.vertical, 16)
+            .frame(width: PaceMenuLayout.width)
             .scaleEffect(displayScale, anchor: .topLeading)
         }
         .fixedSize(horizontal: false, vertical: true)
@@ -115,6 +118,13 @@ public struct PaceMenuView: View {
                 model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
             )
             Spacer()
+            if let countdown = model.nextRefreshCountdownFields {
+                Text("Next update in \(DurationDisplay(fields: countdown).compactText)")
+                    .font(PaceTypography.font(size: 11))
+                    .foregroundStyle(PaceColors.secondary)
+                    .monospacedDigit()
+                    .help(model.nextRefreshAt.map { "Next update: \($0.formatted(date: .abbreviated, time: .complete))" } ?? "")
+            }
             if model.isRefreshing {
                 ProgressView()
                     .controlSize(.small)
@@ -133,8 +143,7 @@ public struct PaceMenuView: View {
                     isLargeDisplay.toggle()
                 } label: {
                     Text(isLargeDisplay ? "1×" : "2×")
-                        .font(.caption)
-                        .fontWeight(.semibold)
+                        .font(PaceTypography.font(size: 12, weight: .medium))
                 }
                 .buttonStyle(.plain)
                 .help(isLargeDisplay ? "Use standard window size" : "Double window size")
@@ -158,18 +167,18 @@ public struct PaceMenuView: View {
         let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
         return HStack(spacing: 0) {
             MetricView(
-                label: model.timeRemainingLabel,
-                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
-            )
-            Divider()
-                .frame(height: 35)
-                .padding(.horizontal, 8)
-            MetricView(
                 label: "Usage left",
                 value: percent(weeklyWindow.usageRemainingPercent, places: 0)
             )
             Divider()
-                .frame(height: 35)
+                .frame(height: 58)
+                .padding(.horizontal, 8)
+            MetricView(
+                label: model.timeRemainingLabel,
+                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
+            )
+            Divider()
+                .frame(height: 58)
                 .padding(.horizontal, 8)
             MetricView(
                 label: model.paceMetricLabel,
@@ -196,7 +205,7 @@ public struct PaceMenuView: View {
                     WeeklyTimelineBar(progress: timelineProgress, label: model.timelineLabel)
                         .transition(.opacity)
                 } else {
-                    VStack(spacing: 6) {
+                    VStack(spacing: 12) {
                         ComparisonBar(
                             label: "Usage",
                             value: weeklyWindow.usageRemainingPercent,
@@ -211,7 +220,7 @@ public struct PaceMenuView: View {
                     .transition(.opacity)
                 }
             }
-            .frame(height: 32)
+            .frame(height: 40)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -247,134 +256,105 @@ public struct PaceMenuView: View {
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
-        VStack(spacing: 6) {
-            Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
+        VStack(alignment: .leading, spacing: PaceMenuLayout.rowGap) {
+            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: PaceMenuLayout.rowGap) {
                 if let paceTimeLabel = model.paceTimeLabel,
                    let paceTime = model.paceTimeFields {
                     GridRow {
-                        detailLabel(paceTimeLabel)
-                        durationValue(paceTime)
-                        if let stoppageEndsAt = model.stoppageEndsAt {
-                            timestampSeparator
-                            timestampDate(stoppageEndsAt)
-                            timestampTime(stoppageEndsAt)
-                        } else {
-                            timestampSeparatorPlaceholder
-                            timestampDatePlaceholder
-                            timestampTimePlaceholder
-                        }
+                        detailLabel(paceTimeLabel, emphasized: true)
+                        durationValue(paceTime, emphasized: true)
+                        detailTimestamp(model.stoppageEndsAt)
                     }
                 }
                 if let projectedRunoutAt = model.projectedRunoutAt,
                    let countdown = model.projectedRunoutCountdownFields {
                     GridRow {
-                        detailLabel("Projected runout")
-                        durationValue(countdown)
-                        timestampSeparator
-                        timestampDate(projectedRunoutAt)
-                        timestampTime(projectedRunoutAt)
+                        detailLabel("Projected runout", emphasized: true)
+                        durationValue(countdown, emphasized: true)
+                        detailTimestamp(projectedRunoutAt)
                     }
                 }
                 if let resetTarget = model.resetCountdownTarget {
                     GridRow {
                         detailLabel(resetLabel(for: resetTarget.kind))
-                        durationValue(
-                            model.remainingTimeFields(until: resetTarget.date)
-                        )
-                        timestampSeparator
-                        timestampDate(resetTarget.date)
-                        timestampTime(resetTarget.date)
+                        durationValue(model.remainingTimeFields(until: resetTarget.date))
+                        detailTimestamp(resetTarget.date)
                     }
                     if resetTarget.kind != .natural {
                         GridRow {
                             detailLabel("Weekly reset")
                             durationValue(model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt))
-                            timestampSeparator
-                            timestampDate(snapshot.weeklyWindow.resetsAt)
-                            timestampTime(snapshot.weeklyWindow.resetsAt)
+                            detailTimestamp(snapshot.weeklyWindow.resetsAt)
                         }
-                    }
-                }
-                if let nextRefreshAt = model.nextRefreshAt,
-                   let countdown = model.nextRefreshCountdownFields {
-                    GridRow {
-                        detailLabel("Next update")
-                        durationValue(countdown)
-                        timestampSeparator
-                        timestampDate(nextRefreshAt)
-                        timestampTime(nextRefreshAt)
                     }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             if let error = model.errorMessage {
                 Text(error)
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                    .font(PaceTypography.font(size: 12))
+                    .foregroundStyle(PaceColors.warning)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .font(.callout)
     }
 
     private var usageCredits: some View {
         // Peer rows share one parent-owned gap at both display scales.
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: PaceMenuLayout.creditRowGap) {
             HStack {
-                Text("Usage credits").fontWeight(.medium)
+                Text("Usage credits").font(PaceTypography.font(size: 13, weight: .medium))
                 Spacer()
-                Button(model.creditExpirationNote == nil ? "Add expiration date" : "Edit expiration date") {
+                Button(model.creditExpirationNote == nil ? "Add expiration" : "Edit expiration") {
                     isShowingCreditEditor = true
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(Color.accentColor)
+                .font(PaceTypography.font(size: 12))
                 .accessibilityLabel("Edit usage credit expiration date")
             }
             HStack {
-                Text(model.usageCreditReadingLabel).foregroundStyle(.secondary)
+                Text(model.usageCreditReadingLabel).foregroundStyle(PaceColors.secondary)
                 Spacer()
                 if let dayText = model.creditExpirationDayText {
                     Text(dayText).monospacedDigit()
                         .help("Calendar days to the manually entered expiration date, using this Mac’s time zone")
-                    Text("•").foregroundStyle(.secondary)
+                    Text("•").foregroundStyle(PaceColors.secondary)
                 }
                 Text(model.usageCreditBalanceText).monospacedDigit().textSelection(.enabled)
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
             if let note = model.creditExpirationNote {
                 HStack {
-                    Text("Expiration date (manual)").foregroundStyle(.secondary)
+                    HStack(spacing: 6) {
+                        Text("Expiration").foregroundStyle(PaceColors.secondary)
+                        metadataPill("Manual")
+                    }
                     Spacer()
                     Text(note.isoDate).monospacedDigit()
                 }
             }
         }
-        .font(.callout)
+        .font(PaceTypography.font(size: 13))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var bankedResets: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: PaceMenuLayout.rowGap) {
             Button {
-                withAnimation {
+                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
                     isShowingBankedResets.toggle()
                 }
             } label: {
                 HStack {
                     Text("Banked resets")
-                        .fontWeight(.medium)
+                        .font(PaceTypography.font(size: 13, weight: .medium))
                     Spacer()
-                    Text("\(model.availableBankedResetCount)")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .monospacedDigit()
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(.quaternary, in: Capsule())
+                    metadataPill("\(model.availableBankedResetCount)")
                     Image(systemName: "chevron.right")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(PaceTypography.font(size: 12))
+                        .foregroundStyle(PaceColors.secondary)
                         .rotationEffect(.degrees(isShowingBankedResets ? 90 : 0))
                 }
             }
@@ -383,19 +363,17 @@ public struct PaceMenuView: View {
             .accessibilityValue(isShowingBankedResets ? "Expanded" : "Collapsed")
 
             if isShowingBankedResets {
-                Grid(alignment: .leading, horizontalSpacing: 5, verticalSpacing: 6) {
+                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: PaceMenuLayout.rowGap) {
                     ForEach(model.availableBankedResetCredits) { credit in
                         GridRow {
                             detailLabel("Expires")
                             if let expiresAt = credit.expiresAt {
                                 durationValue(model.remainingTimeFields(until: expiresAt))
-                                timestampSeparator
-                                timestampDate(expiresAt)
-                                timestampTime(expiresAt)
+                                detailTimestamp(expiresAt)
                             } else {
                                 Text("No expiration reported")
-                                    .foregroundStyle(.secondary)
-                                    .gridCellColumns(4)
+                                    .foregroundStyle(PaceColors.secondary)
+                                    .gridCellColumns(2)
                             }
                         }
                     }
@@ -404,26 +382,26 @@ public struct PaceMenuView: View {
 
                 if model.bankedResetCountWithoutDetails > 0 {
                     Text(expirationDetailsUnavailableText)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(PaceTypography.font(size: 12))
+                        .foregroundStyle(PaceColors.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }
-        .font(.callout)
+        .font(PaceTypography.font(size: 13))
     }
 
     private var unavailable: some View {
         VStack(spacing: 7) {
             if model.isRefreshing {
                 Text("Reading Codex usage…")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(PaceColors.secondary)
             } else {
                 Text("Usage unavailable")
                     .fontWeight(.medium)
                 Text(model.errorMessage ?? "Refresh to try again.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(PaceTypography.font(size: 12))
+                    .foregroundStyle(PaceColors.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -433,38 +411,54 @@ public struct PaceMenuView: View {
 
     private var versionStatus: some View {
         Button {
-            Task { await model.checkForUpdates() }
+            isShowingBuildDetails.toggle()
         } label: {
-            HStack(spacing: 4) {
-                Text(model.appBuildInfo.versionText)
-                Text("·")
-                Text(model.appBuildInfo.shortRevision)
-                    .monospaced()
+            HStack(spacing: 8) {
+                Text(model.appBuildInfo.version)
+                Image(systemName: appUpdateStatusSymbol)
+                    .foregroundStyle(appUpdateStatusColor)
+                Text(model.appUpdateStatusText)
+                    .foregroundStyle(appUpdateStatusColor)
                 Spacer()
-                HStack(spacing: 4) {
-                    if model.appUpdateStatus == .checking {
-                        ProgressView()
-                            .controlSize(.mini)
-                            .scaleEffect(0.7)
-                    } else {
-                        Image(systemName: appUpdateStatusSymbol)
-                    }
-                    Text(model.appUpdateStatusText)
-                }
-                .foregroundStyle(appUpdateStatusColor)
+                Image(systemName: "info.circle")
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .frame(maxWidth: .infinity)
+            .font(PaceTypography.font(size: 11))
+            .foregroundStyle(PaceColors.secondary)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(model.appUpdateStatus == .checking)
-        .help("Check whether this installed build matches the latest commit on GitHub")
+        .help("Build details and update check")
         .accessibilityLabel(
             "Codex Pace \(model.appBuildInfo.versionText), revision "
-                + "\(model.appBuildInfo.shortRevision), \(model.appUpdateStatusText)"
+                + "\(model.appBuildInfo.shortRevision), \(model.appUpdateStatusText). Show build details."
         )
+        .popover(isPresented: $isShowingBuildDetails) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Codex Pace \(model.appBuildInfo.version)")
+                    .font(PaceTypography.font(size: 14, weight: .medium))
+                Text("Build \(model.appBuildInfo.build) · \(model.appBuildInfo.shortRevision)")
+                    .foregroundStyle(PaceColors.secondary)
+                    .textSelection(.enabled)
+                Button(model.appUpdateStatus == .checking ? "Checking…" : "Check for updates") {
+                    Task { await model.checkForUpdates() }
+                }
+                .disabled(model.appUpdateStatus == .checking)
+                Text(model.appUpdateStatusText)
+                    .foregroundStyle(appUpdateStatusColor)
+            }
+            .font(PaceTypography.font(size: 12))
+            .padding(16)
+        }
+    }
+
+    private func metadataPill(_ text: String) -> some View {
+        Text(text)
+            .font(PaceTypography.font(size: 11))
+            .monospacedDigit()
+            .foregroundStyle(PaceColors.secondary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
     }
 
     private var appUpdateStatusSymbol: String {
@@ -485,11 +479,11 @@ public struct PaceMenuView: View {
     private var appUpdateStatusColor: Color {
         switch model.appUpdateStatus {
         case .latest:
-            .green
+            PaceColors.success
         case .notLatest, .failed:
-            .orange
+            PaceColors.warning
         case .notChecked, .checking, .developmentBuild:
-            .secondary
+            PaceColors.secondary
         }
     }
 
@@ -514,77 +508,51 @@ public struct PaceMenuView: View {
         return "Expiration details unavailable for \(count) additional \(noun)."
     }
 
-    private func detailLabel(_ text: String) -> some View {
+    private func detailLabel(_ text: String, emphasized: Bool = false) -> some View {
         Text(text)
-            .foregroundStyle(.secondary)
-            .frame(width: 106, alignment: .leading)
+            .font(PaceTypography.font(size: 13, weight: emphasized ? .medium : .regular))
+            .foregroundStyle(emphasized ? Color.primary : PaceColors.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .lineLimit(1)
-            .minimumScaleFactor(0.85)
     }
 
-    private func durationValue(
-        _ fields: DurationFields
-    ) -> some View {
+    private func durationValue(_ fields: DurationFields, emphasized: Bool = false) -> some View {
         let display = DurationDisplay(fields: fields)
-        return HStack(spacing: 5) {
-            Text(display.days ?? "")
-                .frame(width: 24, alignment: .trailing)
-            Text(display.hours ?? "")
-                .frame(width: 28, alignment: .trailing)
-            Text(display.minutes ?? "")
-                .frame(width: 28, alignment: .trailing)
-            Text(display.seconds)
-                .frame(width: 29, alignment: .trailing)
+        return HStack(spacing: 4) {
+            Text(display.days ?? "").frame(width: 27, alignment: .trailing)
+            Text(display.hours ?? "").frame(width: 29, alignment: .trailing)
+            Text(display.minutes ?? "").frame(width: 31, alignment: .trailing)
+            Text(display.seconds).frame(width: 30, alignment: .trailing)
         }
-            .fontWeight(.medium)
-            .monospacedDigit()
-            .lineLimit(1)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(display.accessibilityLabel)
-    }
-
-    private func timestampDate(_ value: Date) -> some View {
-        Text(value.formatted(
-            .dateTime
-                .month(.abbreviated)
-                .day(.twoDigits)
-                .locale(Locale(identifier: "en_US_POSIX"))
-        ))
+        .font(PaceTypography.font(size: 14, weight: emphasized ? .bold : .medium))
         .monospacedDigit()
-        .frame(width: 44, alignment: .leading)
+        .lineLimit(1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(display.accessibilityLabel)
     }
 
-    private func timestampTime(_ value: Date) -> some View {
-        Text(value.formatted(
-            .dateTime
-                .hour(.twoDigits(amPM: .abbreviated))
-                .minute(.twoDigits)
-                .second(.twoDigits)
-                .locale(Locale(identifier: "en_US_POSIX"))
-        ))
+    private func detailTimestamp(_ value: Date?) -> some View {
+        Group {
+            if let value {
+                Text(value.formatted(.dateTime.month(.abbreviated).day(.twoDigits)
+                    .locale(Locale(identifier: "en_US_POSIX"))))
+                + Text(" · ")
+                + Text(value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits).second(.twoDigits)
+                    .locale(Locale(identifier: "en_US_POSIX"))))
+            } else {
+                Text("")
+            }
+        }
+        .font(PaceTypography.font(size: 11))
+        .foregroundStyle(PaceColors.secondary)
         .monospacedDigit()
-        .frame(width: 88, alignment: .leading)
-    }
-
-    private var timestampSeparator: some View {
-        Text("•")
-            .frame(width: 5, alignment: .center)
-    }
-
-    private var timestampDatePlaceholder: some View {
-        Color.clear.frame(width: 44, height: 1)
-    }
-
-    private var timestampTimePlaceholder: some View {
-        Color.clear.frame(width: 88, height: 1)
-    }
-
-    private var timestampSeparatorPlaceholder: some View {
-        Color.clear.frame(width: 5, height: 1)
+        .frame(width: 158, alignment: .trailing)
+        .lineLimit(1)
     }
 
     private var headerColor: Color {
-        guard let state = model.paceMetricState else { return .secondary }
+        guard let state = model.paceMetricState else { return PaceColors.secondary }
         return statusColor(state)
     }
 
@@ -595,9 +563,9 @@ public struct PaceMenuView: View {
     private func statusColor(_ state: PaceState) -> Color {
         switch state {
         case .ahead, .onPace:
-            .green
+            PaceColors.success
         case .behind:
-            .orange
+            PaceColors.warning
         }
     }
 }
@@ -614,12 +582,12 @@ struct CreditExpirationEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Expiration date (manual)").font(.headline)
+            Text("Expiration date (manual)").font(PaceTypography.font(size: 15, weight: .medium))
             TextField("Date (YYYY-MM-DD)", text: $dateText)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityLabel("Expiration date, YYYY-MM-DD")
             Text("A manually entered date for some usage credits. Codex reports their total balance here, without individual expiration dates.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(PaceTypography.font(size: 12)).foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 if model.creditExpirationNote != nil {
@@ -640,6 +608,7 @@ struct CreditExpirationEditor: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
+        .font(PaceTypography.font(size: 13))
         .padding(20)
         .frame(width: 380)
     }
@@ -662,11 +631,11 @@ private struct ResetOverrideEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Reset estimate")
-                .font(.headline)
+                .font(PaceTypography.font(size: 15, weight: .medium))
 
             Text("Use this for a one-off reset expected before Codex's reported seven-day window ends.")
-                .font(.callout)
-                .foregroundStyle(.secondary)
+                .font(PaceTypography.font(size: 13))
+                .foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             DatePicker(
@@ -681,12 +650,12 @@ private struct ResetOverrideEditor: View {
                     Text(reportedResetAt.formatted(date: .abbreviated, time: .shortened))
                         .monospacedDigit()
                 }
-                .font(.callout)
+                .font(PaceTypography.font(size: 13))
             }
 
             Text("Time left, bars and pace target the earliest of this estimate, a banked reset expiration, or the weekly reset. Percentages use a seven-day scale. Times use this Mac's time zone.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(PaceTypography.font(size: 12))
+                .foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
             HStack {
@@ -707,6 +676,7 @@ private struct ResetOverrideEditor: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
+        .font(PaceTypography.font(size: 13))
         .padding(20)
         .frame(width: 390)
     }
@@ -790,6 +760,10 @@ struct DurationDisplay {
     let seconds: String
     let accessibilityLabel: String
 
+    var compactText: String {
+        [days, hours, minutes, seconds].compactMap { $0 }.joined(separator: " ")
+    }
+
     init(fields: DurationFields) {
         days = fields.days > 0 ? "\(fields.days)d" : nil
         hours = fields.days > 0 || fields.hours > 0 ? "\(fields.hours)h" : nil
@@ -822,21 +796,26 @@ private struct MetricView: View {
     var color: Color?
 
     var body: some View {
-        VStack(spacing: 1) {
+        VStack(spacing: 7) {
             Text(value)
-                .font(.system(size: 22, weight: .semibold, design: .rounded))
+                .font(PaceTypography.font(size: 34, weight: .bold))
                 .monospacedDigit()
                 .foregroundStyle(color ?? .primary)
             Text(label)
-                .font(.caption)
-                .foregroundStyle(color ?? .secondary)
+                .font(PaceTypography.font(size: 12, weight: color == nil ? .regular : .medium))
+                .foregroundStyle(color ?? PaceColors.secondary)
+                .padding(.horizontal, color == nil ? 0 : 8)
+                .padding(.vertical, 2)
+                .background {
+                    if let color { Capsule().fill(color.opacity(0.12)) }
+                }
         }
         .frame(maxWidth: .infinity)
     }
 }
 
 private struct ComparisonBar: View {
-    private static let segmentCount = 20
+    private static let segmentCount = 100
 
     let label: String
     let value: Double
@@ -845,9 +824,9 @@ private struct ComparisonBar: View {
     var body: some View {
         HStack(spacing: 7) {
             Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(width: 34, alignment: .leading)
+                .font(PaceTypography.font(size: 12))
+                .foregroundStyle(PaceColors.secondary)
+                .frame(width: 49, alignment: .leading)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -877,7 +856,7 @@ private struct ComparisonBar: View {
                     .mask(Capsule())
                 }
             }
-            .frame(height: 5)
+            .frame(height: 10)
         }
     }
 }
@@ -913,9 +892,9 @@ private struct WeeklyTimelineBar: View {
     var body: some View {
         HStack(spacing: 7) {
             Text(label)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .frame(width: 34, alignment: .leading)
+                .font(PaceTypography.font(size: 12))
+                .foregroundStyle(PaceColors.secondary)
+                .frame(width: 49, alignment: .leading)
             GeometryReader { proxy in
                 let usageWidth = proxy.size.width * progress.usageUsedFraction
                 let markerX = proxy.size.width * progress.elapsedFraction

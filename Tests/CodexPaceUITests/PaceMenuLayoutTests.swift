@@ -139,7 +139,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     let single = try size(false)
     let double = try size(true)
     #expect(single.height > withoutNote.height)
-    #expect(single.width == 412)
+    #expect(single.width == PaceMenuLayout.width)
     #expect(double.width == single.width * 2)
     #expect(abs(double.height - single.height * 2) < 1)
     #expect(try size(true, bounded: true).height == 400)

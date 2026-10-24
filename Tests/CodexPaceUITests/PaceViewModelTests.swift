@@ -150,7 +150,7 @@ private let cleanBuildInfo = AppBuildInfo(
 
     let model = PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false)
 
-    #expect(model.menuBarText == "80.1% / 76%")
+    #expect(model.menuBarText == "76% / 80.1%")
 }
 
 @MainActor
@@ -176,7 +176,7 @@ private let cleanBuildInfo = AppBuildInfo(
         defaults: defaults
     )
 
-    #expect(model.menuBarText == "80.0% / 50%")
+    #expect(model.menuBarText == "50% / 80.0%")
     #expect(model.paceText == "Slow down (-30.0%)")
     #expect(model.paceMetricLabel == "Slow down")
     #expect(model.paceMetricValue == "-30.0%")
@@ -204,7 +204,7 @@ private let cleanBuildInfo = AppBuildInfo(
     model.setManualResetAt(manualResetAt)
 
     #expect(model.effectiveWeeklyWindow?.resetsAt == manualResetAt)
-    #expect(model.menuBarText == "40.0% / 50%")
+    #expect(model.menuBarText == "50% / 40.0%")
     #expect(model.paceText == "Speed up (+10.0%)")
     #expect(model.paceMetricLabel == "Speed up")
     #expect(model.paceMetricValue == "+10.0%")
@@ -217,7 +217,7 @@ private let cleanBuildInfo = AppBuildInfo(
     model.clearManualReset()
 
     #expect(model.effectiveWeeklyWindow?.resetsAt == naturalResetAt)
-    #expect(model.menuBarText == "80.0% / 50%")
+    #expect(model.menuBarText == "50% / 80.0%")
     #expect(model.paceTimeLabel == "Stoppage time")
     #expect(model.projectedRunoutAt == now.addingTimeInterval(22 * 60))
     #expect(

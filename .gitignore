@@ -1,3 +1,5 @@
 .build/
 dist/
 .DS_Store
+# Licensed local font assets must not enter the public repository.
+Sources/CodexPaceUI/Resources/Fonts/*.ttf

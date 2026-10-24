@@ -26,7 +26,8 @@ let package = Package(
         ),
         .target(
             name: "CodexPaceUI",
-            dependencies: ["CodexPaceCore"]
+            dependencies: ["CodexPaceCore"],
+            resources: [.copy("Resources/Fonts")]
         ),
         .executableTarget(
             name: "CodexPacePreview",
