@@ -13,9 +13,10 @@ struct CodexPaceMenuApp: App {
 
     var body: some Scene {
         Window("Codex Pace", id: PaceWindow.id) {
-            MainWindowContent(model: model, isLargeDisplay: $isLargeDisplay)
+            PaceMainWindowView(model: model, isLargeDisplay: $isLargeDisplay)
         }
-        .windowResizability(.contentSize)
+        .windowResizability(.automatic)
+        .defaultSize(width: 620, height: 600)
 
         MenuBarExtra {
             MenuBarContent(model: model)
@@ -27,41 +28,6 @@ struct CodexPaceMenuApp: App {
         }
         .menuBarExtraStyle(.window)
     }
-}
-
-private struct MainWindowContent: View {
-    @ObservedObject var model: PaceViewModel
-    @Binding var isLargeDisplay: Bool
-    @StateObject private var resizeCoordinator = PaceWindowSizer()
-    @State private var maximumContentHeight = (NSScreen.main?.visibleFrame.height ?? 800) - 40
-
-    var body: some View {
-        PaceMenuView(
-            model: model,
-            isLargeDisplay: $isLargeDisplay,
-            maximumHeight: maximumContentHeight
-        )
-        .background {
-            WindowAccessor { window in
-                resizeCoordinator.window = window
-                if let window, let screen = window.screen {
-                    maximumContentHeight = screen.visibleFrame.height - (window.frame.height - window.contentLayoutRect.height)
-                }
-            }
-        }
-        .onPreferenceChange(PaceContentSizeKey.self) { size in
-            DispatchQueue.main.async {
-                resizeCoordinator.updateContentSize(size)
-            }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didChangeScreenNotification)) { notification in
-            if let window = notification.object as? NSWindow,
-               window === resizeCoordinator.window, let screen = window.screen {
-                maximumContentHeight = screen.visibleFrame.height - (window.frame.height - window.contentLayoutRect.height)
-            }
-        }
-    }
-
 }
 
 private struct WindowAccessor: NSViewRepresentable {

@@ -80,7 +80,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
 }
 
 @MainActor @Test
-func expiryPacingFallsBackToNextCreditThenNaturalResetAndRecalculatesStoppage() {
+func expiryPacingHidesStoppageUntilANaturalOrManualResetBecomesTheTarget() {
     let h = ExpiryHarness()
     defer { h.cleanUp() }
     let first = expiryFixtureNow.addingTimeInterval(86_400)
@@ -88,12 +88,41 @@ func expiryPacingFallsBackToNextCreditThenNaturalResetAndRecalculatesStoppage() 
     let credits = [credit("first", expires: first), credit("second", expires: second)]
     let model = h.model(snapshot: reading(at: expiryFixtureNow, credits: credits, used: 90))
     #expect(model.paceMetricLabel == "Slow down")
-    #expect(model.stoppageEndsAt == expiryFixtureNow.addingTimeInterval(25_920))
-    #expect(model.paceTimeFields == DurationFields(hours: 7, minutes: 12, seconds: 0))
+    #expect(model.paceTimeLabel == nil)
+    #expect(model.stoppageEndsAt == nil)
+    #expect(model.paceTimeFields == nil)
+    model.setManualResetAt(expiryFixtureNow.addingTimeInterval(80_000))
+    #expect(model.resetCountdownTarget?.kind == .manualEstimate)
+    #expect(model.paceTimeLabel == "Stoppage time")
+    #expect(model.stoppageEndsAt != nil)
+    #expect(model.paceTimeFields != nil)
+    model.clearManualReset()
+    #expect(model.paceTimeLabel == nil)
     model.applyFreshSnapshot(reading(at: first, credits: credits, used: 90), now: first)
     #expect(model.effectiveWeeklyWindow?.resetsAt == second)
+    #expect(model.paceTimeLabel == nil)
+    #expect(model.stoppageEndsAt == nil)
+    #expect(model.paceTimeFields == nil)
     model.applyFreshSnapshot(reading(at: second, credits: credits, used: 90), now: second)
     #expect(model.effectiveWeeklyWindow?.resetsAt == model.snapshot?.weeklyWindow.resetsAt)
+    #expect(model.paceTimeLabel == "Stoppage time")
+    #expect(model.stoppageEndsAt != nil)
+    #expect(model.paceTimeFields != nil)
+}
+
+@MainActor @Test
+func exhaustedUsageOmitsStoppageWhenCountingDownToABankedExpiry() {
+    let h = ExpiryHarness()
+    defer { h.cleanUp() }
+    let expiry = expiryFixtureNow.addingTimeInterval(5 * 86_400)
+    let model = h.model(snapshot: reading(at: expiryFixtureNow,
+                                        credits: [credit(expires: expiry)], used: 100))
+    #expect(model.paceMetricLabel == "Stopped")
+    #expect(model.resetCountdownTarget?.kind == .bankedResetExpiry)
+    #expect(model.paceTimeLabel == nil)
+    #expect(model.paceTimeFields == nil)
+    #expect(model.stoppageEndsAt == nil)
+    #expect(model.displayedResetAt == expiry)
 }
 
 @MainActor @Test

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.17.0 — 2026-10-24
+
+- Allow manual resizing of the main window with continuous content scaling by width and vertical scrolling when needed. Keep 1× and 2× as quick size presets.
+- Hide Stoppage time when the active countdown targets a banked reset's expiration; retain it for weekly resets and manual estimates.
+- Enlarge countdown values in the main window and menu popover while preserving aligned day, hour, minute, and second columns.
+
 ## 1.16.0 — 2026-10-24
 
 - Refresh the native window and menu popover with ABCAreal typography, aligned countdowns with seconds, quieter timestamps and build details, a toolbar update countdown, and compact metadata. Retain the reset/credit editors, paired-bar/timeline toggle, and banked-reset disclosure.

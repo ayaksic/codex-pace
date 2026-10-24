@@ -36,3 +36,29 @@ import Testing
     sizer.window = window
     #expect(abs(window.contentLayoutRect.height - 340) < 0.5)
 }
+
+@Test @MainActor func manualResizePreservesFrameAcrossContentUpdatesUntilPresetIsSelected() {
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 620, height: 500),
+                          styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    defer { window.close() }
+    let sizer = PaceWindowSizer(allowsManualResize: true)
+    sizer.window = window
+    sizer.updateContentSize(CGSize(width: 620, height: 500))
+
+    NotificationCenter.default.post(name: NSWindow.willStartLiveResizeNotification, object: window)
+    window.setContentSize(CGSize(width: 850, height: 400))
+    let manuallySizedFrame = window.frame
+    sizer.updateContentSize(CGSize(width: 850, height: 700))
+    #expect(sizer.isManuallySized)
+    #expect(window.frame == manuallySizedFrame)
+
+    sizer.usePreset(scale: 1)
+    #expect(!sizer.isManuallySized)
+    #expect(window.frame.width == 620)
+    sizer.updateContentSize(CGSize(width: 620, height: 520))
+    #expect(window.contentLayoutRect.height == 520)
+    sizer.usePreset(scale: 2)
+    #expect(window.frame.width == 1240)
+    #expect(window.contentLayoutRect.height == 1040)
+}

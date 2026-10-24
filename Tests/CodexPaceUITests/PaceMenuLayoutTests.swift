@@ -148,3 +148,81 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     let editor = try #require(ImageRenderer(content: CreditExpirationEditor(model: model)).nsImage)
     #expect(editor.size.width == 380)
 }
+
+@Test @MainActor func mainWindowScalesToArbitraryWidthsAndScrollsAtChosenHeight() async throws {
+    let suite = "ResizablePaceWindowTests.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let weeklyWindow = UsageWindow(usedPercent: 100, durationMinutes: 10_080,
+                                  resetsAt: now.addingTimeInterval(6 * 86_400))
+    let model = PaceViewModel(snapshot: PaceSnapshot(weeklyWindow: weeklyWindow, fetchedAt: now),
+                              now: now, pollingEnabled: false, defaults: defaults)
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 620, height: 600),
+                          styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    defer { window.close() }
+    var measuredSize = CGSize.zero
+    var largePreset = false
+    window.contentView = NSHostingView(rootView: PaceMainWindowView(
+        model: model, isLargeDisplay: Binding(get: { largePreset }, set: { largePreset = $0 }))
+        .background(Color(nsColor: .windowBackgroundColor))
+        .onPreferenceChange(PaceContentSizeKey.self) { measuredSize = $0 })
+    func settle() async throws {
+        for _ in 0..<30 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
+    try await settle()
+    #expect(window.frame.width == 620)
+    let initialHeight = window.contentLayoutRect.height
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: weeklyWindow, fetchedAt: now,
+        creditBalance: "62500.125", rateLimitResetCredits: RateLimitResetCredits(
+            availableCount: 1, credits: [RateLimitResetCredit(id: "fixture", resetType: "codexRateLimits",
+                status: "available", grantedAt: now, expiresAt: now.addingTimeInterval(5 * 86_400))])), now: now)
+    model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
+    try await settle()
+    #expect(window.contentLayoutRect.height > initialHeight)
+
+    for size in [CGSize(width: 480, height: 360), CGSize(width: 850, height: 650),
+                 CGSize(width: 1050, height: 360)] {
+        NotificationCenter.default.post(name: NSWindow.willStartLiveResizeNotification, object: window)
+        window.setContentSize(size)
+        try await settle()
+        #expect(window.contentLayoutRect.size == size)
+        #expect(abs(measuredSize.width - size.width) < 1)
+        #expect(measuredSize.height <= size.height)
+        let scrollView = findScrollView(in: try #require(window.contentView))
+        let scroll = try #require(scrollView)
+        #expect(scroll.hasVerticalScroller)
+        if size.width == 1050 {
+            let document = try #require(scroll.documentView)
+            #expect(document.frame.height > scroll.contentSize.height)
+            scroll.contentView.scroll(to: CGPoint(x: 0, y: document.frame.height - scroll.contentSize.height))
+            scroll.reflectScrolledClipView(scroll.contentView)
+            #expect(scroll.contentView.bounds.minY > 0)
+            #expect(scroll.contentView.bounds.maxY <= document.frame.height + 1)
+        }
+        if let directory = ProcessInfo.processInfo.environment["CODEX_PACE_RESIZE_RENDER_DIRECTORY"],
+           let view = window.contentView, let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) {
+            view.cacheDisplay(in: view.bounds, to: bitmap)
+            try bitmap.representation(using: .png, properties: [:])?.write(to:
+                URL(fileURLWithPath: directory).appendingPathComponent("resize-\(Int(size.width)).png"))
+        }
+    }
+    largePreset = true
+    model.objectWillChange.send()
+    try await settle()
+    #expect(window.frame.width == 1240)
+    largePreset = false
+    model.objectWillChange.send()
+    try await settle()
+    #expect(window.frame.width == 620)
+    #expect(abs(window.contentLayoutRect.height - measuredSize.height) < 1)
+}
+
+@MainActor private func findScrollView(in view: NSView) -> NSScrollView? {
+    if let scroll = view as? NSScrollView { return scroll }
+    return view.subviews.lazy.compactMap { findScrollView(in: $0) }.first
+}

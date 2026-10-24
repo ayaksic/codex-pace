@@ -278,13 +278,13 @@ public final class PaceViewModel: ObservableObject {
         case .onPace:
             return nil
         case .behind:
-            return "Stoppage time"
+            return resetCountdownTarget?.kind == .bankedResetExpiry ? nil : "Stoppage time"
         }
     }
 
     public var paceTimeFields: DurationFields? {
         guard let weeklyWindow = effectiveWeeklyWindow,
-              currentPaceState != .onPace else { return nil }
+              paceTimeLabel != nil else { return nil }
         return durationFields(
             totalSeconds: max(
                 0,
@@ -295,7 +295,8 @@ public final class PaceViewModel: ObservableObject {
 
     public var stoppageEndsAt: Date? {
         guard let weeklyWindow = effectiveWeeklyWindow,
-              currentPaceState == .behind else { return nil }
+              currentPaceState == .behind,
+              resetCountdownTarget?.kind != .bankedResetExpiry else { return nil }
         return now.addingTimeInterval(
             -weeklyWindow.paceTimeDeltaInterval(at: now)
         )

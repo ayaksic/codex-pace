@@ -52,7 +52,10 @@ Use the `2×` control in the main window to double the window and everything
 inside it for viewing from farther away. The selection is remembered; use `1×`
 to return to the standard size. Near a display's right edge, the window expands
 left and keeps that right edge in place when returning to `1×`. The menu-bar
-popover stays compact.
+popover stays compact. You can also drag the main window's edges or corners to
+resize it freely. Content scales with the width; shorter windows scroll vertically.
+After a manual resize, content updates preserve your chosen window size. The
+1× and 2× presets return to automatic content fitting.
 
 Use the calendar-and-clock button in the header when a one-off usage reset is
 expected before the timestamp reported by Codex. Codex Pace shows the manual
@@ -67,7 +70,9 @@ counts down to that earlier deadline. Codex Pace preserves the server's
 authoritative available count even when the server omits or caps detailed
 expiration rows. The earliest of a banked-reset expiration, manual estimate, or
 regular weekly reset drives the time percentage, both bar views, menu-bar value,
-pace, and stoppage or time-ahead values together. Percentages retain the seven-day
+pace, and time-ahead values together. Stoppage time is hidden while the target is
+a banked-reset expiration, since expiration does not replenish usage. It remains
+available for weekly resets and manual estimates. Percentages retain the seven-day
 scale: six days left is 85.7%. The time metric reads **To expiry** or **To estimate**
 for an earlier deadline; the timeline is labeled **Expiry** or **Est.** and ends
 at that deadline. **Weekly reset** remains visible separately. When a credit is

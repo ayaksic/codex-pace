@@ -14,6 +14,7 @@ public struct PaceMenuView: View {
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
     private let maximumHeight: CGFloat
+    private let scaleOverride: CGFloat?
 
     public init(
         model: PaceViewModel,
@@ -21,6 +22,7 @@ public struct PaceMenuView: View {
         showsWeeklyTimelineInitially: Bool = false,
         showsBankedResetsInitially: Bool = false,
         maximumHeight: CGFloat = .infinity,
+        displayScale: CGFloat? = nil,
         popOutAction: (() -> Void)? = nil
     ) {
         self.model = model
@@ -32,6 +34,7 @@ public struct PaceMenuView: View {
         self.showsDisplaySizeControl = isLargeDisplay != nil
         self.popOutAction = popOutAction
         self.maximumHeight = maximumHeight
+        self.scaleOverride = displayScale
     }
 
     public var body: some View {
@@ -519,12 +522,12 @@ public struct PaceMenuView: View {
     private func durationValue(_ fields: DurationFields, emphasized: Bool = false) -> some View {
         let display = DurationDisplay(fields: fields)
         return HStack(spacing: 4) {
-            Text(display.days ?? "").frame(width: 27, alignment: .trailing)
-            Text(display.hours ?? "").frame(width: 29, alignment: .trailing)
-            Text(display.minutes ?? "").frame(width: 31, alignment: .trailing)
-            Text(display.seconds).frame(width: 30, alignment: .trailing)
+            Text(display.days ?? "").frame(width: 35, alignment: .trailing)
+            Text(display.hours ?? "").frame(width: 37, alignment: .trailing)
+            Text(display.minutes ?? "").frame(width: 40, alignment: .trailing)
+            Text(display.seconds).frame(width: 39, alignment: .trailing)
         }
-        .font(PaceTypography.font(size: 14, weight: emphasized ? .bold : .medium))
+        .font(PaceTypography.font(size: 18, weight: emphasized ? .bold : .medium))
         .monospacedDigit()
         .lineLimit(1)
         .accessibilityElement(children: .ignore)
@@ -557,7 +560,7 @@ public struct PaceMenuView: View {
     }
 
     private var displayScale: CGFloat {
-        isLargeDisplay ? 2 : 1
+        scaleOverride ?? (isLargeDisplay ? 2 : 1)
     }
 
     private func statusColor(_ state: PaceState) -> Color {
