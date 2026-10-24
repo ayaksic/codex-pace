@@ -9,7 +9,6 @@ public struct PaceMenuView: View {
     @State private var isShowingCreditEditor = false
     @State private var isShowingBuildDetails = false
     @State private var isShowingResetEditor = false
-    @State private var isShowingBankedResets = false
     @State private var isShowingWeeklyTimeline: Bool
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
@@ -20,7 +19,6 @@ public struct PaceMenuView: View {
         model: PaceViewModel,
         isLargeDisplay: Binding<Bool>? = nil,
         showsWeeklyTimelineInitially: Bool = false,
-        showsBankedResetsInitially: Bool = false,
         maximumHeight: CGFloat = .infinity,
         displayScale: CGFloat? = nil,
         popOutAction: (() -> Void)? = nil
@@ -30,7 +28,6 @@ public struct PaceMenuView: View {
         self._isShowingWeeklyTimeline = State(
             initialValue: showsWeeklyTimelineInitially
         )
-        self._isShowingBankedResets = State(initialValue: showsBankedResetsInitially)
         self.showsDisplaySizeControl = isLargeDisplay != nil
         self.popOutAction = popOutAction
         self.maximumHeight = maximumHeight
@@ -68,31 +65,31 @@ public struct PaceMenuView: View {
 
     private var scaledContent: some View {
         ScaledLayout(scale: displayScale) {
-            VStack(spacing: PaceMenuLayout.sectionGap) {
-                header
-
+            VStack(spacing: 0) {
+                header.frame(height: 48)
                 if let snapshot = model.snapshot {
-                    metrics(snapshot)
+                    metrics(snapshot).padding(.top, 4).padding(.bottom, 20)
                     comparison(snapshot)
-                    details(snapshot)
                 } else {
                     unavailable
                 }
-
-                Divider()
-                usageCredits
-
-                if model.availableBankedResetCount > 0 {
-                    Divider()
-                    bankedResets
+                VStack(spacing: PaceMenuLayout.rowGap) {
+                    if let snapshot = model.snapshot { details(snapshot) }
+                    usageCredits
+                    if model.availableBankedResetCount > 0 { bankedResets }
+                    if model.snapshot != nil, let error = model.errorMessage {
+                        Text(error)
+                            .font(.system(size: 12))
+                            .foregroundStyle(PaceColors.warning)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
-
-                Divider()
-                versionStatus
+                .padding(.top, PaceMenuLayout.sectionGap)
             }
-            .font(PaceTypography.font(size: 13))
+            .font(.system(size: 13))
             .padding(.horizontal, PaceMenuLayout.horizontalPadding)
-            .padding(.vertical, 16)
+            .padding(.bottom, PaceMenuLayout.sectionGap)
             .frame(width: PaceMenuLayout.width)
             .scaleEffect(displayScale, anchor: .topLeading)
         }
@@ -105,11 +102,11 @@ public struct PaceMenuView: View {
     }
 
     private var header: some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 12) {
             Button {
                 NSApplication.shared.terminate(nil)
             } label: {
-                Image(systemName: "power")
+                Image(systemName: "xmark.circle")
             }
             .buttonStyle(.plain)
             .help("Quit Codex Pace")
@@ -125,10 +122,11 @@ public struct PaceMenuView: View {
             .accessibilityLabel(
                 model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
             )
+            versionStatus
             Spacer()
             if let countdown = model.nextRefreshCountdownFields {
-                Text("Next update in \(DurationDisplay(fields: countdown).compactText)")
-                    .font(PaceTypography.font(size: 11))
+                Text(DurationDisplay(fields: countdown).compactText)
+                    .font(Font.system(size: 11))
                     .foregroundStyle(PaceColors.secondary)
                     .monospacedDigit()
                     .help(model.nextRefreshAt.map { "Next update: \($0.formatted(date: .abbreviated, time: .complete))" } ?? "")
@@ -151,7 +149,7 @@ public struct PaceMenuView: View {
                     isLargeDisplay.toggle()
                 } label: {
                     Text(isLargeDisplay ? "1×" : "2×")
-                        .font(PaceTypography.font(size: 12, weight: .medium))
+                        .font(Font.system(size: 12, weight: .medium))
                 }
                 .buttonStyle(.plain)
                 .help(isLargeDisplay ? "Use standard window size" : "Double window size")
@@ -168,33 +166,29 @@ public struct PaceMenuView: View {
                 .accessibilityLabel("Open Codex Pace window")
             }
         }
+        .padding(.horizontal, PaceMenuLayout.barInset)
         .frame(maxWidth: .infinity)
     }
 
     private func metrics(_ snapshot: PaceSnapshot) -> some View {
         let weeklyWindow = model.effectiveWeeklyWindow ?? snapshot.weeklyWindow
-        return HStack(spacing: 0) {
-            MetricView(
-                label: "Usage left",
-                value: percent(weeklyWindow.usageRemainingPercent, places: 0)
-            )
-            Divider()
-                .frame(height: 58)
-                .padding(.horizontal, 8)
-            MetricView(
-                label: model.timeRemainingLabel,
-                value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1)
-            )
-            Divider()
-                .frame(height: 58)
-                .padding(.horizontal, 8)
-            MetricView(
-                label: model.paceMetricLabel,
-                value: model.paceMetricValue ?? "—",
-                color: headerColor
-            )
+        return PaceColumns {
+            MetricView(label: "Usage left", value: percent(weeklyWindow.usageRemainingPercent, places: 0),
+                       color: PaceColors.usage)
+        } middle: {
+            MetricView(label: model.timeRemainingLabel,
+                       value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1),
+                       color: PaceColors.time)
+                .overlay(alignment: .leading) { metricDivider }
+        } trailing: {
+            MetricView(label: model.paceMetricLabel, value: model.paceMetricValue ?? "—", color: headerColor)
+                .overlay(alignment: .leading) { metricDivider }
         }
-        .frame(maxWidth: .infinity)
+    }
+
+    private var metricDivider: some View {
+        Rectangle().fill(PaceColors.secondary.opacity(0.2)).frame(width: 1, height: 64)
+            .offset(x: -PaceMenuLayout.columnGap / 2)
     }
 
     private func comparison(_ snapshot: PaceSnapshot) -> some View {
@@ -210,28 +204,27 @@ public struct PaceMenuView: View {
         } label: {
             Group {
                 if isShowingWeeklyTimeline {
-                    WeeklyTimelineBar(progress: timelineProgress, label: model.timelineLabel)
+                    WeeklyTimelineBar(progress: timelineProgress)
                         .transition(.opacity)
                 } else {
                     VStack(spacing: 12) {
                         ComparisonBar(
-                            label: "Usage",
                             value: weeklyWindow.usageRemainingPercent,
-                            color: .accentColor
+                            color: PaceColors.usage
                         )
                         ComparisonBar(
-                            label: model.resetCountdownTarget?.kind == .bankedResetExpiry ? "Expiry" : "Time",
                             value: weeklyWindow.timeRemainingPercent(at: model.now),
-                            color: .purple
+                            color: PaceColors.time
                         )
                     }
                     .transition(.opacity)
                 }
             }
-            .frame(height: 40)
+            .frame(height: 32)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .padding(.horizontal, PaceMenuLayout.barInset)
         .help(
             isShowingWeeklyTimeline
                 ? "Show remaining usage and time bars"
@@ -264,139 +257,74 @@ public struct PaceMenuView: View {
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: PaceMenuLayout.rowGap) {
-            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: PaceMenuLayout.rowGap) {
-                if let paceTimeLabel = model.paceTimeLabel,
-                   let paceTime = model.paceTimeFields {
-                    GridRow {
-                        detailLabel(paceTimeLabel, emphasized: true)
-                        durationValue(paceTime, emphasized: true)
-                        detailTimestamp(model.stoppageEndsAt)
-                    }
-                }
-                if let projectedRunoutAt = model.projectedRunoutAt,
-                   let countdown = model.projectedRunoutCountdownFields {
-                    GridRow {
-                        detailLabel("Projected runout", emphasized: true)
-                        durationValue(countdown, emphasized: true)
-                        detailTimestamp(projectedRunoutAt)
-                    }
-                }
-                if let resetTarget = model.resetCountdownTarget {
-                    GridRow {
-                        detailLabel(resetLabel(for: resetTarget.kind))
-                        durationValue(model.remainingTimeFields(until: resetTarget.date))
-                        detailTimestamp(resetTarget.date)
-                    }
-                    if resetTarget.kind != .natural {
-                        GridRow {
-                            detailLabel("Weekly reset")
-                            durationValue(model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt))
-                            detailTimestamp(snapshot.weeklyWindow.resetsAt)
-                        }
-                    }
-                }
+        VStack(spacing: PaceMenuLayout.rowGap) {
+            if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
+                PaceColumns {
+                    detailLabel(label == "Stoppage time" ? "Stop until" : label)
+                } middle: { durationValue(fields) } trailing: { detailTimestamp(model.stoppageEndsAt) }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            if let error = model.errorMessage {
-                Text(error)
-                    .font(PaceTypography.font(size: 12))
-                    .foregroundStyle(PaceColors.warning)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
+            if let date = model.projectedRunoutAt, let fields = model.projectedRunoutCountdownFields {
+                PaceColumns { detailLabel("Run out at") } middle: {
+                    durationValue(fields)
+                } trailing: { detailTimestamp(date) }
+            }
+            if let target = model.resetCountdownTarget {
+                PaceColumns { detailLabel(resetLabel(for: target.kind)) } middle: {
+                    durationValue(model.remainingTimeFields(until: target.date))
+                } trailing: { detailTimestamp(target.date) }
+                if target.kind != .natural {
+                    PaceColumns { detailLabel("Reset at") } middle: {
+                        durationValue(model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt))
+                    } trailing: { detailTimestamp(snapshot.weeklyWindow.resetsAt) }
+                }
             }
         }
     }
 
     private var usageCredits: some View {
-        // Peer rows share one parent-owned gap at both display scales.
-        VStack(alignment: .leading, spacing: PaceMenuLayout.creditRowGap) {
-            HStack {
-                Text("Usage credits").font(PaceTypography.font(size: 13, weight: .medium))
-                Spacer()
-                Button(model.creditExpirationNote == nil ? "Add expiration" : "Edit expiration") {
-                    isShowingCreditEditor = true
-                }
-                .buttonStyle(.plain)
-                .foregroundStyle(Color.accentColor)
-                .font(PaceTypography.font(size: 12))
-                .accessibilityLabel("Edit usage credit expiration date")
-            }
-            HStack {
-                Text(model.usageCreditReadingLabel).foregroundStyle(PaceColors.secondary)
-                Spacer()
-                if let dayText = model.creditExpirationDayText {
-                    Text(dayText).monospacedDigit()
-                        .help("Calendar days to the manually entered expiration date, using this Mac’s time zone")
-                    Text("•").foregroundStyle(PaceColors.secondary)
-                }
-                Text(model.usageCreditBalanceText).monospacedDigit().textSelection(.enabled)
-                    .lineLimit(1).minimumScaleFactor(0.7)
-            }
-            if let note = model.creditExpirationNote {
-                HStack {
-                    HStack(spacing: 6) {
-                        Text("Expiration").foregroundStyle(PaceColors.secondary)
-                        metadataPill("Manual")
-                    }
-                    Spacer()
-                    Text(note.isoDate).monospacedDigit()
+        PaceColumns {
+            VStack(spacing: 4) {
+                detailLabel(model.compactUsageCreditBalanceText.map { "\($0) credits" } ?? "Credits unavailable")
+                if model.usageCreditReadingLabel == "Last known balance" {
+                    Text("Last known").font(.system(size: 11)).foregroundStyle(PaceColors.secondary)
                 }
             }
+            .help("\(model.usageCreditReadingLabel): \(model.usageCreditBalanceText)")
+        } middle: {
+            if let date = model.creditExpirationAt { durationValue(model.remainingTimeFields(until: date)) }
+        } trailing: {
+            Button { isShowingCreditEditor = true } label: {
+                if let date = model.creditExpirationAt {
+                    detailTimestamp(date, separator: " • ")
+                } else {
+                    Text("Set expiration").font(PaceTypography.rowFont)
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Edit credit expiration date")
+            .help(model.creditExpirationAt.map {
+                "Expires at the start of the selected date: \($0.formatted(date: .complete, time: .complete))"
+            } ?? "Set the credit expiration date")
         }
-        .font(PaceTypography.font(size: 13))
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var bankedResets: some View {
         VStack(spacing: PaceMenuLayout.rowGap) {
-            Button {
-                withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.18)) {
-                    isShowingBankedResets.toggle()
-                }
-            } label: {
-                HStack {
-                    Text("Banked resets")
-                        .font(PaceTypography.font(size: 13, weight: .medium))
-                    Spacer()
-                    metadataPill("\(model.availableBankedResetCount)")
-                    Image(systemName: "chevron.right")
-                        .font(PaceTypography.font(size: 12))
-                        .foregroundStyle(PaceColors.secondary)
-                        .rotationEffect(.degrees(isShowingBankedResets ? 90 : 0))
+            ForEach(model.availableBankedResetCredits) { credit in
+                PaceColumns { detailLabel("Banked reset") } middle: {
+                    if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
+                    else { Text("—").font(PaceTypography.rowFont) }
+                } trailing: {
+                    if let date = credit.expiresAt { detailTimestamp(date) }
+                    else { Text("No expiry reported").font(.system(size: 12)).foregroundStyle(PaceColors.secondary) }
                 }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Banked resets, \(model.availableBankedResetCount)")
-            .accessibilityValue(isShowingBankedResets ? "Expanded" : "Collapsed")
-
-            if isShowingBankedResets {
-                Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: PaceMenuLayout.rowGap) {
-                    ForEach(model.availableBankedResetCredits) { credit in
-                        GridRow {
-                            detailLabel("Expires")
-                            if let expiresAt = credit.expiresAt {
-                                durationValue(model.remainingTimeFields(until: expiresAt))
-                                detailTimestamp(expiresAt)
-                            } else {
-                                Text("No expiration reported")
-                                    .foregroundStyle(PaceColors.secondary)
-                                    .gridCellColumns(2)
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if model.bankedResetCountWithoutDetails > 0 {
-                    Text(expirationDetailsUnavailableText)
-                        .font(PaceTypography.font(size: 12))
-                        .foregroundStyle(PaceColors.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
+            if model.bankedResetCountWithoutDetails > 0 {
+                Text(expirationDetailsUnavailableText)
+                    .font(.system(size: 12)).foregroundStyle(PaceColors.secondary)
+                    .frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
             }
         }
-        .font(PaceTypography.font(size: 13))
     }
 
     private var unavailable: some View {
@@ -408,7 +336,7 @@ public struct PaceMenuView: View {
                 Text("Usage unavailable")
                     .fontWeight(.medium)
                 Text(model.errorMessage ?? "Refresh to try again.")
-                    .font(PaceTypography.font(size: 12))
+                    .font(Font.system(size: 12))
                     .foregroundStyle(PaceColors.secondary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
@@ -420,17 +348,14 @@ public struct PaceMenuView: View {
     private var versionStatus: some View {
         Button {
             isShowingBuildDetails.toggle()
+            if isShowingBuildDetails { Task { await model.checkForUpdates() } }
         } label: {
             HStack(spacing: 8) {
                 Text(model.appBuildInfo.version)
                 Image(systemName: appUpdateStatusSymbol)
                     .foregroundStyle(appUpdateStatusColor)
-                Text(model.appUpdateStatusText)
-                    .foregroundStyle(appUpdateStatusColor)
-                Spacer()
-                Image(systemName: "info.circle")
             }
-            .font(PaceTypography.font(size: 11))
+            .font(Font.system(size: 11))
             .foregroundStyle(PaceColors.secondary)
             .contentShape(Rectangle())
         }
@@ -443,7 +368,7 @@ public struct PaceMenuView: View {
         .popover(isPresented: $isShowingBuildDetails) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Codex Pace \(model.appBuildInfo.version)")
-                    .font(PaceTypography.font(size: 14, weight: .medium))
+                    .font(Font.system(size: 14, weight: .medium))
                 Text("Build \(model.appBuildInfo.build) · \(model.appBuildInfo.shortRevision)")
                     .foregroundStyle(PaceColors.secondary)
                     .textSelection(.enabled)
@@ -454,25 +379,15 @@ public struct PaceMenuView: View {
                 Text(model.appUpdateStatusText)
                     .foregroundStyle(appUpdateStatusColor)
             }
-            .font(PaceTypography.font(size: 12))
+            .font(Font.system(size: 12))
             .padding(16)
         }
-    }
-
-    private func metadataPill(_ text: String) -> some View {
-        Text(text)
-            .font(PaceTypography.font(size: 11))
-            .monospacedDigit()
-            .foregroundStyle(PaceColors.secondary)
-            .padding(.horizontal, 7)
-            .padding(.vertical, 2)
-            .background(.quaternary, in: RoundedRectangle(cornerRadius: 5))
     }
 
     private var appUpdateStatusSymbol: String {
         switch model.appUpdateStatus {
         case .latest:
-            "checkmark.circle.fill"
+            "checkmark.circle"
         case .notLatest:
             "arrow.down.circle.fill"
         case .developmentBuild:
@@ -502,11 +417,11 @@ public struct PaceMenuView: View {
     private func resetLabel(for kind: ResetCountdownKind) -> String {
         switch kind {
         case .natural:
-            "Weekly reset"
+            "Reset at"
         case .manualEstimate:
             "Reset by (est.)"
         case .bankedResetExpiry:
-            "Banked reset expires"
+            "Reset expiry"
         }
     }
 
@@ -516,47 +431,28 @@ public struct PaceMenuView: View {
         return "Expiration details unavailable for \(count) additional \(noun)."
     }
 
-    private func detailLabel(_ text: String, emphasized: Bool = false) -> some View {
-        Text(text)
-            .font(PaceTypography.font(size: 13, weight: emphasized ? .medium : .regular))
-            .foregroundStyle(emphasized ? Color.primary : PaceColors.secondary)
-            .frame(maxWidth: .infinity, alignment: .leading)
+    private func detailLabel(_ text: String) -> some View {
+        Text(text).font(PaceTypography.rowFont).foregroundStyle(Color.primary)
             .lineLimit(1)
     }
 
-    private func durationValue(_ fields: DurationFields, emphasized: Bool = false) -> some View {
-        let display = DurationDisplay(fields: fields)
-        return HStack(spacing: 4) {
-            Text(display.days ?? "").frame(width: 35, alignment: .trailing)
-            Text(display.hours ?? "").frame(width: 37, alignment: .trailing)
-            Text(display.minutes ?? "").frame(width: 40, alignment: .trailing)
-            Text(display.seconds).frame(width: 39, alignment: .trailing)
-        }
-        .font(PaceTypography.font(size: 18, weight: emphasized ? .bold : .medium))
-        .monospacedDigit()
-        .lineLimit(1)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(display.accessibilityLabel)
+    private func durationValue(_ fields: DurationFields) -> some View {
+        AlignedCountdown(fields: fields)
     }
 
-    private func detailTimestamp(_ value: Date?) -> some View {
+    private func detailTimestamp(_ value: Date?, separator: String = " · ") -> some View {
         Group {
             if let value {
-                Text(value.formatted(.dateTime.month(.abbreviated).day(.twoDigits)
+                Text(value.formatted(.dateTime.month(.abbreviated).day()
                     .locale(Locale(identifier: "en_US_POSIX"))))
-                + Text(" · ")
+                + Text(separator)
                 + Text(value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
-                    .minute(.twoDigits).second(.twoDigits)
-                    .locale(Locale(identifier: "en_US_POSIX"))))
-            } else {
-                Text("")
-            }
+                    .minute(.twoDigits).locale(Locale(identifier: "en_US_POSIX"))))
+            } else { Text("") }
         }
-        .font(PaceTypography.font(size: 11))
-        .foregroundStyle(PaceColors.secondary)
-        .monospacedDigit()
-        .frame(width: 158, alignment: .trailing)
-        .lineLimit(1)
+        .font(PaceTypography.rowFont).foregroundStyle(Color.primary)
+        .monospacedDigit().lineLimit(1)
+        .help(value.map { $0.formatted(date: .complete, time: .complete) } ?? "")
     }
 
     private var headerColor: Color {
@@ -590,12 +486,12 @@ struct CreditExpirationEditor: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Expiration date (manual)").font(PaceTypography.font(size: 15, weight: .medium))
+            Text("Expiration date").font(Font.system(size: 15, weight: .medium))
             TextField("Date (YYYY-MM-DD)", text: $dateText)
                 .textFieldStyle(.roundedBorder)
                 .accessibilityLabel("Expiration date, YYYY-MM-DD")
             Text("A manually entered date for some usage credits. Codex reports their total balance here, without individual expiration dates.")
-                .font(PaceTypography.font(size: 12)).foregroundStyle(PaceColors.secondary)
+                .font(Font.system(size: 12)).foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
                 if model.creditExpirationNote != nil {
@@ -616,7 +512,7 @@ struct CreditExpirationEditor: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
-        .font(PaceTypography.font(size: 13))
+        .font(Font.system(size: 13))
         .padding(20)
         .frame(width: 380)
     }
@@ -639,10 +535,10 @@ private struct ResetOverrideEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Reset estimate")
-                .font(PaceTypography.font(size: 15, weight: .medium))
+                .font(Font.system(size: 15, weight: .medium))
 
             Text("Use this for a one-off reset expected before Codex's reported seven-day window ends.")
-                .font(PaceTypography.font(size: 13))
+                .font(Font.system(size: 13))
                 .foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -658,11 +554,11 @@ private struct ResetOverrideEditor: View {
                     Text(reportedResetAt.formatted(date: .abbreviated, time: .shortened))
                         .monospacedDigit()
                 }
-                .font(PaceTypography.font(size: 13))
+                .font(Font.system(size: 13))
             }
 
             Text("Time left, bars and pace target the earliest of this estimate, a banked reset expiration, or the weekly reset. Percentages use a seven-day scale. Times use this Mac's time zone.")
-                .font(PaceTypography.font(size: 12))
+                .font(Font.system(size: 12))
                 .foregroundStyle(PaceColors.secondary)
                 .fixedSize(horizontal: false, vertical: true)
 
@@ -684,7 +580,7 @@ private struct ResetOverrideEditor: View {
                 .keyboardShortcut(.defaultAction)
             }
         }
-        .font(PaceTypography.font(size: 13))
+        .font(Font.system(size: 13))
         .padding(20)
         .frame(width: 390)
     }
@@ -805,25 +701,72 @@ struct DurationDisplay {
     }
 }
 
+struct PaceColumns<Leading: View, Middle: View, Trailing: View>: View {
+    let leading: Leading
+    let middle: Middle
+    let trailing: Trailing
+
+    init(@ViewBuilder leading: () -> Leading, @ViewBuilder middle: () -> Middle,
+         @ViewBuilder trailing: () -> Trailing) {
+        self.leading = leading(); self.middle = middle(); self.trailing = trailing()
+    }
+
+    var body: some View {
+        HStack(spacing: PaceMenuLayout.columnGap) {
+            ZStack { Color.clear.frame(width: 0, height: 0); leading }
+                .frame(width: PaceMenuLayout.labelWidth)
+            ZStack { Color.clear.frame(width: 0, height: 0); middle }
+                .frame(width: PaceMenuLayout.countdownWidth)
+            ZStack { Color.clear.frame(width: 0, height: 0); trailing }
+                .frame(width: PaceMenuLayout.dateWidth)
+        }
+        .frame(minHeight: PaceMenuLayout.rowHeight)
+    }
+}
+
+/// Center the common h/m/s block; the optional day prefix never shifts its unit columns.
+struct AlignedCountdown: View {
+    let fields: DurationFields
+
+    var body: some View {
+        HStack(spacing: PaceMenuLayout.durationGap) {
+            part(fields.days > 0 ? padded(fields.hours) : String(fields.hours), unit: "h")
+            part(padded(fields.minutes), unit: "m")
+            part(padded(fields.seconds), unit: "s")
+        }
+        .overlay(alignment: .leading) {
+            if fields.days > 0 {
+                part(String(fields.days), unit: "d")
+                    .offset(x: -PaceMenuLayout.durationPartWidth - PaceMenuLayout.durationGap)
+            }
+        }
+        .offset(x: PaceMenuLayout.countdownOffset)
+        .font(PaceTypography.rowFont).monospacedDigit().lineLimit(1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(DurationDisplay(fields: fields).accessibilityLabel)
+    }
+
+    private func padded(_ value: Int) -> String { String(format: "%02d", value) }
+    private func part(_ number: String, unit: String) -> some View {
+        HStack(spacing: 0) {
+            Text(number).fixedSize().frame(width: PaceMenuLayout.durationNumberWidth, alignment: .trailing)
+            Text(unit).frame(width: PaceMenuLayout.durationUnitWidth, alignment: .leading)
+        }
+    }
+}
+
 private struct MetricView: View {
     let label: String
     let value: String
-    var color: Color?
+    let color: Color
 
     var body: some View {
-        VStack(spacing: 7) {
-            Text(value)
-                .font(PaceTypography.font(size: 34, weight: .bold))
-                .monospacedDigit()
-                .foregroundStyle(color ?? .primary)
-            Text(label)
-                .font(PaceTypography.font(size: 12, weight: color == nil ? .regular : .medium))
-                .foregroundStyle(color ?? PaceColors.secondary)
-                .padding(.horizontal, color == nil ? 0 : 8)
-                .padding(.vertical, 2)
-                .background {
-                    if let color { Capsule().fill(color.opacity(0.12)) }
-                }
+        VStack(spacing: 8) {
+            Text(value).font(PaceTypography.metricFont(size: 34)).tracking(-1)
+                .foregroundStyle(color == PaceColors.usage || color == PaceColors.time ? Color.primary : color)
+            Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(color)
+                .padding(.horizontal, 10).padding(.vertical, 3)
+                .background(Capsule().fill(color.opacity(0.17)))
         }
         .frame(maxWidth: .infinity)
     }
@@ -832,16 +775,11 @@ private struct MetricView: View {
 private struct ComparisonBar: View {
     private static let segmentCount = 100
 
-    let label: String
     let value: Double
     let color: Color
 
     var body: some View {
-        HStack(spacing: 7) {
-            Text(label)
-                .font(PaceTypography.font(size: 12))
-                .foregroundStyle(PaceColors.secondary)
-                .frame(width: 49, alignment: .leading)
+        Group {
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule()
@@ -902,14 +840,9 @@ private struct WeeklyTimelineBar: View {
     private static let dayCount = 7
 
     let progress: WeeklyTimelineProgress
-    let label: String
 
     var body: some View {
-        HStack(spacing: 7) {
-            Text(label)
-                .font(PaceTypography.font(size: 12))
-                .foregroundStyle(PaceColors.secondary)
-                .frame(width: 49, alignment: .leading)
+        Group {
             GeometryReader { proxy in
                 let usageWidth = proxy.size.width * progress.usageUsedFraction
                 let markerX = proxy.size.width * progress.elapsedFraction

@@ -1,6 +1,20 @@
 import Foundation
 
 public enum UsageCreditBalance {
+    /// Display precision is independent of the unchanged authoritative reading.
+    public static func compactFormatted(_ raw: String?) -> String? {
+        guard formatted(raw) != nil, let raw else { return nil }
+        let value = NSDecimalNumber(string: raw, locale: Locale(identifier: "en_US_POSIX"))
+        guard value != .notANumber else { return nil }
+        let digits = value.compare(NSDecimalNumber(value: 1000)) == .orderedAscending ? 2 : 0
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.numberStyle = .decimal
+        formatter.minimumFractionDigits = digits
+        formatter.maximumFractionDigits = digits
+        formatter.roundingMode = .halfUp
+        return formatter.string(from: value)
+    }
     /// Preserve the server's decimal precision without converting through binary floating point.
     public static func formatted(_ raw: String?) -> String? {
         guard let raw, raw.range(of: #"^[+-]?[0-9]+(?:\.[0-9]+)?\z"#, options: .regularExpression) != nil else { return nil }
@@ -20,7 +34,7 @@ public enum UsageCreditBalance {
     }
 }
 
-/// A Gregorian calendar date, with no cutoff time or time zone attached.
+/// A selected Gregorian date, expiring at its start in the Mac's local time zone.
 public struct CreditExpirationNote: Equatable, Sendable {
     public let isoDate: String
     private let year: Int
@@ -48,5 +62,12 @@ public struct CreditExpirationNote: Equatable, Sendable {
         let start = calendar.date(from: today)!
         let end = calendar.date(from: DateComponents(year: year, month: month, day: day))!
         return calendar.dateComponents([.day], from: start, to: end).day!
+    }
+
+    public func midnight(timeZone: TimeZone = .current) -> Date {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let date = calendar.date(from: DateComponents(year: year, month: month, day: day))!
+        return calendar.startOfDay(for: date)
     }
 }

@@ -16,7 +16,7 @@ struct CodexPaceMenuApp: App {
             PaceMainWindowView(model: model, isLargeDisplay: $isLargeDisplay)
         }
         .windowResizability(.automatic)
-        .defaultSize(width: 620, height: 600)
+        .defaultSize(width: 466, height: 380)
 
         MenuBarExtra {
             MenuBarContent(model: model)

@@ -110,7 +110,6 @@ struct CodexPacePreview {
             model: model,
             isLargeDisplay: .constant(isLargeDisplay),
             showsWeeklyTimelineInitially: showsWeeklyTimeline,
-            showsBankedResetsInitially: arguments.contains("--expanded-resets"),
             maximumHeight: arguments.contains("--short-screen") ? 500 : .infinity,
             popOutAction: {}
         )))
@@ -177,6 +176,6 @@ private struct ResizablePacePreviewApp: App {
                 }
         }
         .windowResizability(.automatic)
-        .defaultSize(width: 620, height: 600)
+        .defaultSize(width: 466, height: 380)
     }
 }

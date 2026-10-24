@@ -154,6 +154,12 @@ public final class PaceViewModel: ObservableObject {
         UsageCreditBalance.formatted(snapshot?.creditBalance) ?? "Unavailable"
     }
 
+    public var compactUsageCreditBalanceText: String? {
+        UsageCreditBalance.compactFormatted(snapshot?.creditBalance)
+    }
+
+    public var creditExpirationAt: Date? { creditExpirationNote?.midnight() }
+
     public var usageCreditReadingLabel: String {
         errorMessage != nil && UsageCreditBalance.formatted(snapshot?.creditBalance) != nil
             ? "Last known balance" : "Balance"

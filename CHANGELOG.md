@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0 — 2026-10-24
+
+- Replace the window and menu popover with the approved compact 466-point, three-column layout. Use Seravek Medium for the primary percentages with a system-font fallback, and matching system typography for labels, countdowns, and dates.
+- Keep countdown unit positions aligned, center the shared hours/minutes/seconds block with an optional day prefix, and move it 14 points right. Use equal six-point peer gaps and remove horizontal section dividers.
+- Match the Usage left and Week left pills to their unlabeled bars; retain the alternate timeline without a Week label. Rename the main timing rows Stop until, Run out at, and Reset at.
+- Combine usage credits, their expiration countdown, and the clickable expiration date on one row. Show whole credits at 1,000 or more and two decimals below 1,000; preserve the original reading for accounting, alerts, and help text. Interpret saved expiration dates as midnight at the start of the selected local date, including daylight-saving transitions.
+- Always show available banked resets as individual Banked reset rows, retaining unknown-expiration and omitted-detail disclosures. Remove the collapsible section, count badge, and disclosure arrow.
+- Move version/update details to the toolbar, combine update status and build-detail access in one icon, and use a circled X to quit. Retain resizable windows, the 1×/2× presets, editors, refresh, update checks, pacing behavior, and alerts.
+- Breaking interface changes: the layout and credit-date cutoff replace the previous presentation, and the obsolete showsBankedResetsInitially view initializer argument is removed.
+
 ## 1.17.1 — 2026-10-24
 
 - Stop layout measurements from resizing the main window, preventing snap-back and flicker during manual resizing and preset changes. Fit the main window only on opening or an explicit 1×/2× selection; content updates preserve its size.

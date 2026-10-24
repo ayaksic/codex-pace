@@ -14,6 +14,28 @@ import CodexPaceCore
     }
 }
 
+@Test func compactCreditPrecisionChangesOnlyBelowOneThousand() {
+    #expect(UsageCreditBalance.compactFormatted("61947.0751235") == "61,947")
+    #expect(UsageCreditBalance.compactFormatted("1000") == "1,000")
+    #expect(UsageCreditBalance.compactFormatted("999.125") == "999.13")
+    #expect(UsageCreditBalance.compactFormatted("0.125") == "0.13")
+    #expect(UsageCreditBalance.compactFormatted("0") == "0.00")
+    #expect(UsageCreditBalance.compactFormatted(nil) == nil)
+    #expect(UsageCreditBalance.compactFormatted("unavailable") == nil)
+}
+
+@Test func expirationCountsDownToLocalMidnightAcrossDST() throws {
+    let iso = ISO8601DateFormatter()
+    let ny = try #require(TimeZone(identifier: "America/New_York"))
+    let december = try #require(CreditExpirationNote("2026-12-31"))
+    #expect(december.midnight(timeZone: ny) == iso.date(from: "2026-12-31T05:00:00Z"))
+    for (start, end, hours) in [("2026-03-08T05:00:00Z", "2026-03-09", 23),
+                                ("2026-11-01T04:00:00Z", "2026-11-02", 25)] {
+        let note = try #require(CreditExpirationNote(end))
+        #expect(note.midnight(timeZone: ny).timeIntervalSince(try #require(iso.date(from: start))) == Double(hours * 3600))
+    }
+}
+
 @Test func expirationIsAValidatedCalendarDate() {
     #expect(CreditExpirationNote("2026-12-31")?.isoDate == "2026-12-31")
     #expect(CreditExpirationNote("2028-02-29") != nil)

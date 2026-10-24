@@ -4,6 +4,15 @@ import SwiftUI
 
 /// Fonts are registered only for this process, never installed on the Mac.
 public enum PaceTypography {
+    static let rowFont = Font.system(size: 14, weight: .medium)
+
+    static func metricNativeFont(size: CGFloat, name: String = "Seravek-Medium") -> NSFont {
+        NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: .medium)
+    }
+
+    public static func metricFont(size: CGFloat) -> Font {
+        Font(metricNativeFont(size: size))
+    }
     public enum Weight: String, CaseIterable {
         case regular = "Regular"
         case medium = "Medium"
@@ -48,14 +57,26 @@ public enum PaceTypography {
 
 /// Shared spacing sources keep peer elements equally separated at either scale.
 enum PaceMenuLayout {
-    static let width: CGFloat = 620
-    static let sectionGap: CGFloat = 16
-    static let rowGap: CGFloat = 14
-    static let creditRowGap: CGFloat = 10
-    static let horizontalPadding: CGFloat = 22
+    static let width: CGFloat = 466
+    static let sectionGap: CGFloat = 14
+    static let rowGap: CGFloat = 6
+    static let rowHeight: CGFloat = 24
+    static let horizontalPadding: CGFloat = 13
+    static let barInset: CGFloat = 3
+    static let columnGap: CGFloat = 10
+    static let labelWidth: CGFloat = 118
+    static let countdownWidth: CGFloat = 170
+    static let dateWidth: CGFloat = 132
+    static let durationNumberWidth: CGFloat = 18
+    static let durationUnitWidth: CGFloat = 10.8
+    static let durationPartWidth = durationNumberWidth + durationUnitWidth
+    static let durationGap: CGFloat = 6
+    static let countdownOffset: CGFloat = 14
 }
 
 enum PaceColors {
+    static let usage = adaptive(light: 0x0074E8, dark: 0x0A84FF)
+    static let time = adaptive(light: 0xBD26D0, dark: 0xD72FE9)
     static let secondary = adaptive(light: 0x686A72, dark: 0xACADB5)
     static let warning = adaptive(light: 0xA94A00, dark: 0xFFAB56)
     static let success = adaptive(light: 0x277544, dark: 0x71CB8C)

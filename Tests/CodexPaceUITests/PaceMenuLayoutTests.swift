@@ -4,7 +4,7 @@ import Testing
 import CodexPaceCore
 @testable import CodexPaceUI
 
-@Test @MainActor func expandedResetsPreserveIntrinsicHeightAndRespectScreenLimit() throws {
+@Test @MainActor func bankedResetRowsAreAlwaysVisibleAndRespectScreenLimit() throws {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let suiteName = "PaceMenuLayoutTests.\(UUID())"
     let defaults = UserDefaults(suiteName: suiteName)!
@@ -22,21 +22,24 @@ import CodexPaceCore
             })
         ), now: now, pollingEnabled: false, defaults: defaults
     )
+    let withResets = try #require(model.snapshot)
     for large in [false, true] {
-        func size(expanded: Bool, height: CGFloat?, maximumHeight: CGFloat = .infinity) throws -> CGSize {
+        func size(height: CGFloat?, maximumHeight: CGFloat = .infinity) throws -> CGSize {
             let renderer = ImageRenderer(content: PaceMenuView(
                 model: model, isLargeDisplay: .constant(large),
-                showsBankedResetsInitially: expanded, maximumHeight: maximumHeight
+                maximumHeight: maximumHeight
             ))
             renderer.proposedSize = ProposedViewSize(width: nil, height: height)
             return try #require(renderer.nsImage).size
         }
-        let collapsed = try size(expanded: false, height: nil)
-        let expanded = try size(expanded: true, height: nil)
-        let constrained = try size(expanded: true, height: 0)
+        model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: withResets.weeklyWindow, fetchedAt: now), now: now)
+        let collapsed = try size(height: nil)
+        model.applyFreshSnapshot(withResets, now: now)
+        let expanded = try size(height: nil)
+        let constrained = try size(height: 0)
         #expect(expanded.height > collapsed.height)
         #expect(constrained == expanded)
-        let bounded = try size(expanded: true, height: nil, maximumHeight: collapsed.height)
+        let bounded = try size(height: nil, maximumHeight: collapsed.height)
         #expect(bounded.height == collapsed.height)
         #expect(bounded.width == expanded.width)
     }
@@ -77,7 +80,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     defer { window.close() }
     var measurements: [CGSize] = []
     let content = PaceMenuView(model: model, isLargeDisplay: menuPanel ? nil : .constant(false),
-                              showsBankedResetsInitially: true, maximumHeight: 700)
+                              maximumHeight: 700)
         .background(Color(nsColor: .windowBackgroundColor))
         .onPreferenceChange(PaceContentSizeKey.self) { size in
             measurements.append(size)
@@ -138,7 +141,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
     let single = try size(false)
     let double = try size(true)
-    #expect(single.height > withoutNote.height)
+    #expect(single.height == withoutNote.height) // Expiration stays on the existing credit row.
     #expect(single.width == PaceMenuLayout.width)
     #expect(double.width == single.width * 2)
     #expect(abs(double.height - single.height * 2) < 1)
@@ -175,7 +178,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
         }
     }
     try await settle()
-    #expect(window.frame.width == 620)
+    #expect(window.frame.width == PaceMenuLayout.width)
     let initialHeight = window.contentLayoutRect.height
     model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: weeklyWindow, fetchedAt: now,
         creditBalance: "62500.125", rateLimitResetCredits: RateLimitResetCredits(
@@ -213,11 +216,11 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     largePreset = true
     model.objectWillChange.send()
     try await settle()
-    #expect(window.frame.width == 1240)
+    #expect(window.frame.width == PaceMenuLayout.width * 2)
     largePreset = false
     model.objectWillChange.send()
     try await settle()
-    #expect(window.frame.width == 620)
+    #expect(window.frame.width == PaceMenuLayout.width)
     #expect(abs(window.contentLayoutRect.height - measuredSize.height) < 1)
 }
 

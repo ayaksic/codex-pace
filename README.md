@@ -11,16 +11,16 @@ Codex Pace opens as a regular Dock app with one main window. The menu bar also
 shows `usage / time`, so `82% / 83.0%` means 82% of usage and roughly 83% of
 the week remain. The top row uses the same order. Click it for the exact values,
 pace, and reset time. When the pace
-says **Slow down**, the **Stoppage time** row shows how long it would take to get
+says **Slow down**, the **Stop until** row shows how long it would take to get
 back on pace if weekly usage stopped increasing, followed by the date and time
-when usage could resume. The **Projected runout** row beneath it shows when usage
+when usage could resume. The **Run out at** row beneath it shows when usage
 would reach 0% if the average consumption rate since the window began continued
 unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
 label says **Stopped**.
 
 Countdowns keep seconds visible. The next-update countdown appears in the toolbar;
 its exact timestamp is available in its help text. Build details and the update
-check open from the compact version footer.
+check open from the compact version and status icon in the toolbar. The status icon retains update status without a separate Latest label or information icon.
 
 The projected runout calculation uses the fixed **Next update** timestamp as its
 observation point. Its timestamp therefore stays put between refreshes while the
@@ -64,9 +64,8 @@ value as **Reset by (est.)**, remembers it across launches, and automatically
 returns to the Codex-reported timestamp after the estimate passes or Codex
 reports that the weekly usage allowance has reset to 100% remaining.
 
-Available banked resets appear in a collapsed section; click the section to show
-their expiration countdowns and timestamps. When a known banked reset expires
-before the natural reset, the main reset row becomes **Banked reset expires** and
+Each available banked reset is always visible as a **Banked reset** row, with its expiration countdown and timestamp. When a known banked reset expires
+before the natural reset, the main reset row becomes **Reset expiry** and
 counts down to that earlier deadline. Codex Pace preserves the server's
 authoritative available count even when the server omits or caps detailed
 expiration rows. The earliest of a banked-reset expiration, manual estimate, or
@@ -75,8 +74,7 @@ pace, and time-ahead values together. Stoppage time is hidden while the target i
 a banked-reset expiration, since expiration does not replenish usage. It remains
 available for weekly resets and manual estimates. Percentages retain the seven-day
 scale: six days left is 85.7%. The time metric reads **To expiry** or **To estimate**
-for an earlier deadline; the timeline is labeled **Expiry** or **Est.** and ends
-at that deadline. **Weekly reset** remains visible separately. When a credit is
+for an earlier deadline; the unlabeled timeline ends at that deadline; its help and accessibility description identify the target. **Reset at** remains visible separately. When a credit is
 used, expires, or becomes unavailable, pacing selects the next applicable target.
 The expiration itself does not automatically apply a banked reset.
 
@@ -92,12 +90,10 @@ backlog. Unavailable, consumed, expired, or undated credits do not trigger
 warnings. Using the reset remains a manual action in Codex.
 
 Usage credits appear separately in both windows, using the balance from the same
-Codex refresh. A failed refresh labels the retained reading **Last known balance**;
-missing or invalid balances show **Unavailable**, rather than zero.
-Use **Add expiration** or **Edit expiration** to save a local `YYYY-MM-DD` calendar
-date or remove the date. The manually entered expiration date is independent of the total:
-credits can have different expirations. Calendar days use this Mac’s current
-time zone; passing the date does not change the balance or remove the saved date.
+Codex refresh. A failed refresh labels the retained reading **Last known**;
+missing or invalid balances show **Credits unavailable**, rather than zero.
+Click the expiration date (or **Set expiration** when absent) to save a local `YYYY-MM-DD` calendar date or remove it. The manually entered expiration date is independent of the total:
+credits can have different expirations. The countdown ends at **12:00 AM at the start of the selected date**, using this Mac’s time zone and daylight-saving rules. Passing the date shows a zero countdown and does not change the balance or remove the saved date. The visible balance uses whole credits at 1,000 or more and two decimals below 1,000; full source precision remains available in help text and is retained for alerts.
 New installations have no manually entered expiration date.
 
 ## Build
@@ -112,9 +108,8 @@ This creates:
 - `dist/bin/codex-pace`
 
 Each app bundle is stamped with a build number derived from the Git commit count
-and the exact source revision. The footer compares that revision with the public
-repository's `main` branch on launch, every six hours, and whenever the footer is
-clicked. Modified local builds are labeled as development builds instead of being
+and the exact source revision. The toolbar status control compares that revision with the public
+repository's `main` branch on launch, every six hours, and whenever the control is clicked. Modified local builds are labeled as development builds instead of being
 reported as current.
 
 ## Install
@@ -162,7 +157,7 @@ Codex Pace is available under the MIT License. See [LICENSE](LICENSE).
 
 ## Local fonts
 
-The interface uses ABC Areal (Regular, Medium, Bold) when locally supplied. Copy
+The main interface uses the macOS system font; its three primary percentages use Seravek Medium when available, falling back to the system font. Existing alert and menu-bar typography can still use ABC Areal (Regular, Medium, Bold) when locally supplied. Copy
 licensed `ABCAreal-Regular.ttf`, `ABCAreal-Medium.ttf`, and `ABCAreal-Bold.ttf` into
 `Sources/CodexPaceUI/Resources/Fonts/` before building. Font binaries are ignored
 by Git. They are registered only for the app process and carried into local app

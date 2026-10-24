@@ -52,12 +52,12 @@ import Testing
     #expect(window.frame == manuallySizedFrame)
 
     sizer.usePreset(scale: 1)
-    #expect(window.frame.width == 620)
+    #expect(window.frame.width == PaceMenuLayout.width)
     let presetFrame = window.frame
     sizer.updateContentSize(CGSize(width: 620, height: 520))
     #expect(window.frame == presetFrame)
     sizer.usePreset(scale: 2)
-    #expect(window.frame.width == 1240)
+    #expect(window.frame.width == PaceMenuLayout.width * 2)
     #expect(window.contentLayoutRect.height <= 1040)
     let doubleFrame = window.frame
     // Out-of-date measurements can arrive after a preset or a live drag. They
