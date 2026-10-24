@@ -83,6 +83,7 @@ struct CodexPacePreview {
                 sourceRevision: "5e5cebda2253db729256233ba8ceee78ea809db0",
                 sourceState: "clean"
             ),
+            latestRevisionProvider: { "5e5cebda2253db729256233ba8ceee78ea809db0" },
             creditConsumptionAlert: {},
             usageResetAlert: {},
             bankedResetWarning: { _, _ in }
@@ -115,6 +116,7 @@ struct CodexPacePreview {
         )))
             .background(Color(nsColor: .windowBackgroundColor))
             .environment(\.colorScheme, colorScheme)
+            .accentColor(arguments.contains("--alternate-accent") ? .red : nil)
         if arguments.contains("--credit-alert") || showsUsageResetAlert || showsExpiryAlert || arguments.contains("--native") {
             // Native hosting also captures scroll views and macOS buttons that ImageRenderer omits.
             let app = NSApplication.shared

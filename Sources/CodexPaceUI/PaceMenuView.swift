@@ -52,21 +52,24 @@ public struct PaceMenuView: View {
 
     @ViewBuilder private var responsiveContent: some View {
         if maximumHeight.isInfinite {
-            scaledContent
+            scaledContent(presentsBuildDetails: true)
         } else {
             BoundedContentLayout(maximumHeight: maximumHeight) {
-                scaledContent.hidden().accessibilityHidden(true)
+                // The measurement copy must never share presentation ownership
+                // with the visible copy: dismissing its hidden popover also
+                // dismissed the real popover on the next model/timer update.
+                scaledContent(presentsBuildDetails: false).hidden().accessibilityHidden(true)
                 ScrollView(.vertical) {
-                    scaledContent
+                    scaledContent(presentsBuildDetails: true)
                 }
             }
         }
     }
 
-    private var scaledContent: some View {
+    private func scaledContent(presentsBuildDetails: Bool) -> some View {
         ScaledLayout(scale: displayScale) {
             VStack(spacing: 0) {
-                header.frame(height: 48)
+                header(presentsBuildDetails: presentsBuildDetails).frame(height: 48)
                 if let snapshot = model.snapshot {
                     metrics(snapshot).padding(.top, 4).padding(.bottom, 20)
                     comparison(snapshot)
@@ -102,7 +105,7 @@ public struct PaceMenuView: View {
         }
     }
 
-    private var header: some View {
+    private func header(presentsBuildDetails: Bool) -> some View {
         HStack(spacing: 12) {
             Button {
                 NSApplication.shared.terminate(nil)
@@ -123,7 +126,7 @@ public struct PaceMenuView: View {
             .accessibilityLabel(
                 model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
             )
-            versionStatus
+            versionStatus(presentsBuildDetails: presentsBuildDetails)
             Spacer()
             if let countdown = model.nextRefreshCountdownFields {
                 Text(DurationDisplay(fields: countdown).compactText)
@@ -348,7 +351,7 @@ public struct PaceMenuView: View {
         .frame(maxWidth: .infinity, minHeight: 72)
     }
 
-    private var versionStatus: some View {
+    private func versionStatus(presentsBuildDetails: Bool) -> some View {
         Button {
             isShowingBuildDetails.toggle()
             if isShowingBuildDetails { Task { await model.checkForUpdates() } }
@@ -368,7 +371,7 @@ public struct PaceMenuView: View {
             "Codex Pace \(model.appBuildInfo.versionText), revision "
                 + "\(model.appBuildInfo.shortRevision), \(model.appUpdateStatusText). Show build details."
         )
-        .popover(isPresented: $isShowingBuildDetails) {
+        .popover(isPresented: presentsBuildDetails ? $isShowingBuildDetails : .constant(false)) {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Codex Pace \(model.appBuildInfo.version)")
                     .font(Font.system(size: 14, weight: .medium))
@@ -871,7 +874,7 @@ private struct WeeklyTimelineBar: View {
                     RoundedRectangle(cornerRadius: 2)
                         .fill(.quaternary)
                     Rectangle()
-                        .fill(Color.accentColor)
+                        .fill(PaceColors.usage)
                         .frame(width: usageWidth)
                     Canvas { context, size in
                         let dayWidth = size.width / Double(Self.dayCount)
@@ -897,8 +900,8 @@ private struct WeeklyTimelineBar: View {
                         marker.addLine(to: CGPoint(x: constrainedMarkerX, y: centerY + radius))
                         marker.addLine(to: CGPoint(x: constrainedMarkerX - radius, y: centerY))
                         marker.closeSubpath()
-                        context.fill(marker, with: .color(.white))
-                        context.stroke(marker, with: .color(.black), lineWidth: 0.75)
+                        context.fill(marker, with: .color(.black))
+                        context.stroke(marker, with: .color(.white), lineWidth: 0.75)
                     }
                     RoundedRectangle(cornerRadius: 2)
                         .strokeBorder(.primary.opacity(0.22), lineWidth: 0.5)

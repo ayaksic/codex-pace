@@ -2,6 +2,7 @@
 
 ## 2.0.0 — 2026-10-24
 
+- Build 57: keep build details open across timer and update-status changes by giving only the visible layout ownership of its popover. Fix the timeline fill to the explicit usage blue and use a black-filled, white-outlined diamond. Keep the application version at 2.0.0.
 - Replace the window and menu popover with the approved compact 466-point, three-column layout. Use Seravek Medium for the primary percentages with a system-font fallback, and matching system typography for labels, countdowns, and dates.
 - Keep countdown unit positions aligned, center the shared hours/minutes/seconds block with an optional day prefix, and move it 14 points right. Use equal six-point peer gaps and remove horizontal section dividers.
 - Match the Usage left and Week left pills to their unlabeled bars; retain the alternate timeline without a Week label. Rename the main timing rows Stop until, Run out at, and Reset at.
