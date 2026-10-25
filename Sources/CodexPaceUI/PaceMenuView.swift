@@ -182,7 +182,7 @@ public struct PaceMenuView: View {
                        color: PaceColors.usage)
         } middle: {
             MetricView(label: model.timeRemainingLabel,
-                       value: percent(weeklyWindow.timeRemainingPercent(at: model.now), places: 1),
+                       value: model.timeRemainingPercentageText,
                        color: PaceColors.time)
                 .overlay(alignment: .leading) { metricDivider }
         } trailing: {
@@ -256,10 +256,7 @@ public struct PaceMenuView: View {
 
     private func comparisonAccessibilityValue(for window: UsageWindow) -> String {
         let usageRemaining = percent(window.usageRemainingPercent, places: 0)
-        let timeRemaining = percent(
-            window.timeRemainingPercent(at: model.now),
-            places: 1
-        )
+        let timeRemaining = model.timeRemainingPercentageText
         return "\(usageRemaining) usage remaining, \(timeRemaining) time remaining. \(model.timelineDescription)"
     }
 
@@ -902,20 +899,25 @@ struct WeeklyTimelineBar: View {
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 2))
                 .overlay {
-                    Canvas { context, size in
-                        let radius: CGFloat = 3.5
-                        let centerY = size.height / 2
-                        var marker = Path()
-                        marker.move(to: CGPoint(x: markerX, y: centerY - radius))
-                        marker.addLine(to: CGPoint(x: markerX + radius, y: centerY))
-                        marker.addLine(to: CGPoint(x: markerX, y: centerY + radius))
-                        marker.addLine(to: CGPoint(x: markerX - radius, y: centerY))
-                        marker.closeSubpath()
-                        context.fill(marker, with: .color(.black))
-                        context.stroke(marker, with: .color(.white), lineWidth: 0.75)
-                    }
+                    TimelineDiamond()
+                        .fill(.black)
+                        .overlay { TimelineDiamond().stroke(.white, lineWidth: 0.75) }
+                        .frame(width: 7, height: 7)
+                        .position(x: markerX, y: proxy.size.height / 2)
                 }
             }
+        }
+    }
+}
+
+private struct TimelineDiamond: Shape {
+    func path(in rect: CGRect) -> Path {
+        Path { path in
+            path.move(to: CGPoint(x: rect.midX, y: rect.minY))
+            path.addLine(to: CGPoint(x: rect.maxX, y: rect.midY))
+            path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+            path.addLine(to: CGPoint(x: rect.minX, y: rect.midY))
+            path.closeSubpath()
         }
     }
 }

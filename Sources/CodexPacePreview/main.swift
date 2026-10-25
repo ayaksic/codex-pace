@@ -37,7 +37,11 @@ struct CodexPacePreview {
             18.0
         }
         let now = Date(timeIntervalSince1970: 1_787_181_600)
-        let reportedResetAt: Date = if reviewsSpacing {
+        let requestedTimePercent = arguments.first { $0.hasPrefix("--time-left-percent=") }
+            .flatMap { Double($0.dropFirst("--time-left-percent=".count)) }
+        let reportedResetAt: Date = if let requestedTimePercent {
+            now.addingTimeInterval(requestedTimePercent / 100 * 7 * 86_400)
+        } else if reviewsSpacing {
             now.addingTimeInterval(0.968 * 7 * 86_400)
         } else if showsBehindExample {
             now.addingTimeInterval(6 * 86_400)

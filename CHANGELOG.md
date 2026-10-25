@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.6 — 2026-10-25
+
+- Keep the entire timeline diamond visible at either endpoint while centering it on the exact time mark.
+- Show two decimal places for time remaining below 1.0%, including manual reset estimates and the menu bar.
+
 ## 2.0.5 — 2026-10-25
 
 - Center the timeline diamond on the exact elapsed-time mark, including at either endpoint, without clipping its edges.

@@ -70,11 +70,20 @@ func timelineDiamondCentersOnItsMarkIncludingEndpoints(fraction: Double) throws 
     let window = UsageWindow(usedPercent: 0, durationMinutes: 10_080, resetsAt: reset)
     let progress = WeeklyTimelineProgress(window: window,
         at: reset.addingTimeInterval(-(1 - fraction) * 7 * 86_400))
-    let renderer = ImageRenderer(content: WeeklyTimelineBar(progress: progress)
-        .frame(width: 200, height: 24).padding(10).background(Color.gray)
+    let view = NSHostingView(rootView: Button {} label: {
+        WeeklyTimelineBar(progress: progress).frame(width: 200, height: 24)
+    }.buttonStyle(.plain).padding(10).background(Color.gray)
         .environment(\.colorScheme, .light))
-    renderer.scale = 2
-    let bitmap = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+    let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 44),
+        styleMask: [.borderless], backing: .buffered, defer: false)
+    panel.isReleasedWhenClosed = false
+    panel.contentView = view
+    panel.orderFront(nil)
+    defer { panel.close() }
+    view.layoutSubtreeIfNeeded()
+    let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+    view.cacheDisplay(in: view.bounds, to: bitmap)
+    let scale = Double(bitmap.pixelsWide) / 220
     var minX = bitmap.pixelsWide, maxX = -1
     for y in 0..<bitmap.pixelsHigh {
         for x in 0..<bitmap.pixelsWide {
@@ -84,8 +93,8 @@ func timelineDiamondCentersOnItsMarkIncludingEndpoints(fraction: Double) throws 
             }
         }
     }
-    #expect(maxX > minX, "The black diamond must remain visible")
-    #expect(abs(Double(minX + maxX) / 2 - (10 + 200 * fraction) * 2) <= 1)
+    #expect(Double(maxX - minX) >= 4 * scale, "The entire black diamond must remain visible")
+    #expect(abs(Double(minX + maxX) / 2 - (10 + 200 * fraction) * scale) <= 1)
 }
 
 @Test @MainActor func opticalTextPreservesCompleteGlyphsWithoutFontLeading() throws {

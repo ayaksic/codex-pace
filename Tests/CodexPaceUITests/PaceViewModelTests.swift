@@ -764,3 +764,25 @@ private let cleanBuildInfo = AppBuildInfo(
     #expect(model.bankedResetCountWithoutDetails == 2)
     #expect(model.resetCountdownTarget?.kind == .natural)
 }
+
+@Test @MainActor func timeRemainingPrecisionFollowsReportedAndEstimatedReset() throws {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let suite = "TimePrecision.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    for (percent, expected) in [(0.0, "0.00%"), (0.01, "0.01%"), (0.5, "0.50%"),
+                                (0.99, "0.99%"), (1.0, "1.0%"), (5.0, "5.0%")] {
+        let model = PaceViewModel(snapshot: PaceSnapshot(weeklyWindow: UsageWindow(
+            usedPercent: 20, durationMinutes: 100,
+            resetsAt: now.addingTimeInterval(percent * 60)), fetchedAt: now),
+            now: now, pollingEnabled: false, defaults: defaults)
+        #expect(model.timeRemainingPercentageText == expected)
+        #expect(model.menuBarText == "80% / \(expected)")
+    }
+    let model = PaceViewModel(snapshot: PaceSnapshot(weeklyWindow: UsageWindow(
+        usedPercent: 20, durationMinutes: 100, resetsAt: now.addingTimeInterval(600)),
+        fetchedAt: now), now: now, pollingEnabled: false, defaults: defaults)
+    model.setManualResetAt(now.addingTimeInterval(30))
+    #expect(model.timeRemainingPercentageText == "0.50%")
+    #expect(model.menuBarText == "80% / 0.50%")
+}

@@ -228,12 +228,16 @@ public final class PaceViewModel: ObservableObject {
                 .precision(.fractionLength(0))
                 .locale(Locale(identifier: "en_US_POSIX"))
         )
-        let time = weeklyWindow.timeRemainingPercent(at: now).formatted(
-            .number
-                .precision(.fractionLength(1))
+        return "\(usage)% / \(timeRemainingPercentageText)"
+    }
+
+    public var timeRemainingPercentageText: String {
+        guard let weeklyWindow = effectiveWeeklyWindow else { return "—" }
+        let value = weeklyWindow.timeRemainingPercent(at: now)
+        return value.formatted(
+            .number.precision(.fractionLength(value < 1 ? 2 : 1))
                 .locale(Locale(identifier: "en_US_POSIX"))
-        )
-        return "\(usage)% / \(time)%"
+        ) + "%"
     }
 
     public var paceText: String {
