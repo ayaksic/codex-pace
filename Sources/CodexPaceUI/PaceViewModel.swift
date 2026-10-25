@@ -336,7 +336,7 @@ public final class PaceViewModel: ObservableObject {
     public var timeRemainingLabel: String {
         switch resetCountdownTarget?.kind {
         case .bankedResetExpiry: "To expiry"
-        case .manualEstimate: "To estimate"
+        case .manualEstimate: "Early reset"
         default: "Week left"
         }
     }

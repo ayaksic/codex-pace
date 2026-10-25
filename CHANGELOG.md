@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.4 — 2026-10-25
+
+- Rename the center pill for a manual reset estimate from "to estimate" to "early reset".
+
 ## 2.0.3 — 2026-10-25
 
 - Hide the reported "Reset at" row while a manually entered reset estimate is active. Show it again when the estimate is removed or expires; retain banked-reset timing and the existing pacing calculations.

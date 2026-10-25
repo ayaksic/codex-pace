@@ -67,7 +67,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
     let earlierEstimate = expiryFixtureNow.addingTimeInterval(3_600)
     model.setManualResetAt(earlierEstimate)
     #expect(model.effectiveWeeklyWindow?.resetsAt == earlierEstimate)
-    #expect(model.timeRemainingLabel == "To estimate")
+    #expect(model.timeRemainingLabel == "Early reset")
     model.setManualResetAt(expiry.addingTimeInterval(3_600))
     #expect(model.effectiveWeeklyWindow?.resetsAt == expiry)
     #expect(model.timeRemainingLabel == "To expiry")
