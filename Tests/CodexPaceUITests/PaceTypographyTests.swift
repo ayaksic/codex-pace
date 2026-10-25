@@ -39,6 +39,55 @@ import CodexPaceCore
     }
 }
 
+@Test @MainActor func countdownHidesLeadingZeroUnitsWithoutMovingColumns() throws {
+    func render(_ fields: DurationFields) throws -> (CGSize, Int) {
+        let renderer = ImageRenderer(content: AlignedCountdown(fields: fields)
+            .foregroundStyle(.white).padding(20))
+        renderer.scale = 2
+        let bitmap = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+        var firstInk = bitmap.pixelsWide
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.1 {
+                firstInk = min(firstInk, x)
+            }
+        }
+        return (CGSize(width: bitmap.pixelsWide, height: bitmap.pixelsHigh), firstInk)
+    }
+    let hours = try render(DurationFields(hours: 1, minutes: 1, seconds: 36))
+    let minutes = try render(DurationFields(hours: 0, minutes: 1, seconds: 36))
+    let seconds = try render(DurationFields(hours: 0, minutes: 0, seconds: 36))
+    let zero = try render(DurationFields(hours: 0, minutes: 0, seconds: 0))
+    #expect(hours.0 == minutes.0 && minutes.0 == seconds.0 && seconds.0 == zero.0)
+    let cellStride = Int(2 * (PaceMenuLayout.durationPartWidth + PaceMenuLayout.durationGap))
+    #expect(minutes.1 - hours.1 >= cellStride - 2)
+    #expect(seconds.1 - hours.1 >= 2 * cellStride - 20)
+    #expect(zero.1 < Int(zero.0.width), "Zero duration must still display seconds")
+}
+
+@Test(arguments: [0.0, 0.5, 1.0]) @MainActor
+func timelineDiamondCentersOnItsMarkIncludingEndpoints(fraction: Double) throws {
+    let reset = Date(timeIntervalSince1970: 2_000_000_000)
+    let window = UsageWindow(usedPercent: 0, durationMinutes: 10_080, resetsAt: reset)
+    let progress = WeeklyTimelineProgress(window: window,
+        at: reset.addingTimeInterval(-(1 - fraction) * 7 * 86_400))
+    let renderer = ImageRenderer(content: WeeklyTimelineBar(progress: progress)
+        .frame(width: 200, height: 24).padding(10).background(Color.gray)
+        .environment(\.colorScheme, .light))
+    renderer.scale = 2
+    let bitmap = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+    var minX = bitmap.pixelsWide, maxX = -1
+    for y in 0..<bitmap.pixelsHigh {
+        for x in 0..<bitmap.pixelsWide {
+            let color = try #require(bitmap.colorAt(x: x, y: y)?.usingColorSpace(.deviceRGB))
+            if color.redComponent < 0.05 && color.greenComponent < 0.05 && color.blueComponent < 0.05 {
+                minX = min(minX, x); maxX = max(maxX, x)
+            }
+        }
+    }
+    #expect(maxX > minX, "The black diamond must remain visible")
+    #expect(abs(Double(minX + maxX) / 2 - (10 + 200 * fraction) * 2) <= 1)
+}
+
 @Test @MainActor func opticalTextPreservesCompleteGlyphsWithoutFontLeading() throws {
     func inkSize<V: View>(_ view: V) throws -> CGSize {
         let renderer = ImageRenderer(content: view.foregroundStyle(.white).padding(20))

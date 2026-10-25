@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.5 — 2026-10-25
+
+- Center the timeline diamond on the exact elapsed-time mark, including at either endpoint, without clipping its edges.
+
+- Omit leading zero hours and minutes from countdowns, including Time ahead. Show the first visible unit without zero padding and preserve the aligned unit columns.
+
 ## 2.0.4 — 2026-10-25
 
 - Rename the center pill for a manual reset estimate from "to estimate" to "early reset".

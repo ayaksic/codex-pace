@@ -743,8 +743,10 @@ struct AlignedCountdown: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: PaceMenuLayout.durationGap) {
             part(fields.days > 0 ? padded(fields.hours) : String(fields.hours), unit: "h")
-            part(padded(fields.minutes), unit: "m")
-            part(padded(fields.seconds), unit: "s")
+                .opacity(display.hours == nil ? 0 : 1)
+            part(display.hours == nil ? String(fields.minutes) : padded(fields.minutes), unit: "m")
+                .opacity(display.minutes == nil ? 0 : 1)
+            part(display.minutes == nil ? String(fields.seconds) : padded(fields.seconds), unit: "s")
         }
         .overlay(alignment: .leading) {
             if fields.days > 0 {
@@ -755,9 +757,10 @@ struct AlignedCountdown: View {
         .offset(x: PaceMenuLayout.countdownOffset)
         .font(PaceTypography.rowFont).monospacedDigit().lineLimit(1)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(DurationDisplay(fields: fields).accessibilityLabel)
+        .accessibilityLabel(display.accessibilityLabel)
     }
 
+    private var display: DurationDisplay { DurationDisplay(fields: fields) }
     private func padded(_ value: Int) -> String { String(format: "%02d", value) }
     private func part(_ number: String, unit: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
@@ -861,7 +864,7 @@ struct WeeklyTimelineProgress: Equatable {
     }
 }
 
-private struct WeeklyTimelineBar: View {
+struct WeeklyTimelineBar: View {
     private static let dayCount = 7
 
     let progress: WeeklyTimelineProgress
@@ -893,22 +896,25 @@ private struct WeeklyTimelineBar: View {
                             )
                         }
 
-                        let radius: CGFloat = 3.5
-                        let constrainedMarkerX = min(size.width - radius - 0.5, max(radius + 0.5, markerX))
-                        let centerY = size.height / 2
-                        var marker = Path()
-                        marker.move(to: CGPoint(x: constrainedMarkerX, y: centerY - radius))
-                        marker.addLine(to: CGPoint(x: constrainedMarkerX + radius, y: centerY))
-                        marker.addLine(to: CGPoint(x: constrainedMarkerX, y: centerY + radius))
-                        marker.addLine(to: CGPoint(x: constrainedMarkerX - radius, y: centerY))
-                        marker.closeSubpath()
-                        context.fill(marker, with: .color(.black))
-                        context.stroke(marker, with: .color(.white), lineWidth: 0.75)
                     }
                     RoundedRectangle(cornerRadius: 2)
                         .strokeBorder(.primary.opacity(0.22), lineWidth: 0.5)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 2))
+                .overlay {
+                    Canvas { context, size in
+                        let radius: CGFloat = 3.5
+                        let centerY = size.height / 2
+                        var marker = Path()
+                        marker.move(to: CGPoint(x: markerX, y: centerY - radius))
+                        marker.addLine(to: CGPoint(x: markerX + radius, y: centerY))
+                        marker.addLine(to: CGPoint(x: markerX, y: centerY + radius))
+                        marker.addLine(to: CGPoint(x: markerX - radius, y: centerY))
+                        marker.closeSubpath()
+                        context.fill(marker, with: .color(.black))
+                        context.stroke(marker, with: .color(.white), lineWidth: 0.75)
+                    }
+                }
             }
         }
     }
