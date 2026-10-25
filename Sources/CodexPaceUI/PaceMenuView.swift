@@ -91,7 +91,7 @@ public struct PaceMenuView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.top, PaceMenuLayout.sectionGap)
+                .padding(.top, PaceMenuLayout.barDetailsGap)
             }
             .font(.system(size: 13))
             .padding(.horizontal, PaceMenuLayout.horizontalPadding)

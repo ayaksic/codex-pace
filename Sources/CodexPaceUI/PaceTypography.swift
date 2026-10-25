@@ -62,6 +62,9 @@ enum PaceMenuLayout {
     // Parent stacks own these gaps uniformly across all three metrics.
     static let metricPillGap: CGFloat = 4
     static let metricsBarGap: CGFloat = 10
+    // Centered 14-point row text starts seven points below the row's top edge.
+    // Account for that inset so the visible gaps above and below the bars match.
+    static let barDetailsGap: CGFloat = metricsBarGap - 7
     static let rowGap: CGFloat = 6
     static let rowHeight: CGFloat = 24
     static let horizontalPadding: CGFloat = 13

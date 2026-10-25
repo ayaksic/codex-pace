@@ -5,6 +5,7 @@
 - Increase letter spacing on the three large percentages so repeated digits such as `77%` remain visually separated.
 - Reduce the gap between each percentage and its pill from eight to four points.
 - Reduce the gap between the pills and the bars from twenty to ten points.
+- Match the visible gap below the bars to the gap above them, accounting for the first timing row's internal text inset. Keep the release version at 2.0.2.
 
 ## 2.0.1 — 2026-10-24
 
