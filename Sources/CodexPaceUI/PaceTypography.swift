@@ -5,7 +5,7 @@ import SwiftUI
 /// Fonts are registered only for this process, never installed on the Mac.
 public enum PaceTypography {
     static var rowNativeFont: NSFont { .systemFont(ofSize: 14, weight: .medium) }
-    static let rowFont = Font(rowNativeFont)
+    static let rowFont = Font.system(size: 14, weight: .medium)
 
     static func metricNativeFont(size: CGFloat, name: String = "Seravek-Medium") -> NSFont {
         NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: .medium)
@@ -59,11 +59,12 @@ public enum PaceTypography {
 /// Shared spacing sources keep peer elements equally separated at either scale.
 enum PaceMenuLayout {
     static let width: CGFloat = 466
-    // Every main-view vertical stack and outer margin uses this single source.
-    static let verticalGap: CGFloat = 4
+    // Tight pairs share one gap; visible group and row edges share the other.
+    static let pairGap: CGFloat = 4
+    static let groupGap: CGFloat = 11
     static let rowHeight: CGFloat = ceil(PaceTypography.rowNativeFont.capHeight)
     static let barHeight: CGFloat = 10
-    static let comparisonHeight = 2 * barHeight + verticalGap
+    static let comparisonHeight = 2 * barHeight + pairGap
     static let minimumWindowHeight: CGFloat = 120
     static let horizontalPadding: CGFloat = 13
     static let barInset: CGFloat = 3
@@ -79,8 +80,8 @@ enum PaceMenuLayout {
     static let countdownOffset: CGFloat = 14
 }
 
-/// Measure single-line text by its glyphs, so font leading does not add hidden
-/// spacing to the shared vertical rhythm. Baselines and full glyphs are retained.
+/// Keep the normal font and its complete glyphs, but let parent stacks space
+/// visible text edges rather than accumulating each font's invisible leading.
 struct PaceInkText: View {
     let value: String
     var font: NSFont = PaceTypography.rowNativeFont
@@ -92,10 +93,26 @@ struct PaceInkText: View {
             string: value, attributes: [.font: font, .kern: tracking]
         ))
         let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
-        PaceTextInkLayout(top: ceil(ink.maxY), bottom: floor(ink.minY)) {
+        PaceTextInkLayout(top: ink.maxY, bottom: ink.minY) {
             Text(value).font(monospacedDigits ? Font(font).monospacedDigit() : Font(font))
                 .tracking(tracking).lineLimit(1)
         }
+    }
+}
+
+/// SF Symbols include a small clear inset in their native image bounds.
+/// Exclude it from stack measurement while retaining the full controls and icons.
+struct PaceToolbarLayout: Layout {
+    private let opticalInset: CGFloat = 1.25
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let size = subviews[0].sizeThatFits(ProposedViewSize(width: proposal.width, height: nil))
+        return CGSize(width: size.width, height: size.height - 2 * opticalInset)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        subviews[0].place(at: CGPoint(x: bounds.minX, y: bounds.minY - opticalInset),
+                          anchor: .topLeading, proposal: ProposedViewSize(width: bounds.width, height: nil))
     }
 }
 

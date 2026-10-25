@@ -17,7 +17,8 @@ import CodexPaceCore
     #expect(PaceMenuLayout.labelWidth + PaceMenuLayout.countdownWidth + PaceMenuLayout.dateWidth
         + 2 * PaceMenuLayout.columnGap + 2 * PaceMenuLayout.horizontalPadding == PaceMenuLayout.width)
     #expect(PaceMenuLayout.width == 466)
-    #expect(PaceMenuLayout.verticalGap == 4)
+    #expect(PaceMenuLayout.pairGap == 4)
+    #expect(PaceMenuLayout.groupGap == 11)
     #expect(PaceMenuLayout.countdownOffset == 14)
 }
 

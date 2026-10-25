@@ -3,7 +3,9 @@
 ## 2.0.2 — 2026-10-24
 
 - Increase letter spacing on the three large percentages so repeated digits such as `77%` remain visually separated.
-- Standardize the main view's vertical margins and gaps to four points: toolbar, percentages, pills, bars, timing rows, and bottom margin. Remove fixed-height whitespace and measure single-line text by its glyphs so font leading does not add hidden gaps. Keep the release version at 2.0.2.
+- Use the same middle dot between the date and time in every row, including credit expiration.
+- Use four-point gaps within percentage/pill and bar/bar pairs, and a shared eleven-point visible gap around the toolbar, metric group, bars, and timing rows. Account for invisible font leading in layout. Keep the release version at 2.0.2.
+- Use lowercase ten-point metric-pill labels, horizontal interior padding of seven points, and vertical interior padding of two points.
 
 ## 2.0.1 — 2026-10-24
 

@@ -15,7 +15,8 @@ struct CodexPacePreview {
             : .light
         let isLargeDisplay = arguments.contains("--double")
         let hasResetOverride = arguments.contains("--reset-override")
-        let hasBankedResets = arguments.contains("--banked-resets")
+        let reviewsSpacing = arguments.contains("--spacing-review")
+        let hasBankedResets = arguments.contains("--banked-resets") || reviewsSpacing
         let showsExpiryAlert = arguments.contains("--expiry-alert")
         let showsUsageResetAlert = arguments.contains("--usage-reset-alert")
         let showsWeeklyTimeline = arguments.contains("--timeline")
@@ -36,40 +37,41 @@ struct CodexPacePreview {
             18.0
         }
         let now = Date(timeIntervalSince1970: 1_787_181_600)
+        let reportedResetAt: Date = if reviewsSpacing {
+            now.addingTimeInterval(0.968 * 7 * 86_400)
+        } else if showsBehindExample {
+            now.addingTimeInterval(6 * 86_400)
+        } else if arguments.contains("--banked-reset-week") {
+            now.addingTimeInterval(7 * 86_400)
+        } else {
+            Date(timeIntervalSince1970: 1_787_679_109)
+        }
+        let firstResetLifetime: TimeInterval = if reviewsSpacing { 12 * 86_400 }
+            else if showsBehindExample { 0.718 * 7 * 86_400 }
+            else if arguments.contains("--banked-reset-week") { 6 * 86_400 + 4_600 }
+            else { 11 * 3_600 }
+        let previewResetCredits = [
+            RateLimitResetCredit(id: "preview-reset-1", resetType: "codexRateLimits", status: "available",
+                grantedAt: now.addingTimeInterval(-24 * 3_600),
+                expiresAt: now.addingTimeInterval(firstResetLifetime), title: "Rate-limit reset"),
+            RateLimitResetCredit(id: "preview-reset-2", resetType: "codexRateLimits", status: "available",
+                grantedAt: now.addingTimeInterval(-24 * 3_600),
+                expiresAt: now.addingTimeInterval(showsBehindExample ? 8 * 86_400 : arguments.contains("--banked-reset-week") ? 14 * 86_400 : 35 * 3_600),
+                title: "Rate-limit reset"),
+        ]
         let snapshot = PaceSnapshot(
             weeklyWindow: UsageWindow(
                 usedPercent: usedPercent,
                 durationMinutes: 10_080,
-                resetsAt: showsBehindExample
-                    ? now.addingTimeInterval(6 * 86_400)
-                    : arguments.contains("--banked-reset-week")
-                    ? now.addingTimeInterval(7 * 86_400)
-                    : Date(timeIntervalSince1970: 1_787_679_109)
+                resetsAt: reportedResetAt
             ),
             fetchedAt: now,
             planType: "pro",
             creditBalance: arguments.contains("--credits") ? "62500.125" : "0",
             rateLimitResetCredits: hasBankedResets
                 ? RateLimitResetCredits(
-                    availableCount: 3,
-                    credits: [
-                        RateLimitResetCredit(
-                            id: "preview-reset-1",
-                            resetType: "codexRateLimits",
-                            status: "available",
-                            grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(showsBehindExample ? 0.718 * 7 * 86_400 : arguments.contains("--banked-reset-week") ? 6 * 86_400 + 4_600 : 11 * 3_600),
-                            title: "Rate-limit reset"
-                        ),
-                        RateLimitResetCredit(
-                            id: "preview-reset-2",
-                            resetType: "codexRateLimits",
-                            status: "available",
-                            grantedAt: now.addingTimeInterval(-24 * 3_600),
-                            expiresAt: now.addingTimeInterval(showsBehindExample ? 8 * 86_400 : arguments.contains("--banked-reset-week") ? 14 * 86_400 : 35 * 3_600),
-                            title: "Rate-limit reset"
-                        ),
-                    ]
+                    availableCount: reviewsSpacing ? 1 : 3,
+                    credits: Array(previewResetCredits.prefix(reviewsSpacing ? 1 : 2))
                 )
                 : nil
         )

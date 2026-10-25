@@ -68,15 +68,17 @@ public struct PaceMenuView: View {
 
     private func scaledContent(presentsBuildDetails: Bool) -> some View {
         ScaledLayout(scale: displayScale) {
-            VStack(spacing: PaceMenuLayout.verticalGap) {
-                header(presentsBuildDetails: presentsBuildDetails)
+            VStack(spacing: PaceMenuLayout.groupGap) {
+                PaceToolbarLayout {
+                    header(presentsBuildDetails: presentsBuildDetails)
+                }
                 if let snapshot = model.snapshot {
                     metrics(snapshot)
                     comparison(snapshot)
                 } else {
                     unavailable
                 }
-                VStack(spacing: PaceMenuLayout.verticalGap) {
+                VStack(spacing: PaceMenuLayout.groupGap) {
                     if let snapshot = model.snapshot { details(snapshot) }
                     usageCredits
                     if model.availableBankedResetCount > 0 { bankedResets }
@@ -91,7 +93,7 @@ public struct PaceMenuView: View {
             }
             .font(.system(size: 13))
             .padding(.horizontal, PaceMenuLayout.horizontalPadding)
-            .padding(.vertical, PaceMenuLayout.verticalGap)
+            .padding(.vertical, PaceMenuLayout.groupGap)
             .frame(width: PaceMenuLayout.width)
             .scaleEffect(displayScale, anchor: .topLeading)
         }
@@ -210,7 +212,7 @@ public struct PaceMenuView: View {
                     WeeklyTimelineBar(progress: timelineProgress)
                         .transition(.opacity)
                 } else {
-                    VStack(spacing: PaceMenuLayout.verticalGap) {
+                    VStack(spacing: PaceMenuLayout.pairGap) {
                         ComparisonBar(
                             value: weeklyWindow.usageRemainingPercent,
                             color: PaceColors.usage,
@@ -262,7 +264,7 @@ public struct PaceMenuView: View {
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
-        VStack(spacing: PaceMenuLayout.verticalGap) {
+        VStack(spacing: PaceMenuLayout.groupGap) {
             if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
                 PaceColumns {
                     detailLabel(label == "Stoppage time" ? "Stop until" : label)
@@ -288,7 +290,7 @@ public struct PaceMenuView: View {
 
     private var usageCredits: some View {
         PaceColumns {
-            VStack(spacing: PaceMenuLayout.verticalGap) {
+            VStack(spacing: PaceMenuLayout.groupGap) {
                 detailLabel(model.compactUsageCreditBalanceText.map { "\($0) credits" } ?? "Credits unavailable")
                 if model.usageCreditReadingLabel == "Last known balance" {
                     PaceInkText(value: "Last known", font: .systemFont(ofSize: 11))
@@ -301,7 +303,7 @@ public struct PaceMenuView: View {
         } trailing: {
             Button { isShowingCreditEditor = true } label: {
                 if let date = model.creditExpirationAt {
-                    detailTimestamp(date, separator: " • ")
+                    detailTimestamp(date)
                 } else {
                     PaceInkText(value: "Set expiration")
                 }
@@ -315,7 +317,7 @@ public struct PaceMenuView: View {
     }
 
     private var bankedResets: some View {
-        VStack(spacing: PaceMenuLayout.verticalGap) {
+        VStack(spacing: PaceMenuLayout.groupGap) {
             ForEach(model.availableBankedResetCredits) { credit in
                 PaceColumns { detailLabel("Banked reset") } middle: {
                     if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
@@ -335,7 +337,7 @@ public struct PaceMenuView: View {
     }
 
     private var unavailable: some View {
-        VStack(spacing: PaceMenuLayout.verticalGap) {
+        VStack(spacing: PaceMenuLayout.groupGap) {
             if model.isRefreshing {
                 Text("Reading Codex usage…")
                     .foregroundStyle(PaceColors.secondary)
@@ -447,11 +449,11 @@ public struct PaceMenuView: View {
         AlignedCountdown(fields: fields)
     }
 
-    private func detailTimestamp(_ value: Date?, separator: String = " · ") -> some View {
+    private func detailTimestamp(_ value: Date?) -> some View {
         Group {
             if let value {
                 PaceInkText(value: value.formatted(.dateTime.month(.abbreviated).day()
-                    .locale(Locale(identifier: "en_US_POSIX"))) + separator
+                    .locale(Locale(identifier: "en_US_POSIX"))) + " · "
                     + value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
                     .minute(.twoDigits).locale(Locale(identifier: "en_US_POSIX"))), monospacedDigits: true)
             } else { PaceInkText(value: "") }
@@ -774,11 +776,11 @@ private struct MetricView: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: PaceMenuLayout.verticalGap) {
+        VStack(spacing: PaceMenuLayout.pairGap) {
             PaceInkText(value: value, font: PaceTypography.metricNativeFont(size: 34), tracking: 0.5)
                 .foregroundStyle(color)
-            Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(color)
-                .padding(.horizontal, 10).padding(.vertical, 3)
+            Text(label.lowercased()).font(.system(size: 10, weight: .medium)).foregroundStyle(color)
+                .padding(.horizontal, 7).padding(.vertical, 2)
                 .background(Capsule().fill(color.opacity(0.17)))
         }
         .frame(maxWidth: .infinity)
