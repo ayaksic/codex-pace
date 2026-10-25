@@ -6,6 +6,9 @@ import SwiftUI
 public enum PaceTypography {
     static var rowNativeFont: NSFont { .systemFont(ofSize: 14, weight: .medium) }
     static let rowFont = Font.system(size: 14, weight: .medium)
+    static let rowLineReference = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789:.,·%-+—"
+    static let metricLineReference = "+-0123456789.%—"
+    static let rowLineMetrics = PaceTextLineMetrics(font: rowNativeFont, reference: rowLineReference)
 
     static func metricNativeFont(size: CGFloat, name: String = "Seravek-Medium") -> NSFont {
         NSFont(name: name, size: size) ?? NSFont.systemFont(ofSize: size, weight: .medium)
@@ -62,7 +65,7 @@ enum PaceMenuLayout {
     // Tight pairs share one gap; visible group and row edges share the other.
     static let pairGap: CGFloat = 4
     static let groupGap: CGFloat = 11
-    static let rowHeight: CGFloat = ceil(PaceTypography.rowNativeFont.capHeight)
+    static let rowHeight = PaceTypography.rowLineMetrics.height
     static let barHeight: CGFloat = 10
     static let comparisonHeight = 2 * barHeight + pairGap
     static let minimumWindowHeight: CGFloat = 120
@@ -72,6 +75,10 @@ enum PaceMenuLayout {
     static let labelWidth: CGFloat = 118
     static let countdownWidth: CGFloat = 170
     static let dateWidth: CGFloat = 132
+    static let timestampDateWidth: CGFloat = 50
+    static let timestampSeparatorWidth: CGFloat = 5
+    static let timestampTimeWidth: CGFloat = 67
+    static let timestampGap: CGFloat = 5
     static let durationNumberWidth: CGFloat = 18
     // The system-medium "m" needs 13 points, including layout rounding.
     static let durationUnitWidth: CGFloat = 13
@@ -80,20 +87,35 @@ enum PaceMenuLayout {
     static let countdownOffset: CGFloat = 14
 }
 
-/// Keep the normal font and its complete glyphs, but let parent stacks space
-/// visible text edges rather than accumulating each font's invisible leading.
+/// A fixed font reference keeps line heights and baselines independent of the
+/// current digits. Half-point geometry stays on a stable grid at 1× and 2×.
+struct PaceTextLineMetrics: Sendable {
+    let top: CGFloat
+    let bottom: CGFloat
+    var height: CGFloat { top - bottom }
+
+    init(font: NSFont, reference: String) {
+        let line = CTLineCreateWithAttributedString(NSAttributedString(
+            string: reference, attributes: [.font: font]
+        ))
+        let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
+        top = (ink.maxY * 2).rounded() / 2
+        bottom = top - (ink.height * 2).rounded() / 2
+    }
+}
+
+/// Keep complete glyphs and normal font sizes, with stable optical line metrics.
+/// Text is never clipped to the line box.
 struct PaceInkText: View {
     let value: String
     var font: NSFont = PaceTypography.rowNativeFont
     var tracking: CGFloat = 0
     var monospacedDigits = false
+    var lineReference: String = PaceTypography.rowLineReference
 
     var body: some View {
-        let line = CTLineCreateWithAttributedString(NSAttributedString(
-            string: value, attributes: [.font: font, .kern: tracking]
-        ))
-        let ink = CTLineGetBoundsWithOptions(line, .useGlyphPathBounds)
-        PaceTextInkLayout(top: ink.maxY, bottom: ink.minY) {
+        let metrics = PaceTextLineMetrics(font: font, reference: lineReference)
+        PaceTextInkLayout(top: metrics.top, bottom: metrics.bottom) {
             Text(value).font(monospacedDigits ? Font(font).monospacedDigit() : Font(font))
                 .tracking(tracking).lineLimit(1)
         }

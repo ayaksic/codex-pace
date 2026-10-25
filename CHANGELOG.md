@@ -4,6 +4,7 @@
 
 - Increase letter spacing on the three large percentages so repeated digits such as `77%` remain visually separated.
 - Use the same middle dot between the date and time in every row, including credit expiration.
+- Anchor every date separator to the same horizontal position, with fixed date and time fields. Keep timer line heights and baselines stable across changing digits to prevent pixel movement and uneven row spacing.
 - Use four-point gaps within percentage/pill and bar/bar pairs, and a shared eleven-point visible gap around the toolbar, metric group, bars, and timing rows. Account for invisible font leading in layout. Keep the release version at 2.0.2.
 - Use lowercase ten-point metric-pill labels, horizontal interior padding of seven points, and vertical interior padding of two points.
 

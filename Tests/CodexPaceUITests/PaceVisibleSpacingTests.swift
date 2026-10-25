@@ -78,4 +78,34 @@ func visibleSpacingMatchesTheRequestedPairsAndGroups(large: Bool) throws {
     }
     check("bottom margin", after: rows.last!.upperBound, before: bitmap.pixelsHigh,
           expected: PaceMenuLayout.groupGap)
+
+    // The date column must share both a dot axis and an even baseline grid,
+    // including the credit-expiration button's label.
+    let dotStart = Int((PaceMenuLayout.horizontalPadding + PaceMenuLayout.labelWidth
+        + PaceMenuLayout.countdownWidth + 2 * PaceMenuLayout.columnGap
+        + PaceMenuLayout.timestampDateWidth + PaceMenuLayout.timestampGap) * scale)
+    let dotEnd = dotStart + Int(PaceMenuLayout.timestampSeparatorWidth * scale)
+    var horizontalBounds: [ClosedRange<Int>] = []
+    var verticalCenters: [CGFloat] = []
+    for row in rows {
+        var xs: [Int] = [], ys: [Int] = []
+        for y in row {
+            for x in dotStart..<dotEnd {
+                let c = bitmap.colorAt(x: x, y: y)!.usingColorSpace(.deviceRGB)!
+                if min(c.redComponent, c.greenComponent, c.blueComponent) > 0.6 {
+                    xs.append(x); ys.append(y)
+                }
+            }
+        }
+        let minX = try #require(xs.min()), maxX = try #require(xs.max())
+        let minY = try #require(ys.min()), maxY = try #require(ys.max())
+        horizontalBounds.append(minX...maxX)
+        verticalCenters.append(CGFloat(minY + maxY) / 2)
+    }
+    #expect(Set(horizontalBounds).count == 1, "All middle dots must have identical horizontal bounds")
+    let pitch = (PaceMenuLayout.rowHeight + PaceMenuLayout.groupGap) * scale
+    for index in 1..<verticalCenters.count {
+        #expect(verticalCenters[index] - verticalCenters[index - 1] == pitch,
+                "Every text row must use the same baseline spacing")
+    }
 }

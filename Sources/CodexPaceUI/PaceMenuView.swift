@@ -452,10 +452,7 @@ public struct PaceMenuView: View {
     private func detailTimestamp(_ value: Date?) -> some View {
         Group {
             if let value {
-                PaceInkText(value: value.formatted(.dateTime.month(.abbreviated).day()
-                    .locale(Locale(identifier: "en_US_POSIX"))) + " · "
-                    + value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
-                    .minute(.twoDigits).locale(Locale(identifier: "en_US_POSIX"))), monospacedDigits: true)
+                AlignedTimestamp(date: value)
             } else { PaceInkText(value: "") }
         }
         .font(PaceTypography.rowFont).foregroundStyle(Color.primary)
@@ -726,12 +723,18 @@ struct PaceColumns<Leading: View, Middle: View, Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: PaceMenuLayout.columnGap) {
-            ZStack { Color.clear.frame(width: 0, height: 0); leading }
+        HStack(alignment: .firstTextBaseline, spacing: PaceMenuLayout.columnGap) {
+            ZStack(alignment: Alignment(horizontal: .center, vertical: .firstTextBaseline)) {
+                Color.clear.frame(width: 0, height: 0); leading
+            }
                 .frame(width: PaceMenuLayout.labelWidth)
-            ZStack { Color.clear.frame(width: 0, height: 0); middle }
+            ZStack(alignment: Alignment(horizontal: .center, vertical: .firstTextBaseline)) {
+                Color.clear.frame(width: 0, height: 0); middle
+            }
                 .frame(width: PaceMenuLayout.countdownWidth)
-            ZStack { Color.clear.frame(width: 0, height: 0); trailing }
+            ZStack(alignment: Alignment(horizontal: .center, vertical: .firstTextBaseline)) {
+                Color.clear.frame(width: 0, height: 0); trailing
+            }
                 .frame(width: PaceMenuLayout.dateWidth)
         }
         .frame(minHeight: PaceMenuLayout.rowHeight)
@@ -777,7 +780,8 @@ private struct MetricView: View {
 
     var body: some View {
         VStack(spacing: PaceMenuLayout.pairGap) {
-            PaceInkText(value: value, font: PaceTypography.metricNativeFont(size: 34), tracking: 0.5)
+            PaceInkText(value: value, font: PaceTypography.metricNativeFont(size: 34), tracking: 0.5,
+                        lineReference: PaceTypography.metricLineReference)
                 .foregroundStyle(color)
             Text(label.lowercased()).font(.system(size: 10, weight: .medium)).foregroundStyle(color)
                 .padding(.horizontal, 7).padding(.vertical, 2)
