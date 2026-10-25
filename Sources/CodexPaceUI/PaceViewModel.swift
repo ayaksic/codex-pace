@@ -427,6 +427,17 @@ public final class PaceViewModel: ObservableObject {
         return target
     }
 
+    /// An active manual estimate suppresses the reported weekly-reset row,
+    /// including when a banked expiry is still the earlier pacing target.
+    var visibleResetCountdownTargets: [ResetCountdownTarget] {
+        guard let target = resetCountdownTarget else { return [] }
+        var targets = [target]
+        if target.kind != .natural, let naturalDate = snapshot?.weeklyWindow.resetsAt {
+            targets.append(ResetCountdownTarget(date: naturalDate, kind: .natural))
+        }
+        return targets.filter { $0.kind != .natural || !isManualResetActive }
+    }
+
     public var displayedResetAt: Date? {
         resetCountdownTarget?.date
     }

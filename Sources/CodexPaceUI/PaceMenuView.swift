@@ -263,7 +263,7 @@ public struct PaceMenuView: View {
         return "\(usageRemaining) usage remaining, \(timeRemaining) time remaining. \(model.timelineDescription)"
     }
 
-    private func details(_ snapshot: PaceSnapshot) -> some View {
+    private func details(_: PaceSnapshot) -> some View {
         VStack(spacing: PaceMenuLayout.groupGap) {
             if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
                 PaceColumns {
@@ -275,15 +275,10 @@ public struct PaceMenuView: View {
                     durationValue(fields)
                 } trailing: { detailTimestamp(date) }
             }
-            if let target = model.resetCountdownTarget {
+            ForEach(model.visibleResetCountdownTargets, id: \.date) { target in
                 PaceColumns { detailLabel(resetLabel(for: target.kind)) } middle: {
                     durationValue(model.remainingTimeFields(until: target.date))
                 } trailing: { detailTimestamp(target.date) }
-                if target.kind != .natural {
-                    PaceColumns { detailLabel("Reset at") } middle: {
-                        durationValue(model.remainingTimeFields(until: snapshot.weeklyWindow.resetsAt))
-                    } trailing: { detailTimestamp(snapshot.weeklyWindow.resetsAt) }
-                }
             }
         }
     }

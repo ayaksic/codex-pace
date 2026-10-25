@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.3 — 2026-10-25
+
+- Hide the reported "Reset at" row while a manually entered reset estimate is active. Show it again when the estimate is removed or expires; retain banked-reset timing and the existing pacing calculations.
+
 ## 2.0.2 — 2026-10-24
 
 - Increase letter spacing on the three large percentages so repeated digits such as `77%` remain visually separated.
