@@ -25,7 +25,7 @@ public struct PaceMainWindowView: View {
                 displayScale: geometry.size.width / PaceMenuLayout.width
             )
         }
-        .frame(minWidth: PaceMenuLayout.width, minHeight: 240)
+        .frame(minWidth: PaceMenuLayout.width, minHeight: PaceMenuLayout.minimumWindowHeight)
         .background {
             MainWindowAccessor { window in
                 guard sizer.window !== window else { return }

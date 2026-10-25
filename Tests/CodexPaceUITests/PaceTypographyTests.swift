@@ -17,7 +17,7 @@ import CodexPaceCore
     #expect(PaceMenuLayout.labelWidth + PaceMenuLayout.countdownWidth + PaceMenuLayout.dateWidth
         + 2 * PaceMenuLayout.columnGap + 2 * PaceMenuLayout.horizontalPadding == PaceMenuLayout.width)
     #expect(PaceMenuLayout.width == 466)
-    #expect(PaceMenuLayout.rowGap == 6)
+    #expect(PaceMenuLayout.verticalGap == 4)
     #expect(PaceMenuLayout.countdownOffset == 14)
 }
 
@@ -38,11 +38,47 @@ import CodexPaceCore
     }
 }
 
+@Test @MainActor func opticalTextPreservesCompleteGlyphsWithoutFontLeading() throws {
+    func inkSize<V: View>(_ view: V) throws -> CGSize {
+        let renderer = ImageRenderer(content: view.foregroundStyle(.white).padding(20))
+        renderer.scale = 2
+        let bitmap = NSBitmapImageRep(cgImage: try #require(renderer.cgImage))
+        var minX = bitmap.pixelsWide, minY = bitmap.pixelsHigh, maxX = -1, maxY = -1
+        for y in 0..<bitmap.pixelsHigh {
+            for x in 0..<bitmap.pixelsWide where (bitmap.colorAt(x: x, y: y)?.alphaComponent ?? 0) > 0.1 {
+                minX = min(minX, x); maxX = max(maxX, x)
+                minY = min(minY, y); maxY = max(maxY, y)
+            }
+        }
+        return CGSize(width: maxX - minX + 1, height: maxY - minY + 1)
+    }
+    let samples: [(String, NSFont, CGFloat)] = [
+        ("Stop until", PaceTypography.rowNativeFont, 0),
+        ("Banked reset", PaceTypography.rowNativeFont, 0),
+        ("67d 04h 00m 05s", PaceTypography.rowNativeFont, 0),
+        ("Aug 25 · 1:31 PM", PaceTypography.rowNativeFont, 0),
+        ("77%", PaceTypography.metricNativeFont(size: 34), 0.5),
+        ("100.0%", PaceTypography.metricNativeFont(size: 34), 0.5),
+    ]
+    for (value, font, tracking) in samples {
+        let plain = Text(value).font(Font(font)).tracking(tracking)
+        let optical = PaceInkText(value: value, font: font, tracking: tracking)
+        #expect(try inkSize(plain) == inkSize(optical))
+        let plainHeight = try #require(ImageRenderer(content: plain).nsImage).size.height
+        let opticalHeight = try #require(ImageRenderer(content: optical).nsImage).size.height
+        #expect(opticalHeight < plainHeight)
+    }
+}
+
 @Test @MainActor func emptyCountdownCellStillReservesItsColumn() throws {
-    let row = PaceColumns { Text("Credits") } middle: { EmptyView() } trailing: { Text("Set expiration") }
+    let row = PaceColumns { PaceInkText(value: "Credits") } middle: { EmptyView() }
+        trailing: { PaceInkText(value: "Set expiration") }
     let size = try #require(ImageRenderer(content: row).nsImage).size
+    let populated = PaceColumns { PaceInkText(value: "Credits") }
+        middle: { AlignedCountdown(fields: DurationFields(days: 0, hours: 8, minutes: 3, seconds: 1)) }
+        trailing: { PaceInkText(value: "Set expiration") }
     #expect(size.width == PaceMenuLayout.width - 2 * PaceMenuLayout.horizontalPadding)
-    #expect(size.height == PaceMenuLayout.rowHeight)
+    #expect(size == (try #require(ImageRenderer(content: populated).nsImage).size))
 }
 
 @Test func barSeparatorsUseEvenlySpacedPhysicalPixelCenters() {

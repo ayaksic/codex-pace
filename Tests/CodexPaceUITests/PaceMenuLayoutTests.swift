@@ -135,7 +135,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
         fetchedAt: now, creditBalance: "62500.125"), now: now, pollingEnabled: false, defaults: defaults)
     func size(_ large: Bool, bounded: Bool = false) throws -> CGSize {
         try #require(ImageRenderer(content: PaceMenuView(model: model,
-            isLargeDisplay: .constant(large), maximumHeight: bounded ? 400 : .infinity)).nsImage).size
+            isLargeDisplay: .constant(large), maximumHeight: bounded ? 100 : .infinity)).nsImage).size
     }
     let withoutNote = try size(false)
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
@@ -145,7 +145,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     #expect(single.width == PaceMenuLayout.width)
     #expect(double.width == single.width * 2)
     #expect(abs(double.height - single.height * 2) < 1)
-    #expect(try size(true, bounded: true).height == 400)
+    #expect(try size(true, bounded: true).height == 100)
     model.removeCreditExpirationNote()
     #expect(try size(false) == withoutNote)
     let editor = try #require(ImageRenderer(content: CreditExpirationEditor(model: model)).nsImage)
@@ -236,7 +236,7 @@ func firstReadingFitsStartupWindowOnceUnlessUserAlreadyResized(manualResize: Boo
     defer { defaults.removePersistentDomain(forName: suite) }
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let model = PaceViewModel(now: now, pollingEnabled: false, defaults: defaults)
-    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 466, height: 240),
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 466, height: PaceMenuLayout.minimumWindowHeight),
                           styleMask: [.titled, .resizable], backing: .buffered, defer: false)
     window.isReleasedWhenClosed = false
     defer { window.close() }

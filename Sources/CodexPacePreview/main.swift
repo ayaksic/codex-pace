@@ -134,6 +134,8 @@ struct CodexPacePreview {
             defer { window.close() }
             view.layoutSubtreeIfNeeded()
             RunLoop.main.run(until: Date().addingTimeInterval(0.1))
+            window.setContentSize(view.fittingSize)
+            view.layoutSubtreeIfNeeded()
             guard let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else {
                 throw CocoaError(.fileWriteUnknown)
             }

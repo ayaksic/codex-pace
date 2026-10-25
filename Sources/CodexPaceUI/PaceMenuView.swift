@@ -68,18 +68,15 @@ public struct PaceMenuView: View {
 
     private func scaledContent(presentsBuildDetails: Bool) -> some View {
         ScaledLayout(scale: displayScale) {
-            VStack(spacing: 0) {
-                header(presentsBuildDetails: presentsBuildDetails).frame(height: 48)
+            VStack(spacing: PaceMenuLayout.verticalGap) {
+                header(presentsBuildDetails: presentsBuildDetails)
                 if let snapshot = model.snapshot {
-                    VStack(spacing: PaceMenuLayout.metricsBarGap) {
-                        metrics(snapshot)
-                        comparison(snapshot)
-                    }
-                    .padding(.top, 4)
+                    metrics(snapshot)
+                    comparison(snapshot)
                 } else {
                     unavailable
                 }
-                VStack(spacing: PaceMenuLayout.rowGap) {
+                VStack(spacing: PaceMenuLayout.verticalGap) {
                     if let snapshot = model.snapshot { details(snapshot) }
                     usageCredits
                     if model.availableBankedResetCount > 0 { bankedResets }
@@ -91,11 +88,10 @@ public struct PaceMenuView: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
                 }
-                .padding(.top, PaceMenuLayout.barDetailsGap)
             }
             .font(.system(size: 13))
             .padding(.horizontal, PaceMenuLayout.horizontalPadding)
-            .padding(.bottom, PaceMenuLayout.sectionGap)
+            .padding(.vertical, PaceMenuLayout.verticalGap)
             .frame(width: PaceMenuLayout.width)
             .scaleEffect(displayScale, anchor: .topLeading)
         }
@@ -194,7 +190,7 @@ public struct PaceMenuView: View {
     }
 
     private var metricDivider: some View {
-        Rectangle().fill(PaceColors.secondary.opacity(0.2)).frame(width: 1, height: 64)
+        Rectangle().fill(PaceColors.secondary.opacity(0.2)).frame(width: 1)
             .offset(x: -PaceMenuLayout.columnGap / 2)
     }
 
@@ -214,7 +210,7 @@ public struct PaceMenuView: View {
                     WeeklyTimelineBar(progress: timelineProgress)
                         .transition(.opacity)
                 } else {
-                    VStack(spacing: 12) {
+                    VStack(spacing: PaceMenuLayout.verticalGap) {
                         ComparisonBar(
                             value: weeklyWindow.usageRemainingPercent,
                             color: PaceColors.usage,
@@ -229,7 +225,7 @@ public struct PaceMenuView: View {
                     .transition(.opacity)
                 }
             }
-            .frame(height: 32)
+            .frame(height: PaceMenuLayout.comparisonHeight)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -266,7 +262,7 @@ public struct PaceMenuView: View {
     }
 
     private func details(_ snapshot: PaceSnapshot) -> some View {
-        VStack(spacing: PaceMenuLayout.rowGap) {
+        VStack(spacing: PaceMenuLayout.verticalGap) {
             if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
                 PaceColumns {
                     detailLabel(label == "Stoppage time" ? "Stop until" : label)
@@ -292,10 +288,11 @@ public struct PaceMenuView: View {
 
     private var usageCredits: some View {
         PaceColumns {
-            VStack(spacing: 4) {
+            VStack(spacing: PaceMenuLayout.verticalGap) {
                 detailLabel(model.compactUsageCreditBalanceText.map { "\($0) credits" } ?? "Credits unavailable")
                 if model.usageCreditReadingLabel == "Last known balance" {
-                    Text("Last known").font(.system(size: 11)).foregroundStyle(PaceColors.secondary)
+                    PaceInkText(value: "Last known", font: .systemFont(ofSize: 11))
+                        .foregroundStyle(PaceColors.secondary)
                 }
             }
             .help("\(model.usageCreditReadingLabel): \(model.usageCreditBalanceText)")
@@ -306,7 +303,7 @@ public struct PaceMenuView: View {
                 if let date = model.creditExpirationAt {
                     detailTimestamp(date, separator: " • ")
                 } else {
-                    Text("Set expiration").font(PaceTypography.rowFont)
+                    PaceInkText(value: "Set expiration")
                 }
             }
             .buttonStyle(.plain)
@@ -318,14 +315,15 @@ public struct PaceMenuView: View {
     }
 
     private var bankedResets: some View {
-        VStack(spacing: PaceMenuLayout.rowGap) {
+        VStack(spacing: PaceMenuLayout.verticalGap) {
             ForEach(model.availableBankedResetCredits) { credit in
                 PaceColumns { detailLabel("Banked reset") } middle: {
                     if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
-                    else { Text("—").font(PaceTypography.rowFont) }
+                    else { PaceInkText(value: "—") }
                 } trailing: {
                     if let date = credit.expiresAt { detailTimestamp(date) }
-                    else { Text("No expiry reported").font(.system(size: 12)).foregroundStyle(PaceColors.secondary) }
+                    else { PaceInkText(value: "No expiry reported", font: .systemFont(ofSize: 12))
+                        .foregroundStyle(PaceColors.secondary) }
                 }
             }
             if model.bankedResetCountWithoutDetails > 0 {
@@ -337,7 +335,7 @@ public struct PaceMenuView: View {
     }
 
     private var unavailable: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: PaceMenuLayout.verticalGap) {
             if model.isRefreshing {
                 Text("Reading Codex usage…")
                     .foregroundStyle(PaceColors.secondary)
@@ -351,7 +349,7 @@ public struct PaceMenuView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 72)
+        .frame(maxWidth: .infinity)
     }
 
     private func versionStatus(presentsBuildDetails: Bool) -> some View {
@@ -441,7 +439,7 @@ public struct PaceMenuView: View {
     }
 
     private func detailLabel(_ text: String) -> some View {
-        Text(text).font(PaceTypography.rowFont).foregroundStyle(Color.primary)
+        PaceInkText(value: text).foregroundStyle(Color.primary)
             .lineLimit(1)
     }
 
@@ -452,12 +450,11 @@ public struct PaceMenuView: View {
     private func detailTimestamp(_ value: Date?, separator: String = " · ") -> some View {
         Group {
             if let value {
-                Text(value.formatted(.dateTime.month(.abbreviated).day()
-                    .locale(Locale(identifier: "en_US_POSIX"))))
-                + Text(separator)
-                + Text(value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
-                    .minute(.twoDigits).locale(Locale(identifier: "en_US_POSIX"))))
-            } else { Text("") }
+                PaceInkText(value: value.formatted(.dateTime.month(.abbreviated).day()
+                    .locale(Locale(identifier: "en_US_POSIX"))) + separator
+                    + value.formatted(.dateTime.hour(.defaultDigits(amPM: .abbreviated))
+                    .minute(.twoDigits).locale(Locale(identifier: "en_US_POSIX"))), monospacedDigits: true)
+            } else { PaceInkText(value: "") }
         }
         .font(PaceTypography.rowFont).foregroundStyle(Color.primary)
         .monospacedDigit().lineLimit(1)
@@ -655,7 +652,7 @@ private struct ScaledLayout: Layout {
         let contentSize = subview.sizeThatFits(
             ProposedViewSize(
                 width: proposal.width.map { $0 / scale },
-                height: proposal.height.map { $0 / scale }
+                height: nil
             )
         )
         return CGSize(width: contentSize.width * scale, height: contentSize.height * scale)
@@ -673,7 +670,7 @@ private struct ScaledLayout: Layout {
             anchor: .topLeading,
             proposal: ProposedViewSize(
                 width: bounds.width / scale,
-                height: bounds.height / scale
+                height: nil
             )
         )
     }
@@ -744,7 +741,7 @@ struct AlignedCountdown: View {
     let fields: DurationFields
 
     var body: some View {
-        HStack(spacing: PaceMenuLayout.durationGap) {
+        HStack(alignment: .firstTextBaseline, spacing: PaceMenuLayout.durationGap) {
             part(fields.days > 0 ? padded(fields.hours) : String(fields.hours), unit: "h")
             part(padded(fields.minutes), unit: "m")
             part(padded(fields.seconds), unit: "s")
@@ -763,9 +760,10 @@ struct AlignedCountdown: View {
 
     private func padded(_ value: Int) -> String { String(format: "%02d", value) }
     private func part(_ number: String, unit: String) -> some View {
-        HStack(spacing: 0) {
-            Text(number).fixedSize().frame(width: PaceMenuLayout.durationNumberWidth, alignment: .trailing)
-            Text(unit).frame(width: PaceMenuLayout.durationUnitWidth, alignment: .leading)
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            PaceInkText(value: number, monospacedDigits: true).fixedSize()
+                .frame(width: PaceMenuLayout.durationNumberWidth, alignment: .trailing)
+            PaceInkText(value: unit).frame(width: PaceMenuLayout.durationUnitWidth, alignment: .leading)
         }
     }
 }
@@ -776,8 +774,8 @@ private struct MetricView: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: PaceMenuLayout.metricPillGap) {
-            Text(value).font(PaceTypography.metricFont(size: 34)).tracking(0.5)
+        VStack(spacing: PaceMenuLayout.verticalGap) {
+            PaceInkText(value: value, font: PaceTypography.metricNativeFont(size: 34), tracking: 0.5)
                 .foregroundStyle(color)
             Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(color)
                 .padding(.horizontal, 10).padding(.vertical, 3)
@@ -835,7 +833,7 @@ private struct ComparisonBar: View {
                     .mask(Capsule())
                 }
             }
-            .frame(height: 10)
+            .frame(height: PaceMenuLayout.barHeight)
         }
     }
 }

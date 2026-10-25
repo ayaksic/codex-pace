@@ -32,7 +32,7 @@ public final class PaceWindowSizer: ObservableObject {
             let chromeHeight = window.frame.height - window.contentLayoutRect.height
             height = min(height, screen.visibleFrame.height - chromeHeight)
         }
-        resize(to: CGSize(width: width, height: max(240, height)))
+        resize(to: CGSize(width: width, height: max(PaceMenuLayout.minimumWindowHeight, height)))
     }
 
     public func updateContentSize(_ size: CGSize) {
