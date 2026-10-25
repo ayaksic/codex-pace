@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.0.2 — 2026-10-24
+
+- Increase letter spacing on the three large percentages so repeated digits such as `77%` remain visually separated.
+- Reduce the gap between each percentage and its pill from eight to four points.
+- Reduce the gap between the pills and the bars from twenty to ten points.
+
 ## 2.0.1 — 2026-10-24
 
 - Widen the shared countdown unit cells to fit the system font's full `m`, preventing its right edge from clipping while keeping day, hour, minute, and second columns aligned.

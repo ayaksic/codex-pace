@@ -71,8 +71,11 @@ public struct PaceMenuView: View {
             VStack(spacing: 0) {
                 header(presentsBuildDetails: presentsBuildDetails).frame(height: 48)
                 if let snapshot = model.snapshot {
-                    metrics(snapshot).padding(.top, 4).padding(.bottom, 20)
-                    comparison(snapshot)
+                    VStack(spacing: PaceMenuLayout.metricsBarGap) {
+                        metrics(snapshot)
+                        comparison(snapshot)
+                    }
+                    .padding(.top, 4)
                 } else {
                     unavailable
                 }
@@ -773,8 +776,8 @@ private struct MetricView: View {
     let color: Color
 
     var body: some View {
-        VStack(spacing: 8) {
-            Text(value).font(PaceTypography.metricFont(size: 34)).tracking(-1)
+        VStack(spacing: PaceMenuLayout.metricPillGap) {
+            Text(value).font(PaceTypography.metricFont(size: 34)).tracking(0.5)
                 .foregroundStyle(color)
             Text(label).font(.system(size: 13, weight: .medium)).foregroundStyle(color)
                 .padding(.horizontal, 10).padding(.vertical, 3)

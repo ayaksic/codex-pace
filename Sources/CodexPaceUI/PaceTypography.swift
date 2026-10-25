@@ -59,6 +59,9 @@ public enum PaceTypography {
 enum PaceMenuLayout {
     static let width: CGFloat = 466
     static let sectionGap: CGFloat = 14
+    // Parent stacks own these gaps uniformly across all three metrics.
+    static let metricPillGap: CGFloat = 4
+    static let metricsBarGap: CGFloat = 10
     static let rowGap: CGFloat = 6
     static let rowHeight: CGFloat = 24
     static let horizontalPadding: CGFloat = 13

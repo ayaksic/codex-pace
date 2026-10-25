@@ -20,7 +20,11 @@ struct CodexPacePreview {
         let showsUsageResetAlert = arguments.contains("--usage-reset-alert")
         let showsWeeklyTimeline = arguments.contains("--timeline")
         let showsBehindExample = arguments.contains("--behind")
-        let usedPercent = if arguments.contains("--banked-reset-week") {
+        let requestedUsedPercent = arguments.first { $0.hasPrefix("--used-percent=") }
+            .flatMap { Double($0.dropFirst("--used-percent=".count)) }
+        let usedPercent = if let requestedUsedPercent, (0...100).contains(requestedUsedPercent) {
+            requestedUsedPercent
+        } else if arguments.contains("--banked-reset-week") {
             0.0
         } else if arguments.contains("--zero-usage") {
             100.0
