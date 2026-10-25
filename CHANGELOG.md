@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.7 — 2026-10-25
+
+- Show two decimal places for pace percentages with an absolute value below 1.0%, with the pace label and color following that displayed precision.
+
 ## 2.0.6 — 2026-10-25
 
 - Keep the entire timeline diamond visible at either endpoint while centering it on the exact time mark.

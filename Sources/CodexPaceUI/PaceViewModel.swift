@@ -264,9 +264,9 @@ public final class PaceViewModel: ObservableObject {
         guard effectiveWeeklyWindow?.usageRemainingPercent != 0,
               let delta = currentPaceDelta,
               let state = paceMetricState else { return nil }
-        if state == .onPace { return "0.0%" }
+        if state == .onPace { return "0.00%" }
         return delta.formatted(
-            .number.sign(strategy: .always()).precision(.fractionLength(1))
+            .number.sign(strategy: .always()).precision(.fractionLength(abs(delta) < 1 ? 2 : 1))
         ) + "%"
     }
 
@@ -366,11 +366,12 @@ public final class PaceViewModel: ObservableObject {
         return weeklyWindow.usageRemainingPercent - weeklyWindow.timeRemainingPercent(at: now)
     }
 
-    /// The headline state at the same one-decimal precision as its displayed value.
+    /// The headline state uses the same precision as its displayed value.
     /// Exact timing details continue to use `currentPaceState` so small margins remain visible.
     public var paceMetricState: PaceState? {
         guard let delta = currentPaceDelta else { return nil }
-        let displayedDelta = (delta * 10).rounded(.toNearestOrEven) / 10
+        let scale: Double = abs(delta) < 1 ? 100 : 10
+        let displayedDelta = (delta * scale).rounded(.toNearestOrEven) / scale
         if displayedDelta == 0 { return .onPace }
         return displayedDelta > 0 ? .ahead : .behind
     }

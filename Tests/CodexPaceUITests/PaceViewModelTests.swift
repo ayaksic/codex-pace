@@ -243,9 +243,9 @@ private let cleanBuildInfo = AppBuildInfo(
     }
 
     #expect(paceText(usedPercent: 51.6) == "Slow down (-1.6%)")
-    #expect(paceText(usedPercent: 50.04) == "On pace")
+    #expect(paceText(usedPercent: 50.04) == "Slow down (-0.04%)")
     #expect(paceText(usedPercent: 50) == "On pace")
-    #expect(paceText(usedPercent: 49.96) == "On pace")
+    #expect(paceText(usedPercent: 49.96) == "Speed up (+0.04%)")
     #expect(paceText(usedPercent: 48.4) == "Speed up (+1.6%)")
     #expect(paceText(usedPercent: 100) == "Stopped")
 }
@@ -271,14 +271,19 @@ private let cleanBuildInfo = AppBuildInfo(
 
     #expect(model(usedPercent: 51.6).paceMetricLabel == "Slow down")
     #expect(model(usedPercent: 51.6).paceMetricValue == "-1.6%")
-    #expect(model(usedPercent: 50.04).paceMetricLabel == "On pace")
-    #expect(model(usedPercent: 50.04).paceMetricValue == "0.0%")
+    #expect(model(usedPercent: 50.04).paceMetricLabel == "Slow down")
+    #expect(model(usedPercent: 50.04).paceMetricValue == "-0.04%")
     #expect(model(usedPercent: 50).paceMetricLabel == "On pace")
-    #expect(model(usedPercent: 50).paceMetricValue == "0.0%")
-    #expect(model(usedPercent: 49.96).paceMetricLabel == "On pace")
-    #expect(model(usedPercent: 49.96).paceMetricValue == "0.0%")
+    #expect(model(usedPercent: 50).paceMetricValue == "0.00%")
+    #expect(model(usedPercent: 49.96).paceMetricLabel == "Speed up")
+    #expect(model(usedPercent: 49.96).paceMetricValue == "+0.04%")
     #expect(model(usedPercent: 48.4).paceMetricLabel == "Speed up")
     #expect(model(usedPercent: 48.4).paceMetricValue == "+1.6%")
+    for (used, expected) in [(51.0, "-1.0%"), (50.99, "-0.99%"),
+                             (50.01, "-0.01%"), (49.99, "+0.01%"),
+                             (49.01, "+0.99%"), (49.0, "+1.0%")] {
+        #expect(model(usedPercent: used).paceMetricValue == expected)
+    }
     #expect(model(usedPercent: 100).paceMetricLabel == "Stopped")
     #expect(model(usedPercent: 100).paceMetricValue == nil)
 }
@@ -302,19 +307,19 @@ private let cleanBuildInfo = AppBuildInfo(
         )
     }
 
-    let slightlyBehind = model(usedPercent: 50.04)
+    let slightlyBehind = model(usedPercent: 50.004)
     #expect(slightlyBehind.paceMetricState == .onPace)
     #expect(slightlyBehind.currentPaceState == .behind)
     #expect(slightlyBehind.paceTimeLabel == "Stoppage time")
-    #expect(slightlyBehind.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
+    #expect(slightlyBehind.paceTimeFields == DurationFields(hours: 0, minutes: 0, seconds: 24))
     #expect(slightlyBehind.projectedRunoutAt == nil)
     #expect(slightlyBehind.projectedRunoutCountdownFields == nil)
 
-    let slightlyAhead = model(usedPercent: 49.96)
+    let slightlyAhead = model(usedPercent: 49.996)
     #expect(slightlyAhead.paceMetricState == .onPace)
     #expect(slightlyAhead.currentPaceState == .ahead)
     #expect(slightlyAhead.paceTimeLabel == "Time ahead")
-    #expect(slightlyAhead.paceTimeFields == DurationFields(hours: 0, minutes: 4, seconds: 1))
+    #expect(slightlyAhead.paceTimeFields == DurationFields(hours: 0, minutes: 0, seconds: 24))
     #expect(slightlyAhead.projectedRunoutAt == nil)
     #expect(slightlyAhead.projectedRunoutCountdownFields == nil)
 }
