@@ -68,7 +68,8 @@ enum PaceMenuLayout {
     static let countdownWidth: CGFloat = 170
     static let dateWidth: CGFloat = 132
     static let durationNumberWidth: CGFloat = 18
-    static let durationUnitWidth: CGFloat = 10.8
+    // The system-medium "m" needs 13 points, including layout rounding.
+    static let durationUnitWidth: CGFloat = 13
     static let durationPartWidth = durationNumberWidth + durationUnitWidth
     static let durationGap: CGFloat = 6
     static let countdownOffset: CGFloat = 14

@@ -29,6 +29,15 @@ import CodexPaceCore
     #expect(try size(0) == size(13))
 }
 
+@Test @MainActor func countdownUnitCellsFitEveryRenderedSuffix() throws {
+    for unit in ["d", "h", "m", "s"] {
+        let text = Text(unit).font(PaceTypography.rowFont).monospacedDigit().fixedSize()
+        let size = try #require(ImageRenderer(content: text).nsImage).size
+        #expect(size.width <= PaceMenuLayout.durationUnitWidth,
+                "The \(unit) suffix must fit without clipping")
+    }
+}
+
 @Test @MainActor func emptyCountdownCellStillReservesItsColumn() throws {
     let row = PaceColumns { Text("Credits") } middle: { EmptyView() } trailing: { Text("Set expiration") }
     let size = try #require(ImageRenderer(content: row).nsImage).size

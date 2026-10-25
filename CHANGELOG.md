@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1 — 2026-10-24
+
+- Widen the shared countdown unit cells to fit the system font's full `m`, preventing its right edge from clipping while keeping day, hour, minute, and second columns aligned.
+
 ## 2.0.0 — 2026-10-24
 
 - Build 57: keep build details open across timer and update-status changes by giving only the visible layout ownership of its popover. Fix the timeline fill to the explicit usage blue and use a black-filled, white-outlined diamond. Keep the application version at 2.0.0.
