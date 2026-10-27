@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.9 — 2026-10-27
+
+- Lock the main window's content aspect ratio during manual resizing. Opening the window and selecting a 1×/2× preset establish the ratio; subsequent content updates preserve it and the chosen window size.
+
+## 2.0.8 — 2026-10-26 (retrospective version correction)
+
+- Show Run out at before Stop until when its date is earlier. Preserve the previous order otherwise.
+- The build containing this change retained the 2.0.7 version label in error.
+
 ## 2.0.7 — 2026-10-25
 
 - Show two decimal places for pace percentages with an absolute value below 1.0%, with the pace label and color following that displayed precision.

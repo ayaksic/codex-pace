@@ -53,10 +53,12 @@ inside it for viewing from farther away. The selection is remembered; use `1×`
 to return to the standard size. Near a display's right edge, the window expands
 left and keeps that right edge in place when returning to `1×`. The menu-bar
 popover stays compact. You can also drag the main window's edges or corners to
-resize it freely. Content scales with the width; shorter windows scroll vertically.
+resize it with its content aspect ratio locked. Content scales with the width;
+additional rows scroll vertically within the chosen size.
 After a manual resize, content updates preserve your chosen window size. The
-1× and 2× presets resize the window once to fit the content. Subsequent layout
-measurements and content updates do not resize the main window.
+1× and 2× presets resize the window once to fit the content and establish its
+aspect ratio. Subsequent layout measurements and content updates do not resize
+the main window.
 On launch, the window fits once after its first usage reading arrives, unless it
 has already been manually resized while waiting.
 

@@ -1,8 +1,8 @@
 import AppKit
 import SwiftUI
 
-/// Width controls the continuous scale. A shorter manually sized window scrolls
-/// instead of shrinking text or hiding controls.
+/// Width controls the continuous scale while manual resizing preserves the
+/// content aspect ratio. Additional rows scroll within the chosen window size.
 public struct PaceMainWindowView: View {
     @ObservedObject private var model: PaceViewModel
     @Binding private var isLargeDisplay: Bool

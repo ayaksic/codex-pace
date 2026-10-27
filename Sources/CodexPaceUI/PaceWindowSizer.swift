@@ -1,13 +1,18 @@
 import AppKit
 
 /// Popovers fit content automatically. Manually resizable windows only change
-/// frame for an explicit preset; layout measurements never drive their frame.
+/// frame for an explicit preset and preserve that content aspect ratio during
+/// manual resizing; layout measurements never drive their frame or ratio.
 @MainActor
 public final class PaceWindowSizer: ObservableObject {
     public weak var window: NSWindow? {
         didSet {
             guard window !== oldValue else { return }
-            if !allowsManualResize { resize(to: contentSize) }
+            if allowsManualResize {
+                lockContentAspectRatio()
+            } else {
+                resize(to: contentSize)
+            }
         }
     }
     private let allowsManualResize: Bool
@@ -33,6 +38,7 @@ public final class PaceWindowSizer: ObservableObject {
             height = min(height, screen.visibleFrame.height - chromeHeight)
         }
         resize(to: CGSize(width: width, height: max(PaceMenuLayout.minimumWindowHeight, height)))
+        lockContentAspectRatio()
     }
 
     public func updateContentSize(_ size: CGSize) {
@@ -44,6 +50,14 @@ public final class PaceWindowSizer: ObservableObject {
         } else if !allowsManualResize {
             resize(to: size)
         }
+    }
+
+    private func lockContentAspectRatio() {
+        guard allowsManualResize, let window else { return }
+        // AppKit constrains user drags without intercepting SwiftUI's window
+        // delegate. Use the actual content rect, including any full-size content
+        // title-bar area, and the final screen-clamped size after a preset.
+        window.contentAspectRatio = window.contentRect(forFrameRect: window.frame).size
     }
 
     private func resize(to size: CGSize) {

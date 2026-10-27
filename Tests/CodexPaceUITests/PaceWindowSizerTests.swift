@@ -19,10 +19,56 @@ import Testing
             sizer.updateContentSize(size)
             #expect(abs(window.contentLayoutRect.height - size.height) < 0.5)
             #expect(abs(window.frame.width - size.width) < 0.5)
+            #expect(window.contentAspectRatio == .zero)
             let frame = window.frame
             sizer.updateContentSize(size)
             #expect(window.frame == frame)
         }
+    }
+}
+
+@Test @MainActor func manualResizeLocksContentRatioUntilAnExplicitPreset() {
+    for fullSizeContent in [false, true] {
+        var style: NSWindow.StyleMask = [.titled, .closable, .resizable]
+        if fullSizeContent { style.insert(.fullSizeContentView) }
+        let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 620, height: 400),
+                              styleMask: style, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let sizer = PaceWindowSizer(allowsManualResize: true)
+        let initialFrame = window.frame
+        sizer.window = window
+        let initialRatio = window.contentAspectRatio
+        #expect(initialRatio == window.contentRect(forFrameRect: initialFrame).size)
+        #expect(window.frame == initialFrame)
+
+        // Loading, extra rows, and stale drag measurements must not alter the
+        // chosen frame or unlock/rebase its ratio.
+        for size in [CGSize(width: 620, height: 250), CGSize(width: 620, height: 600),
+                     CGSize(width: 850, height: 700)] {
+            sizer.updateContentSize(size)
+            sizer.window = window
+            #expect(window.frame == initialFrame)
+            #expect(window.contentAspectRatio == initialRatio)
+        }
+
+        for scale: CGFloat in [1, 2, 1] {
+            sizer.usePreset(scale: scale)
+            let presetFrame = window.frame
+            let presetRatio = window.contentAspectRatio
+            #expect(presetRatio == window.contentRect(forFrameRect: presetFrame).size)
+            #expect(presetRatio.width / presetRatio.height != initialRatio.width / initialRatio.height)
+            sizer.updateContentSize(CGSize(width: 850, height: 700))
+            #expect(window.frame == presetFrame)
+            #expect(window.contentAspectRatio == presetRatio)
+        }
+
+        // A preset must also establish the lock when no frame change is needed.
+        window.contentResizeIncrements = CGSize(width: 1, height: 1)
+        let presetFrame = window.frame
+        sizer.usePreset(scale: 1)
+        #expect(window.frame == presetFrame)
+        #expect(window.contentAspectRatio == window.contentRect(forFrameRect: presetFrame).size)
     }
 }
 
