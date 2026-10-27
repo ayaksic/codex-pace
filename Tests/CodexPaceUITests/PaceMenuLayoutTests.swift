@@ -4,6 +4,16 @@ import Testing
 import CodexPaceCore
 @testable import CodexPaceUI
 
+@Test func runoutRowMovesFirstOnlyWhenItsDateIsEarlier() {
+    let earlier = Date(timeIntervalSince1970: 1_000)
+    let later = earlier.addingTimeInterval(60)
+    #expect(runoutPrecedesStoppage(runout: earlier, stoppage: later))
+    #expect(!runoutPrecedesStoppage(runout: later, stoppage: earlier))
+    #expect(!runoutPrecedesStoppage(runout: earlier, stoppage: earlier))
+    #expect(!runoutPrecedesStoppage(runout: nil, stoppage: later))
+    #expect(!runoutPrecedesStoppage(runout: earlier, stoppage: nil))
+}
+
 @Test @MainActor func bankedResetRowsAreAlwaysVisibleAndRespectScreenLimit() throws {
     let now = Date(timeIntervalSince1970: 2_000_000_000)
     let suiteName = "PaceMenuLayoutTests.\(UUID())"

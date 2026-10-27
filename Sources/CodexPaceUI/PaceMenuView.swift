@@ -2,6 +2,11 @@ import AppKit
 import CodexPaceCore
 import SwiftUI
 
+func runoutPrecedesStoppage(runout: Date?, stoppage: Date?) -> Bool {
+    guard let runout, let stoppage else { return false }
+    return runout < stoppage
+}
+
 public struct PaceMenuView: View {
     @ObservedObject var model: PaceViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -262,21 +267,34 @@ public struct PaceMenuView: View {
 
     private func details(_: PaceSnapshot) -> some View {
         VStack(spacing: PaceMenuLayout.groupGap) {
-            if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
-                PaceColumns {
-                    detailLabel(label == "Stoppage time" ? "Stop until" : label)
-                } middle: { durationValue(fields) } trailing: { detailTimestamp(model.stoppageEndsAt) }
-            }
-            if let date = model.projectedRunoutAt, let fields = model.projectedRunoutCountdownFields {
-                PaceColumns { detailLabel("Run out at") } middle: {
-                    durationValue(fields)
-                } trailing: { detailTimestamp(date) }
+            if runoutPrecedesStoppage(runout: model.projectedRunoutAt, stoppage: model.stoppageEndsAt) {
+                runoutRow
+                paceTimeRow
+            } else {
+                paceTimeRow
+                runoutRow
             }
             ForEach(model.visibleResetCountdownTargets, id: \.date) { target in
                 PaceColumns { detailLabel(resetLabel(for: target.kind)) } middle: {
                     durationValue(model.remainingTimeFields(until: target.date))
                 } trailing: { detailTimestamp(target.date) }
             }
+        }
+    }
+
+    @ViewBuilder private var paceTimeRow: some View {
+        if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
+            PaceColumns {
+                detailLabel(label == "Stoppage time" ? "Stop until" : label)
+            } middle: { durationValue(fields) } trailing: { detailTimestamp(model.stoppageEndsAt) }
+        }
+    }
+
+    @ViewBuilder private var runoutRow: some View {
+        if let date = model.projectedRunoutAt, let fields = model.projectedRunoutCountdownFields {
+            PaceColumns { detailLabel("Run out at") } middle: {
+                durationValue(fields)
+            } trailing: { detailTimestamp(date) }
         }
     }
 
