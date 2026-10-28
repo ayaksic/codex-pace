@@ -1,8 +1,7 @@
 import AppKit
 
-/// Popovers fit content automatically. Manually resizable windows only change
-/// frame for an explicit preset and preserve that content aspect ratio during
-/// manual resizing; layout measurements never drive their frame or ratio.
+/// Popovers fit content automatically. Main windows fit changed content at the
+/// chosen width, while scale-only measurements never undo a manual resize.
 @MainActor
 public final class PaceWindowSizer: ObservableObject {
     public weak var window: NSWindow? {
@@ -24,13 +23,17 @@ public final class PaceWindowSizer: ObservableObject {
     }
 
     public func usePreset(scale: CGFloat) {
-        guard let window else { return }
+        guard window != nil else { return }
         guard contentSize != .zero else {
             pendingPresetScale = scale
             return
         }
         pendingPresetScale = nil
-        let width = PaceMenuLayout.width * scale
+        fitContent(width: PaceMenuLayout.width * scale)
+    }
+
+    private func fitContent(width: CGFloat) {
+        guard let window, contentSize != .zero else { return }
         let ratio = width / contentSize.width
         var height = contentSize.height * ratio
         if let screen = window.screen {
@@ -41,14 +44,22 @@ public final class PaceWindowSizer: ObservableObject {
         lockContentAspectRatio()
     }
 
-    public func updateContentSize(_ size: CGSize) {
+    public func updateContentSize(_ size: CGSize, resizeForContentChanges: Bool = true) {
         guard size.width > 0, size.height > 0,
               size.width.isFinite, size.height.isFinite else { return }
+        // Normalize away display scale so delayed measurements from a preset
+        // or user drag cannot pull the window back to an earlier size.
+        let previousHeight = contentSize.width > 0
+            ? contentSize.height / contentSize.width * PaceMenuLayout.width : nil
+        let naturalHeight = size.height / size.width * PaceMenuLayout.width
         contentSize = size
         if let pendingPresetScale {
             usePreset(scale: pendingPresetScale)
         } else if !allowsManualResize {
             resize(to: size)
+        } else if resizeForContentChanges, let previousHeight,
+                  abs(naturalHeight - previousHeight) > 0.5, let window {
+            fitContent(width: window.contentLayoutRect.width)
         }
     }
 
@@ -56,7 +67,7 @@ public final class PaceWindowSizer: ObservableObject {
         guard allowsManualResize, let window else { return }
         // AppKit constrains user drags without intercepting SwiftUI's window
         // delegate. Use the actual content rect, including any full-size content
-        // title-bar area, and the final screen-clamped size after a preset.
+        // title-bar area, and the final screen-clamped size after fitting.
         window.contentAspectRatio = window.contentRect(forFrameRect: window.frame).size
     }
 

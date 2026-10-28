@@ -11,14 +11,14 @@ import CodexPaceCore
     init() { defaults = UserDefaults(suiteName: suite)! }
     func cleanUp() { defaults.removePersistentDomain(forName: suite) }
 
-    func model(bankedExpiry: Date? = nil) -> PaceViewModel {
+    func model(bankedExpiry: Date? = nil, usedPercent: Double = 26) -> PaceViewModel {
         let credits = bankedExpiry.map { expiry in
             RateLimitResetCredits(availableCount: 1, credits: [
                 RateLimitResetCredit(id: "visibility-fixture", resetType: "codexRateLimits",
                     status: "available", grantedAt: now, expiresAt: expiry)
             ])
         }
-        let snapshot = PaceSnapshot(weeklyWindow: UsageWindow(usedPercent: 26,
+        let snapshot = PaceSnapshot(weeklyWindow: UsageWindow(usedPercent: usedPercent,
             durationMinutes: 10_080, resetsAt: now.addingTimeInterval(6 * 86_400)),
             fetchedAt: now, rateLimitResetCredits: credits)
         return PaceViewModel(snapshot: snapshot, now: now, pollingEnabled: false, defaults: defaults,
@@ -76,4 +76,43 @@ import CodexPaceCore
     #expect(model.visibleResetCountdownTargets.isEmpty)
     model.clearManualReset()
     #expect(model.visibleResetCountdownTargets == [natural!])
+}
+
+@Test @MainActor func timeAheadIsHiddenOnlyWhileTheEstimateRowIsVisible() throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let model = h.model(usedPercent: 0)
+    #expect(model.visiblePaceTimeLabel == "Time ahead")
+    let estimate = h.now.addingTimeInterval(3_600)
+    model.setManualResetAt(estimate)
+    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.manualEstimate])
+    #expect(model.visiblePaceTimeLabel == nil)
+    #expect(model.paceTimeLabel == "Time ahead")
+    #expect(model.paceTimeFields != nil)
+    model.clearManualReset()
+    #expect(model.visiblePaceTimeLabel == "Time ahead")
+    model.setManualResetAt(estimate)
+    model.applyFreshSnapshot(try #require(model.snapshot), now: estimate)
+    #expect(model.visiblePaceTimeLabel == "Time ahead")
+
+    // An active estimate can be hidden behind an earlier banked or natural reset.
+    let banked = h.model(bankedExpiry: h.now.addingTimeInterval(3_600), usedPercent: 0)
+    banked.setManualResetAt(h.now.addingTimeInterval(86_400))
+    #expect(banked.visibleResetCountdownTargets.map(\.kind) == [.bankedResetExpiry])
+    #expect(banked.visiblePaceTimeLabel == "Time ahead")
+    let later = h.model(usedPercent: 0)
+    later.setManualResetAt(h.now.addingTimeInterval(8 * 86_400))
+    #expect(later.visibleResetCountdownTargets.isEmpty)
+    #expect(later.visiblePaceTimeLabel == "Time ahead")
+}
+
+@Test @MainActor func stopUntilRemainsVisibleWithAnEstimate() {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let model = h.model(usedPercent: 100)
+    model.setManualResetAt(h.now.addingTimeInterval(3_600))
+    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.manualEstimate])
+    #expect(model.visiblePaceTimeLabel == "Stoppage time")
+    #expect(model.paceTimeFields != nil)
+    #expect(model.stoppageEndsAt != nil)
 }

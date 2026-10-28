@@ -27,7 +27,7 @@ import Testing
     }
 }
 
-@Test @MainActor func manualResizeLocksContentRatioUntilAnExplicitPreset() {
+@Test @MainActor func rowChangesFitHeightAndRebaseManualResizeRatio() {
     for fullSizeContent in [false, true] {
         var style: NSWindow.StyleMask = [.titled, .closable, .resizable]
         if fullSizeContent { style.insert(.fullSizeContentView) }
@@ -36,31 +36,35 @@ import Testing
         window.isReleasedWhenClosed = false
         defer { window.close() }
         let sizer = PaceWindowSizer(allowsManualResize: true)
+        // Leave room to grow downward without reaching the Dock boundary.
+        window.setFrameTopLeftPoint(CGPoint(x: window.frame.minX,
+            y: window.screen?.visibleFrame.maxY ?? 900))
         let initialFrame = window.frame
         sizer.window = window
-        let initialRatio = window.contentAspectRatio
-        #expect(initialRatio == window.contentRect(forFrameRect: initialFrame).size)
+        #expect(window.contentAspectRatio == window.contentRect(forFrameRect: initialFrame).size)
+        sizer.updateContentSize(CGSize(width: 620, height: 400))
         #expect(window.frame == initialFrame)
 
-        // Loading, extra rows, and stale drag measurements must not alter the
-        // chosen frame or unlock/rebase its ratio.
-        for size in [CGSize(width: 620, height: 250), CGSize(width: 620, height: 600),
-                     CGSize(width: 850, height: 700)] {
-            sizer.updateContentSize(size)
-            sizer.window = window
-            #expect(window.frame == initialFrame)
-            #expect(window.contentAspectRatio == initialRatio)
+        for height: CGFloat in [480, 320, 400] {
+            let previousTop = window.frame.maxY
+            sizer.updateContentSize(CGSize(width: 620, height: height))
+            #expect(window.frame.width == 620)
+            #expect(abs(window.contentLayoutRect.height - height) < 0.5)
+            #expect(window.frame.maxY == previousTop)
+            #expect(window.contentAspectRatio == window.contentRect(forFrameRect: window.frame).size)
+            let fittedFrame = window.frame
+            // Equivalent measurements at another scale must not resize again.
+            sizer.updateContentSize(CGSize(width: 1240, height: height * 2))
+            #expect(window.frame == fittedFrame)
         }
 
         for scale: CGFloat in [1, 2, 1] {
             sizer.usePreset(scale: scale)
             let presetFrame = window.frame
-            let presetRatio = window.contentAspectRatio
-            #expect(presetRatio == window.contentRect(forFrameRect: presetFrame).size)
-            #expect(presetRatio.width / presetRatio.height != initialRatio.width / initialRatio.height)
-            sizer.updateContentSize(CGSize(width: 850, height: 700))
+            #expect(window.frame.width == PaceMenuLayout.width * scale)
+            #expect(window.contentAspectRatio == window.contentRect(forFrameRect: presetFrame).size)
+            sizer.updateContentSize(CGSize(width: 620, height: 400))
             #expect(window.frame == presetFrame)
-            #expect(window.contentAspectRatio == presetRatio)
         }
 
         // A preset must also establish the lock when no frame change is needed.
@@ -83,34 +87,31 @@ import Testing
     #expect(abs(window.contentLayoutRect.height - 340) < 0.5)
 }
 
-@Test @MainActor func manualResizePreservesFrameAcrossContentUpdatesUntilPresetIsSelected() {
-    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 620, height: 500),
+@Test @MainActor func rowChangesPreserveManualWidthAndClampToScreen() throws {
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 620, height: 400),
                           styleMask: [.titled, .resizable], backing: .buffered, defer: false)
     window.isReleasedWhenClosed = false
     defer { window.close() }
     let sizer = PaceWindowSizer(allowsManualResize: true)
     sizer.window = window
-    sizer.updateContentSize(CGSize(width: 620, height: 500))
+    sizer.updateContentSize(CGSize(width: 620, height: 400))
+    window.setContentSize(CGSize(width: 850, height: 550))
+    let manualFrame = window.frame
+    sizer.updateContentSize(CGSize(width: 850, height: 400 * 850 / 620))
+    #expect(window.frame == manualFrame)
 
-    window.setContentSize(CGSize(width: 850, height: 400))
-    let manuallySizedFrame = window.frame
-    sizer.updateContentSize(CGSize(width: 850, height: 700))
-    #expect(window.frame == manuallySizedFrame)
+    // New rows measured at an old width fit using the current width.
+    sizer.updateContentSize(CGSize(width: 620, height: 450))
+    #expect(window.frame.width == 850)
+    #expect(abs(window.contentLayoutRect.height - ceil(450 * 850 / 620)) < 0.5)
 
-    sizer.usePreset(scale: 1)
-    #expect(window.frame.width == PaceMenuLayout.width)
-    let presetFrame = window.frame
-    sizer.updateContentSize(CGSize(width: 620, height: 520))
-    #expect(window.frame == presetFrame)
-    sizer.usePreset(scale: 2)
-    #expect(window.frame.width == PaceMenuLayout.width * 2)
-    #expect(window.contentLayoutRect.height <= 1040)
-    let doubleFrame = window.frame
-    // Out-of-date measurements can arrive after a preset or a live drag. They
-    // must never pull the main window back to a previously measured width.
-    for size in [CGSize(width: 620, height: 520), CGSize(width: 1240, height: 1040),
-                 CGSize(width: 620, height: 500), CGSize(width: 850, height: 700)] {
-        sizer.updateContentSize(size)
-        #expect(window.frame == doubleFrame)
-    }
+    let screen = try #require(window.screen)
+    sizer.updateContentSize(CGSize(width: 620, height: 10_000))
+    #expect(window.frame.width == 850)
+    #expect(window.frame.height <= screen.visibleFrame.height)
+    #expect(window.frame.minY >= screen.visibleFrame.minY)
+    #expect(window.frame.maxY <= screen.visibleFrame.maxY)
+    sizer.updateContentSize(CGSize(width: 620, height: 300))
+    #expect(window.frame.width == 850)
+    #expect(abs(window.contentLayoutRect.height - ceil(300 * 850 / 620)) < 0.5)
 }

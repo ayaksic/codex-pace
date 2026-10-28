@@ -283,7 +283,7 @@ public struct PaceMenuView: View {
     }
 
     @ViewBuilder private var paceTimeRow: some View {
-        if let label = model.paceTimeLabel, let fields = model.paceTimeFields {
+        if let label = model.visiblePaceTimeLabel, let fields = model.paceTimeFields {
             PaceColumns {
                 detailLabel(label == "Stoppage time" ? "Stop until" : label)
             } middle: { durationValue(fields) } trailing: { detailTimestamp(model.stoppageEndsAt) }

@@ -196,7 +196,8 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
                 status: "available", grantedAt: now, expiresAt: now.addingTimeInterval(5 * 86_400))])), now: now)
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
     try await settle()
-    #expect(window.contentLayoutRect.height == initialHeight)
+    #expect(window.contentLayoutRect.height > initialHeight)
+    #expect(abs(window.contentLayoutRect.height - measuredSize.height) < 1)
 
     for size in [CGSize(width: 480, height: 360), CGSize(width: 850, height: 650),
                  CGSize(width: 1050, height: 360)] {
@@ -280,5 +281,69 @@ func firstReadingFitsStartupWindowOnceUnlessUserAlreadyResized(manualResize: Boo
     let fittedSize = window.contentLayoutRect.size
     model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: snapshot.weeklyWindow, fetchedAt: now), now: now)
     try await settle()
-    #expect(window.contentLayoutRect.size == fittedSize)
+    #expect(window.contentLayoutRect.width == fittedSize.width)
+    #expect(window.contentLayoutRect.height < fittedSize.height)
+}
+
+@Test @MainActor func estimateVisibilityResizesTheRenderedWindowAtEveryScale() async throws {
+    let suite = "PaceDynamicRowsTests.\(UUID())"
+    let defaults = try #require(UserDefaults(suiteName: suite))
+    defer { defaults.removePersistentDomain(forName: suite) }
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let model = PaceViewModel(snapshot: PaceSnapshot(weeklyWindow: UsageWindow(
+        usedPercent: 0, durationMinutes: 10_080, resetsAt: now.addingTimeInterval(6 * 86_400)),
+        fetchedAt: now, creditBalance: "0"), now: now, pollingEnabled: false, defaults: defaults,
+        creditConsumptionAlert: {}, usageResetAlert: {}, bankedResetWarning: { _, _ in })
+    let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 466, height: 380),
+                          styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+    window.isReleasedWhenClosed = false
+    defer { window.close() }
+    window.contentView = NSHostingView(rootView: PaceMainWindowView(model: model,
+        isLargeDisplay: .constant(false)).environment(\.colorScheme, .dark)
+        .background(Color(nsColor: .windowBackgroundColor)))
+    func settle() async throws {
+        for _ in 0..<30 {
+            window.contentView?.layoutSubtreeIfNeeded()
+            try await Task.sleep(nanoseconds: 10_000_000)
+        }
+    }
+    func capture(_ name: String) throws {
+        guard let directory = ProcessInfo.processInfo.environment["CODEX_PACE_RESIZE_RENDER_DIRECTORY"],
+              let view = window.contentView,
+              let bitmap = view.bitmapImageRepForCachingDisplay(in: view.bounds) else { return }
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        try bitmap.representation(using: .png, properties: [:])?.write(to:
+            URL(fileURLWithPath: directory).appendingPathComponent(name + ".png"))
+    }
+    try await settle()
+    let baseHeight = window.contentLayoutRect.height
+    for width: CGFloat in [466, 700, 932] {
+        let scale = width / PaceMenuLayout.width
+        window.setContentSize(CGSize(width: width, height: ceil(baseHeight * scale)))
+        try await settle()
+        let expandedHeight = window.contentLayoutRect.height
+        try capture("rows-expanded-\(Int(width))")
+        model.setManualResetAt(now.addingTimeInterval(3_600))
+        try await settle()
+        #expect(window.frame.width == width)
+        // Hiding Time ahead removes exactly one row and its shared peer gap.
+        let pitch = (PaceMenuLayout.rowHeight + PaceMenuLayout.groupGap) * scale
+        #expect(abs(expandedHeight - window.contentLayoutRect.height - pitch) < 1)
+        #expect(window.contentAspectRatio == window.contentRect(forFrameRect: window.frame).size)
+        try capture("rows-estimate-\(Int(width))")
+        let compactFrame = window.frame
+        for _ in 0..<3 {
+            model.objectWillChange.send()
+            try await settle()
+            #expect(window.frame == compactFrame)
+        }
+        let host = try #require(window.contentView)
+        let scroll = try #require(findScrollView(in: host))
+        let document = try #require(scroll.documentView)
+        #expect(document.frame.height <= scroll.contentSize.height + 1)
+        model.clearManualReset()
+        try await settle()
+        #expect(window.frame.width == width)
+        #expect(abs(window.contentLayoutRect.height - expandedHeight) < 1)
+    }
 }

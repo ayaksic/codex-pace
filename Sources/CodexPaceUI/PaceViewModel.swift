@@ -292,6 +292,14 @@ public final class PaceViewModel: ObservableObject {
         }
     }
 
+    var visiblePaceTimeLabel: String? {
+        if currentPaceState == .ahead,
+           visibleResetCountdownTargets.contains(where: { $0.kind == .manualEstimate }) {
+            return nil
+        }
+        return paceTimeLabel
+    }
+
     public var paceTimeFields: DurationFields? {
         guard let weeklyWindow = effectiveWeeklyWindow,
               paceTimeLabel != nil else { return nil }

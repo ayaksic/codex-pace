@@ -2,7 +2,8 @@ import AppKit
 import SwiftUI
 
 /// Width controls the continuous scale while manual resizing preserves the
-/// content aspect ratio. Additional rows scroll within the chosen window size.
+/// content aspect ratio. Row changes fit the height at the chosen width;
+/// content scrolls once the available screen height is reached.
 public struct PaceMainWindowView: View {
     @ObservedObject private var model: PaceViewModel
     @Binding private var isLargeDisplay: Bool
@@ -37,7 +38,8 @@ public struct PaceMainWindowView: View {
         .onPreferenceChange(PaceNaturalContentSizeKey.self) { measurement in
             DispatchQueue.main.async {
                 latestMeasurement = measurement
-                sizer.updateContentSize(measurement.size)
+                sizer.updateContentSize(measurement.size,
+                    resizeForContentChanges: !awaitingFirstReading)
                 fitFirstReadingIfReady()
             }
         }

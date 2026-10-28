@@ -54,11 +54,11 @@ to return to the standard size. Near a display's right edge, the window expands
 left and keeps that right edge in place when returning to `1×`. The menu-bar
 popover stays compact. You can also drag the main window's edges or corners to
 resize it with its content aspect ratio locked. Content scales with the width;
-additional rows scroll vertically within the chosen size.
-After a manual resize, content updates preserve your chosen window size. The
-1× and 2× presets resize the window once to fit the content and establish its
-aspect ratio. Subsequent layout measurements and content updates do not resize
-the main window.
+row changes grow or shrink the height while preserving your chosen width and
+scale. The fitted content establishes the new aspect ratio for manual resizing.
+Content scrolls vertically when it exceeds the available screen height.
+The 1× and 2× presets fit the content at the selected scale. Scale-only layout
+measurements preserve the chosen size without snapping back during a drag.
 On launch, the window fits once after its first usage reading arrives, unless it
 has already been manually resized while waiting.
 
@@ -67,6 +67,7 @@ expected before the timestamp reported by Codex. Codex Pace shows the manual
 value as **Reset by (est.)**, remembers it across launches, and automatically
 returns to the Codex-reported timestamp after the estimate passes or Codex
 reports that the weekly usage allowance has reset to 100% remaining.
+The **Time ahead** row is hidden while **Reset by (est.)** is visible.
 
 Each available banked reset is always visible as a **Banked reset** row, with its expiration countdown and timestamp. When a known banked reset expires
 before the natural reset, the main reset row becomes **Reset expiry** and

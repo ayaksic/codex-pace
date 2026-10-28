@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.10 — 2026-10-28
+
+- Grow and shrink the main window when displayed rows change, preserving its width and scale. Update the manual-resize aspect ratio to the fitted content and scroll when the screen height is reached.
+- Hide Time ahead while Reset by (est.) is visible; retain Stop until and restore Time ahead when the estimate row disappears.
+
 ## 2.0.9 — 2026-10-27
 
 - Lock the main window's content aspect ratio during manual resizing. Opening the window and selecting a 1×/2× preset establish the ratio; subsequent content updates preserve it and the chosen window size.
