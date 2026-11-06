@@ -85,10 +85,16 @@ public struct PaceMenuView: View {
                 }
                 VStack(spacing: PaceMenuLayout.groupGap) {
                     if let snapshot = model.snapshot { details(snapshot) }
-                    usageCredits
-                    if model.availableBankedResetCount > 0,
-                       !model.visibleBankedResetCredits.isEmpty || model.bankedResetCountWithoutDetails > 0 {
-                        bankedResets
+                    ForEach(model.visibleExpirationRows) { row in
+                        switch row {
+                        case .usageCredits: usageCredits
+                        case .bankedReset(let credit): bankedReset(credit)
+                        }
+                    }
+                    if model.bankedResetCountWithoutDetails > 0 {
+                        Text(expirationDetailsUnavailableText)
+                            .font(.system(size: 12)).foregroundStyle(PaceColors.secondary)
+                            .frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
                     }
                     if model.snapshot != nil, let error = model.errorMessage {
                         Text(error)
@@ -329,23 +335,14 @@ public struct PaceMenuView: View {
         }
     }
 
-    private var bankedResets: some View {
-        VStack(spacing: PaceMenuLayout.groupGap) {
-            ForEach(model.visibleBankedResetCredits) { credit in
-                PaceColumns { detailLabel("Banked reset") } middle: {
-                    if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
-                    else { PaceInkText(value: "—") }
-                } trailing: {
-                    if let date = credit.expiresAt { detailTimestamp(date) }
-                    else { PaceInkText(value: "No expiry reported", font: .systemFont(ofSize: 12))
-                        .foregroundStyle(PaceColors.secondary) }
-                }
-            }
-            if model.bankedResetCountWithoutDetails > 0 {
-                Text(expirationDetailsUnavailableText)
-                    .font(.system(size: 12)).foregroundStyle(PaceColors.secondary)
-                    .frame(maxWidth: .infinity).fixedSize(horizontal: false, vertical: true)
-            }
+    private func bankedReset(_ credit: RateLimitResetCredit) -> some View {
+        PaceColumns { detailLabel("Banked reset") } middle: {
+            if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
+            else { PaceInkText(value: "—") }
+        } trailing: {
+            if let date = credit.expiresAt { detailTimestamp(date) }
+            else { PaceInkText(value: "No expiry reported", font: .systemFont(ofSize: 12))
+                .foregroundStyle(PaceColors.secondary) }
         }
     }
 

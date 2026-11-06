@@ -196,6 +196,17 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
                 status: "available", grantedAt: now, expiresAt: now.addingTimeInterval(5 * 86_400))])), now: now)
     model.setCreditExpirationNote(try #require(CreditExpirationNote("2026-12-31")))
     try await settle()
+    // Expiry pacing hides Reset at and Stop until, so this reading shrinks.
+    #expect(window.contentLayoutRect.height < initialHeight)
+    #expect(abs(window.contentLayoutRect.height - measuredSize.height) < 1)
+    // Additional later resets must still grow the fitted window.
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: weeklyWindow, fetchedAt: now,
+        creditBalance: "62500.125", rateLimitResetCredits: RateLimitResetCredits(
+            availableCount: 3, credits: [5, 10, 11].map { days in
+                RateLimitResetCredit(id: "fixture-\(days)", resetType: "codexRateLimits",
+                    status: "available", grantedAt: now, expiresAt: now.addingTimeInterval(Double(days) * 86_400))
+            })), now: now)
+    try await settle()
     #expect(window.contentLayoutRect.height > initialHeight)
     #expect(abs(window.contentLayoutRect.height - measuredSize.height) < 1)
 

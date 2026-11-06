@@ -79,7 +79,7 @@ pace, and time-ahead values together. Stoppage time is hidden while the target i
 a banked-reset expiration, since expiration does not replenish usage. It remains
 available for weekly resets and manual estimates. Percentages retain the seven-day
 scale: six days left is 85.7%. The time metric reads **To expiration** or **Early reset**
-for an earlier deadline; the unlabeled timeline ends at that deadline; its help and accessibility description identify the target. **Reset at** remains visible separately. When a credit is
+for an earlier deadline; the unlabeled timeline ends at that deadline; its help and accessibility description identify the target. **Reset at** is hidden while **Reset expires** is visible. When a credit is
 used, expires, or becomes unavailable, pacing selects the next applicable target.
 The expiration itself does not automatically apply a banked reset.
 
@@ -94,7 +94,8 @@ confirmed until refreshed. Missed hours produce one current warning, not a
 backlog. Unavailable, consumed, expired, or undated credits do not trigger
 warnings. Using the reset remains a manual action in Codex.
 
-Usage credits appear separately in both windows, using the balance from the same
+Usage credits appear among banked resets in both windows, sorted by expiration
+with the earliest date first and undated rows last, using the balance from the same
 Codex refresh. A failed refresh labels the retained reading **Last known**;
 missing or invalid balances show **Credits unavailable**, rather than zero.
 Click the expiration date (or **Set expiration** when absent) to save a local `YYYY-MM-DD` calendar date or remove it. The manually entered expiration date is independent of the total:

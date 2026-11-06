@@ -44,13 +44,68 @@ import CodexPaceCore
     defer { h.cleanUp() }
     let expiry = h.now.addingTimeInterval(86_400)
     let model = h.model(bankedExpiry: expiry)
-    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.bankedResetExpiry, .natural])
+    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.bankedResetExpiry])
     model.setManualResetAt(h.now.addingTimeInterval(2 * 86_400))
     #expect(model.resetCountdownTarget?.kind == .bankedResetExpiry)
     #expect(model.visibleResetCountdownTargets == [ResetCountdownTarget(date: expiry, kind: .bankedResetExpiry)])
     #expect(model.effectiveWeeklyWindow?.resetsAt == expiry)
     model.clearManualReset()
-    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.bankedResetExpiry, .natural])
+    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.bankedResetExpiry])
+}
+
+@Test @MainActor func bankedExpiryHidesReportedResetUntilNoEarlierExpiryRemains() throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let expiry = h.now.addingTimeInterval(86_400)
+    let model = h.model(bankedExpiry: expiry)
+    #expect(model.visibleResetCountdownTargets == [ResetCountdownTarget(date: expiry, kind: .bankedResetExpiry)])
+    #expect(model.visibleBankedResetCredits.isEmpty)
+    model.applyFreshSnapshot(try #require(model.snapshot), now: expiry)
+    #expect(model.visibleResetCountdownTargets.map(\.kind) == [.natural])
+}
+
+@Test(arguments: [0, 1, 2]) @MainActor
+func usageCreditsSortBeforeBetweenOrAfterBankedExpirations(position: Int) throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let model = h.model(bankedExpiry: h.now.addingTimeInterval(3_600))
+    let expiration = try #require(CreditExpirationNote("2033-06-01"))
+    model.setCreditExpirationNote(expiration)
+    let date = try #require(model.creditExpirationAt)
+    let snapshot = try #require(model.snapshot)
+    let active = try #require(model.availableBankedResetCredits.first)
+    let credits = (0..<2).map { index in
+        RateLimitResetCredit(id: "sorted-\(index)", resetType: "codexRateLimits", status: "available",
+            grantedAt: h.now, expiresAt: date.addingTimeInterval(Double(index - position) * 86_400 + 3_600))
+    }
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: snapshot.weeklyWindow, fetchedAt: h.now,
+        rateLimitResetCredits: RateLimitResetCredits(availableCount: 3, credits: [credits[1], active, credits[0]])),
+        now: h.now)
+    var expected = credits.map(ExpirationRow.bankedReset)
+    expected.insert(.usageCredits(date), at: position)
+    #expect(model.visibleExpirationRows == expected)
+    #expect(model.availableBankedResetCount == 3)
+    model.removeCreditExpirationNote()
+    #expect(model.visibleExpirationRows == credits.map(ExpirationRow.bankedReset) + [.usageCredits(nil)])
+}
+
+@Test @MainActor func equalAndUnknownExpirationsKeepStableRowsAndMissingDetailCounts() throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let model = h.model()
+    model.setCreditExpirationNote(try #require(CreditExpirationNote("2033-06-01")))
+    let date = try #require(model.creditExpirationAt)
+    let sameDate = RateLimitResetCredit(id: "same-date", resetType: "codexRateLimits", status: "available",
+        grantedAt: h.now, expiresAt: date)
+    let undated = RateLimitResetCredit(id: "undated", resetType: "codexRateLimits", status: "available",
+        grantedAt: h.now, expiresAt: nil)
+    let snapshot = try #require(model.snapshot)
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: snapshot.weeklyWindow, fetchedAt: h.now,
+        rateLimitResetCredits: RateLimitResetCredits(availableCount: 3, credits: [undated, sameDate])), now: h.now)
+    #expect(model.visibleExpirationRows == [.usageCredits(date), .bankedReset(sameDate), .bankedReset(undated)])
+    #expect(model.bankedResetCountWithoutDetails == 1)
+    model.removeCreditExpirationNote()
+    #expect(model.visibleExpirationRows == [.bankedReset(sameDate), .usageCredits(nil), .bankedReset(undated)])
 }
 
 @Test @MainActor func anExpiredEstimateRestoresTheReportedResetRow() throws {

@@ -40,6 +40,25 @@ public struct ResetCountdownTarget: Equatable, Sendable {
     }
 }
 
+enum ExpirationRow: Identifiable, Equatable {
+    case usageCredits(Date?)
+    case bankedReset(RateLimitResetCredit)
+
+    var id: String {
+        switch self {
+        case .usageCredits: "usage-credits"
+        case .bankedReset(let credit): "banked-reset-\(credit.id)"
+        }
+    }
+
+    var expiresAt: Date? {
+        switch self {
+        case .usageCredits(let date): date
+        case .bankedReset(let credit): credit.expiresAt
+        }
+    }
+}
+
 @MainActor
 public final class PaceViewModel: ObservableObject {
     private struct UsageResetReading: Codable {
@@ -440,15 +459,11 @@ public final class PaceViewModel: ObservableObject {
         return target
     }
 
-    /// An active manual estimate suppresses the reported weekly-reset row,
-    /// including when a banked expiry is still the earlier pacing target.
+    /// Only the pacing target is shown. An active manual estimate also hides
+    /// the reported weekly reset when that reset is still the target.
     var visibleResetCountdownTargets: [ResetCountdownTarget] {
         guard let target = resetCountdownTarget else { return [] }
-        var targets = [target]
-        if target.kind != .natural, let naturalDate = snapshot?.weeklyWindow.resetsAt {
-            targets.append(ResetCountdownTarget(date: naturalDate, kind: .natural))
-        }
-        return targets.filter { $0.kind != .natural || !isManualResetActive }
+        return target.kind == .natural && isManualResetActive ? [] : [target]
     }
 
     public var displayedResetAt: Date? {
@@ -491,6 +506,15 @@ public final class PaceViewModel: ObservableObject {
         guard let expiry = visibleResetCountdownTargets.first(where: { $0.kind == .bankedResetExpiry })?.date
         else { return availableBankedResetCredits }
         return availableBankedResetCredits.filter { $0.expiresAt != expiry }
+    }
+
+    /// Dated rows come first, earliest expiration first. Preserve the existing
+    /// order for ties and undated rows, keeping the credit editor discoverable.
+    var visibleExpirationRows: [ExpirationRow] {
+        let bankedCredits = availableBankedResetCount > 0 ? visibleBankedResetCredits : []
+        let rows = [ExpirationRow.usageCredits(creditExpirationAt)]
+            + bankedCredits.map(ExpirationRow.bankedReset)
+        return rows.sorted { ($0.expiresAt ?? .distantFuture) < ($1.expiresAt ?? .distantFuture) }
     }
 
     public func setManualResetAt(_ date: Date) {

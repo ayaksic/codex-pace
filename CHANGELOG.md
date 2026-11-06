@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.12 — 2026-11-06
+
+- Hide "Reset at" while counting down to "Reset expires".
+- Sort the usage-credit row among banked resets by expiration, earliest first, with undated rows after dated rows.
+
 ## 2.0.11 — 2026-11-05
 
 - Rename "Reset expiry" to "Reset expires" and "to expiry" to "to expiration".
