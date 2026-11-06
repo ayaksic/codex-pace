@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.11 — 2026-11-05
+
+- Rename "Reset expiry" to "Reset expires" and "to expiry" to "to expiration".
+- Omit Banked reset rows whose expiration is already displayed as Reset expires, retaining other resets and missing-detail disclosures.
+
 ## 2.0.10 — 2026-10-28
 
 - Grow and shrink the main window when displayed rows change, preserving its width and scale. Update the manual-resize aspect ratio to the fitted content and scroll when the screen height is reached.

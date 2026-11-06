@@ -69,16 +69,16 @@ returns to the Codex-reported timestamp after the estimate passes or Codex
 reports that the weekly usage allowance has reset to 100% remaining.
 The **Time ahead** row is hidden while **Reset by (est.)** is visible.
 
-Each available banked reset is always visible as a **Banked reset** row, with its expiration countdown and timestamp. When a known banked reset expires
-before the natural reset, the main reset row becomes **Reset expiry** and
-counts down to that earlier deadline. Codex Pace preserves the server's
+Each available banked reset appears as a **Banked reset** row, with its expiration countdown and timestamp. When a known banked reset expires
+before the natural reset, the main reset row becomes **Reset expires** and
+counts down to that earlier deadline. Banked reset rows with that same expiration are omitted to avoid repeating it. Codex Pace preserves the server's
 authoritative available count even when the server omits or caps detailed
 expiration rows. The earliest of a banked-reset expiration, manual estimate, or
 regular weekly reset drives the time percentage, both bar views, menu-bar value,
 pace, and time-ahead values together. Stoppage time is hidden while the target is
 a banked-reset expiration, since expiration does not replenish usage. It remains
 available for weekly resets and manual estimates. Percentages retain the seven-day
-scale: six days left is 85.7%. The time metric reads **To expiry** or **To estimate**
+scale: six days left is 85.7%. The time metric reads **To expiration** or **Early reset**
 for an earlier deadline; the unlabeled timeline ends at that deadline; its help and accessibility description identify the target. **Reset at** remains visible separately. When a credit is
 used, expires, or becomes unavailable, pacing selects the next applicable target.
 The expiration itself does not automatically apply a banked reset.

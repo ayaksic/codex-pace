@@ -65,6 +65,37 @@ import CodexPaceCore
     #expect(model.visibleResetCountdownTargets.map(\.kind) == [.natural])
 }
 
+@Test @MainActor func bankedRowsFollowTheDisplayedExpiryWithoutChangingAvailability() throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let expiry = h.now.addingTimeInterval(86_400)
+    let model = h.model(bankedExpiry: expiry)
+    let original = try #require(model.snapshot)
+    let first = try #require(model.availableBankedResetCredits.first)
+    let later = RateLimitResetCredit(id: "later", resetType: "codexRateLimits", status: "available",
+        grantedAt: h.now, expiresAt: expiry.addingTimeInterval(86_400))
+    let undated = RateLimitResetCredit(id: "undated", resetType: "codexRateLimits", status: "available",
+        grantedAt: h.now, expiresAt: nil)
+    model.applyFreshSnapshot(PaceSnapshot(weeklyWindow: original.weeklyWindow, fetchedAt: h.now,
+        rateLimitResetCredits: RateLimitResetCredits(availableCount: 4, credits: [first, later, undated])),
+        now: h.now)
+    #expect(model.visibleBankedResetCredits.map(\.id) == ["later", "undated"])
+    #expect(model.availableBankedResetCount == 4)
+    #expect(model.availableBankedResetCredits.count == 3)
+    #expect(model.bankedResetCountWithoutDetails == 1)
+
+    // An earlier estimate replaces Reset expires, so the banked row returns.
+    model.setManualResetAt(h.now.addingTimeInterval(3_600))
+    #expect(model.visibleBankedResetCredits.map(\.id) == [first.id, "later", "undated"])
+    model.clearManualReset()
+    #expect(model.visibleBankedResetCredits.map(\.id) == ["later", "undated"])
+
+    // As the first reset expires, the next one becomes the pacing target.
+    model.applyFreshSnapshot(try #require(model.snapshot), now: expiry)
+    #expect(model.resetCountdownTarget?.date == later.expiresAt)
+    #expect(model.visibleBankedResetCredits.map(\.id) == ["undated"])
+}
+
 @Test @MainActor func aLaterEstimateHidesTheReportedRowWithoutChangingThePacingTarget() {
     let h = ResetRowHarness()
     defer { h.cleanUp() }

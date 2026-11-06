@@ -347,7 +347,7 @@ public final class PaceViewModel: ObservableObject {
 
     public var timeRemainingLabel: String {
         switch resetCountdownTarget?.kind {
-        case .bankedResetExpiry: "To expiry"
+        case .bankedResetExpiry: "To expiration"
         case .manualEstimate: "Early reset"
         default: "Week left"
         }
@@ -485,6 +485,12 @@ public final class PaceViewModel: ObservableObject {
 
     public var bankedResetCountWithoutDetails: Int {
         max(0, availableBankedResetCount - availableBankedResetCredits.count)
+    }
+
+    var visibleBankedResetCredits: [RateLimitResetCredit] {
+        guard let expiry = visibleResetCountdownTargets.first(where: { $0.kind == .bankedResetExpiry })?.date
+        else { return availableBankedResetCredits }
+        return availableBankedResetCredits.filter { $0.expiresAt != expiry }
     }
 
     public func setManualResetAt(_ date: Date) {

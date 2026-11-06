@@ -54,7 +54,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
     let expectedTime = (6 * 86_400.0 + 4_600) / (7 * 86_400) * 100
     #expect(abs(window.timeRemainingPercent(at: model.now) - expectedTime) < 0.0001)
     #expect(model.menuBarText == "100% / 86.5%")
-    #expect(model.timeRemainingLabel == "To expiry")
+    #expect(model.timeRemainingLabel == "To expiration")
     #expect(model.timelineLabel == "Expiry")
     #expect(model.timelineDescription.contains("banked reset expiration"))
     #expect(abs(try #require(model.currentPaceDelta) - (100 - expectedTime)) < 0.0001)
@@ -70,7 +70,7 @@ func bankedDeadlineDrivesPercentPaceTimingAndBothBarInputsTogether() throws {
     #expect(model.timeRemainingLabel == "Early reset")
     model.setManualResetAt(expiry.addingTimeInterval(3_600))
     #expect(model.effectiveWeeklyWindow?.resetsAt == expiry)
-    #expect(model.timeRemainingLabel == "To expiry")
+    #expect(model.timeRemainingLabel == "To expiration")
     model.clearManualReset()
     model.applyFreshSnapshot(reading(at: expiryFixtureNow, credits: [credit(expires: expiry, status: "consumed")]),
                              now: expiryFixtureNow)

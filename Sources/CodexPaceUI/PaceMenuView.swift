@@ -86,7 +86,10 @@ public struct PaceMenuView: View {
                 VStack(spacing: PaceMenuLayout.groupGap) {
                     if let snapshot = model.snapshot { details(snapshot) }
                     usageCredits
-                    if model.availableBankedResetCount > 0 { bankedResets }
+                    if model.availableBankedResetCount > 0,
+                       !model.visibleBankedResetCredits.isEmpty || model.bankedResetCountWithoutDetails > 0 {
+                        bankedResets
+                    }
                     if model.snapshot != nil, let error = model.errorMessage {
                         Text(error)
                             .font(.system(size: 12))
@@ -328,7 +331,7 @@ public struct PaceMenuView: View {
 
     private var bankedResets: some View {
         VStack(spacing: PaceMenuLayout.groupGap) {
-            ForEach(model.availableBankedResetCredits) { credit in
+            ForEach(model.visibleBankedResetCredits) { credit in
                 PaceColumns { detailLabel("Banked reset") } middle: {
                     if let date = credit.expiresAt { durationValue(model.remainingTimeFields(until: date)) }
                     else { PaceInkText(value: "—") }
@@ -440,7 +443,7 @@ public struct PaceMenuView: View {
         case .manualEstimate:
             "Reset by (est.)"
         case .bankedResetExpiry:
-            "Reset expiry"
+            "Reset expires"
         }
     }
 
