@@ -2,6 +2,47 @@ import AppKit
 import Testing
 @testable import CodexPaceUI
 
+@Test @MainActor func repeatedPresetsKeepLeftEdgeFixed() throws {
+    for fullSizeContent in [false, true] {
+        var style: NSWindow.StyleMask = [.titled, .closable, .resizable]
+        if fullSizeContent { style.insert(.fullSizeContentView) }
+        let window = NSWindow(contentRect: CGRect(x: 100, y: 100,
+            width: PaceMenuLayout.width, height: 260),
+            styleMask: style, backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        defer { window.close() }
+        let visibleFrame = try #require(window.screen).visibleFrame
+        let sizer = PaceWindowSizer(allowsManualResize: true)
+        sizer.window = window
+        sizer.updateContentSize(CGSize(width: PaceMenuLayout.width, height: 260))
+
+        // Include a starting position where the first expansion must move left
+        // to fit. Once it fits, subsequent toggles must keep that left edge.
+        for startsNearRightEdge in [false, true] {
+            sizer.usePreset(scale: 1)
+            let startingX = startsNearRightEdge
+                ? visibleFrame.maxX - PaceMenuLayout.width - 20
+                : visibleFrame.minX + 20
+            window.setFrameTopLeftPoint(CGPoint(x: startingX, y: visibleFrame.maxY))
+            sizer.usePreset(scale: 2)
+            let anchorX = window.frame.minX
+            if !startsNearRightEdge { #expect(anchorX == startingX) }
+            for _ in 0..<10 {
+                for scale: CGFloat in [1, 2] {
+                    sizer.usePreset(scale: scale)
+                    #expect(window.frame.minX == anchorX)
+                    #expect(window.frame.width == PaceMenuLayout.width * scale)
+                    #expect(window.frame.maxX <= visibleFrame.maxX)
+                    // A delayed SwiftUI measurement must not move the window.
+                    sizer.updateContentSize(CGSize(width: PaceMenuLayout.width * scale,
+                                                   height: 260 * scale))
+                    #expect(window.frame.minX == anchorX)
+                }
+            }
+        }
+    }
+}
+
 @Test @MainActor func nativeWindowGrowsForRowsAndKeepsTitleBarOutsideContent() {
     for fullSizeContent in [false, true] {
         var style: NSWindow.StyleMask = [.titled, .closable, .resizable]

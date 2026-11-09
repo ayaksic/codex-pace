@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.13 — 2026-11-09
+
+- Keep the left edge anchored when switching between 1× and 2× so repeated toggles no longer move the window rightward. Preserve the onscreen adjustment when expanding near a display's right edge.
+
 ## 2.0.12 — 2026-11-06
 
 - Hide "Reset at" while counting down to "Reset expires".

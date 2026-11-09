@@ -50,8 +50,9 @@ The window shares the menu bar's live reading and refresh cycle. Closing it
 leaves the app running; click its Dock icon to reopen the window.
 Use the `2×` control in the main window to double the window and everything
 inside it for viewing from farther away. The selection is remembered; use `1×`
-to return to the standard size. Near a display's right edge, the window expands
-left and keeps that right edge in place when returning to `1×`. The menu-bar
+to return to the standard size. Both presets keep the window's left edge fixed.
+Near a display's right edge, expansion moves the window left to fit; subsequent
+toggles retain that adjusted left edge without drifting horizontally. The menu-bar
 popover stays compact. You can also drag the main window's edges or corners to
 resize it with its content aspect ratio locked. Content scales with the width;
 row changes grow or shrink the height while preserving your chosen width and

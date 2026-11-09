@@ -82,9 +82,11 @@ public final class PaceWindowSizer: ObservableObject {
         var frame = CGRect(x: previous.minX, y: previous.maxY - desiredSize.height,
                            width: desiredSize.width, height: desiredSize.height)
         if let screen = window.screen {
+            // Use the same left anchor in both directions. Anchoring only
+            // contraction to the right makes every preset cycle drift right.
             frame = WindowFramePlacement.frameKeepingResizeVisible(
                 resizedFrame: frame, previousFrame: previous, visibleFrame: screen.visibleFrame,
-                preservesRightEdge: desiredSize.width < previous.width
+                preservesRightEdge: false
             )
         }
         window.setFrame(frame, display: true)
