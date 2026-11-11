@@ -18,7 +18,8 @@ would reach 0% if the average consumption rate since the window began continued
 unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
 label says **Stopped**.
 
-Countdowns keep seconds visible. The next-update countdown appears in the toolbar;
+Countdowns keep seconds visible and reserve fixed-width number columns without
+displaying leading zeroes. The next-update countdown appears in the toolbar;
 its exact timestamp is available in its help text. Build details and the update
 check open from the compact version and status icon in the toolbar. The status icon retains update status without a separate Latest label or information icon.
 

@@ -757,11 +757,11 @@ struct AlignedCountdown: View {
 
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: PaceMenuLayout.durationGap) {
-            part(fields.days > 0 ? padded(fields.hours) : String(fields.hours), unit: "h")
+            part(String(fields.hours), unit: "h")
                 .opacity(display.hours == nil ? 0 : 1)
-            part(display.hours == nil ? String(fields.minutes) : padded(fields.minutes), unit: "m")
+            part(String(fields.minutes), unit: "m")
                 .opacity(display.minutes == nil ? 0 : 1)
-            part(display.minutes == nil ? String(fields.seconds) : padded(fields.seconds), unit: "s")
+            part(String(fields.seconds), unit: "s")
         }
         .overlay(alignment: .leading) {
             if fields.days > 0 {
@@ -776,9 +776,9 @@ struct AlignedCountdown: View {
     }
 
     private var display: DurationDisplay { DurationDisplay(fields: fields) }
-    private func padded(_ value: Int) -> String { String(format: "%02d", value) }
     private func part(_ number: String, unit: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
+            // Reserve both digit positions without displaying a leading zero.
             PaceInkText(value: number, monospacedDigits: true).fixedSize()
                 .frame(width: PaceMenuLayout.durationNumberWidth, alignment: .trailing)
             PaceInkText(value: unit).frame(width: PaceMenuLayout.durationUnitWidth, alignment: .leading)

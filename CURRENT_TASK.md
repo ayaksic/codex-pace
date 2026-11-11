@@ -1,4 +1,24 @@
-# Current task — 2026-11-09
+# Current task — 2026-11-10
+
+Prepared local 2.0.14: countdown numbers no longer use leading zeroes. Existing
+18-point, right-aligned number cells, unit widths, and shared gaps remain intact,
+so a single digit retains the space previously occupied by a two-digit number.
+Updated the authoritative version, derived labels, changelog, and README.
+
+Validation: all seven focused countdown/duration/column tests passed, including
+native SwiftUI render sizing, hidden leading units, and preserved day/hour
+columns. Native synthetic previews at 1× and 2× visually confirm unpadded
+single-digit and zero values with aligned suffixes. Version synchronization and
+git diff --check passed. Commit and push to origin/main authorized; Git history
+records the publication identity. Installation has not been requested or
+performed for this change; the running installed application remains unchanged.
+
+Storage: reused /Users/andrew/Documents/codex-pace/.build as the existing build
+cache (approximately 698 MB). Retained synthetic preview evidence in that directory as
+countdown-no-zeroes-1x.png and countdown-no-zeroes-2x.png (approximately 376 KB combined),
+owned by this task. No new directories, source copies, or worktrees created.
+
+## Previous task — 2026-11-09
 
 Fixed horizontal drift when repeatedly switching between 1× and 2×. Both
 directions now retain the left edge, except for the existing onscreen adjustment

@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.14 — 2026-11-10
+
+- Remove leading zeroes from countdown numbers while preserving their fixed-width, right-aligned columns.
+
 ## 2.0.13 — 2026-11-09
 
 - Keep the left edge anchored when switching between 1× and 2× so repeated toggles no longer move the window rightward. Preserve the onscreen adjustment when expanding near a display's right edge.
