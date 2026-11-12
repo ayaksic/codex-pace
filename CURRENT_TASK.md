@@ -1,4 +1,47 @@
-# Current task — 2026-11-10
+# Current task — 2026-11-12
+
+Prepared version 2.1.0 with manual planned-idle projections. Confirmed saved idle
+hours clear when a usage reset is detected, including after relaunch. Also clear
+an unsaved value in an open editor on reset, preventing Save from restoring the
+previous window's hours. Updated the authoritative release version, derived
+surfaces, README, and changelog. Commit and push to origin/main are authorized;
+Git history records the publication identity.
+
+Regression coverage includes reset notification without a saved estimate,
+persisted clearing after relaunch, and existing pacing/persistence/target cases.
+The slow-start test now gates the first response explicitly instead of assuming
+that the native UI suite will schedule it within a fixed delay.
+
+Validation: all 109 tests passed (100 UI/model and 9 core), including native
+spacing and resize checks. Version synchronization and git diff --check passed.
+Build outputs and test logs reuse the existing .build and dist directories.
+
+## Previous local prototype — 2026-11-12
+
+Implemented and installed local 2.0.15 with a planned-idle-hours editor in the
+moon toolbar control. Manual remaining idle time adjusts the seven-day pace,
+bars, menu percentage, extra pause and runout forecast; active time and idle
+hours are visible separately. Actual usage and reset timestamps stay unchanged.
+Fractional hours, presets, edit/clear, persistence, and automatic invalidation
+on account/window/target/reset changes are supported. Runout assumes idle occurs
+before exhaustion. Users reduce or clear remaining idle time after a break.
+
+Validation: full suite passed (97 UI/model + 9 core tests). After a final
+accessibility description correction and startup persistence guard, all six
+focused idle tests passed, including a slow initial fetch spanning timer ticks.
+Native preview verified save, clear, invalid-input blocking, and expected pace
+changes. The original spacing and resize regressions were fixed by sizing the
+new symbol within the existing toolbar. Release build, code signature, version
+synchronization, and git diff --check passed. Installed 2.0.15 in /Applications,
+restarted, and verified the new editor against the live usage reading. Editor
+is open at zero idle hours for the user to choose. Git changes remain uncommitted
+and unpushed, so the app correctly identifies itself as a development build.
+
+Storage: reused the repository .build cache, logs, preview PNG and dist bundle.
+A preview wrapper and prior installed 2.0.14 backup are under
+/Users/andrew/Documents/Codex/2026-11-12/cod/work. Preview process was closed.
+
+## Previous task — 2026-11-10
 
 Prepared local 2.0.14: countdown numbers no longer use leading zeroes. Existing
 18-point, right-aligned number cells, unit widths, and shared gaps remain intact,

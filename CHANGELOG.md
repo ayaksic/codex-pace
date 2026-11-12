@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.0 — 2026-11-12
+
+- Automatically clear saved idle hours and any open editor draft when a usage reset is detected, including resets detected after relaunch.
+
+- Add a manual planned-idle-hours editor, active-time countdown, and adjusted pace, bars, and runout projections. Save the estimate for the current account and pacing target, with edit/clear controls and automatic clearing on reset.
+
 ## 2.0.14 — 2026-11-10
 
 - Remove leading zeroes from countdown numbers while preserving their fixed-width, right-aligned columns.

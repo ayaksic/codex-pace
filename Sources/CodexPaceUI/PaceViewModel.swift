@@ -61,6 +61,15 @@ enum ExpirationRow: Identifiable, Equatable {
 
 @MainActor
 public final class PaceViewModel: ObservableObject {
+    private struct IdlePlan: Codable {
+        let seconds: TimeInterval
+        let resetAt: Date
+        let targetAt: Date
+        let accountID: String?
+        let usedPercent: Double
+    }
+    private static let idlePlanKey = "plannedIdleTime"
+    @Published private var idlePlan: IdlePlan?
     private struct UsageResetReading: Codable {
         let usedPercent: Double
         let fetchedAt: Date
@@ -85,6 +94,7 @@ public final class PaceViewModel: ObservableObject {
     @Published public private(set) var errorMessage: String?
     @Published public private(set) var isRefreshing = false
     @Published public private(set) var manualResetAt: Date?
+    @Published public private(set) var usageResetCount = 0
     @Published public private(set) var appUpdateStatus: AppUpdateStatus = .notChecked
 
     public let appBuildInfo: AppBuildInfo
@@ -123,6 +133,8 @@ public final class PaceViewModel: ObservableObject {
         self.snapshot = snapshot
         self.now = now
         self.defaults = defaults
+        self.idlePlan = defaults.data(forKey: Self.idlePlanKey)
+            .flatMap { try? JSONDecoder().decode(IdlePlan.self, from: $0) }
         self.appBuildInfo = appBuildInfo
         self.latestRevisionProvider = latestRevisionProvider
         self.creditConsumptionAlert = creditConsumptionAlert ?? {
@@ -148,6 +160,7 @@ public final class PaceViewModel: ObservableObject {
             defaults.removeObject(forKey: Self.manualResetAtKey)
         }
 
+        if snapshot != nil { clearInvalidIdlePlan() }
         guard pollingEnabled else { return }
         Task { await refresh() }
         Task { await checkForUpdates() }
@@ -156,6 +169,7 @@ public final class PaceViewModel: ObservableObject {
                 guard let self else { return }
                 self.now = Date()
                 self.clearExpiredManualResetIfNeeded()
+                self.clearInvalidIdlePlan()
                 if self.isAutoRefreshDue(at: self.now) {
                     await self.refresh()
                 }
@@ -267,6 +281,7 @@ public final class PaceViewModel: ObservableObject {
 
     public var paceMetricLabel: String {
         if effectiveWeeklyWindow?.usageRemainingPercent == 0 { return "Stopped" }
+        if plannedIdleSeconds > 0 && activeTimeRemainingSeconds == 0 { return "No active time" }
         switch paceMetricState {
         case .ahead:
             return "Speed up"
@@ -280,6 +295,7 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceMetricValue: String? {
+        if plannedIdleSeconds > 0 && activeTimeRemainingSeconds == 0 { return nil }
         guard effectiveWeeklyWindow?.usageRemainingPercent != 0,
               let delta = currentPaceDelta,
               let state = paceMetricState else { return nil }
@@ -300,6 +316,7 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var paceTimeLabel: String? {
+        if plannedIdleSeconds > 0 && activeTimeRemainingSeconds == 0 { return nil }
         guard let state = currentPaceState else { return nil }
         switch state {
         case .ahead:
@@ -346,7 +363,8 @@ public final class PaceViewModel: ObservableObject {
               let weeklyWindow = snapshot?.weeklyWindow,
               let projectionAt = nextRefreshAt,
               weeklyWindow.usageRemainingPercent > 0 else { return nil }
-        return weeklyWindow.projectedRunoutDate(at: projectionAt)
+        return weeklyWindow.projectedRunoutDate(at: projectionAt)?
+            .addingTimeInterval(plannedIdleSeconds)
     }
 
     public var projectedRunoutCountdownFields: DurationFields? {
@@ -360,12 +378,13 @@ public final class PaceViewModel: ObservableObject {
         return UsageWindow(
             usedPercent: weeklyWindow.usedPercent,
             durationMinutes: weeklyWindow.durationMinutes,
-            resetsAt: target.date
+            resetsAt: target.date.addingTimeInterval(-plannedIdleSeconds)
         )
     }
 
     public var timeRemainingLabel: String {
-        switch resetCountdownTarget?.kind {
+        if plannedIdleSeconds > 0 { return "Active time left" }
+        return switch resetCountdownTarget?.kind {
         case .bankedResetExpiry: "To expiration"
         case .manualEstimate: "Early reset"
         default: "Week left"
@@ -381,7 +400,10 @@ public final class PaceViewModel: ObservableObject {
     }
 
     public var timelineDescription: String {
-        switch resetCountdownTarget?.kind {
+        if plannedIdleSeconds > 0 {
+            return "Seven-day scale with planned idle time excluded; reset date is unchanged"
+        }
+        return switch resetCountdownTarget?.kind {
         case .bankedResetExpiry: "Seven-day scale ending at banked reset expiration"
         case .manualEstimate: "Seven-day scale ending at estimated reset"
         default: "Seven-day usage timeline"
@@ -521,6 +543,7 @@ public final class PaceViewModel: ObservableObject {
         guard date > now else { return }
         manualResetAt = date
         defaults.set(date, forKey: Self.manualResetAtKey)
+        clearInvalidIdlePlan()
         if let usageRemainingPercent = snapshot?.weeklyWindow.usageRemainingPercent {
             rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
         }
@@ -529,6 +552,61 @@ public final class PaceViewModel: ObservableObject {
     public func clearManualReset() {
         manualResetAt = nil
         defaults.removeObject(forKey: Self.manualResetAtKey)
+        clearInvalidIdlePlan()
+    }
+
+    /// A manual budget of idle time still ahead, scoped to this account and target.
+    /// It does not infer sleep or subtract breaks that have already happened.
+    public var plannedIdleSeconds: TimeInterval {
+        guard let plan = idlePlan, let snapshot,
+              plan.accountID == snapshot.accountID,
+              plan.resetAt == snapshot.weeklyWindow.resetsAt,
+              plan.targetAt == resetCountdownTarget?.date,
+              plan.resetAt > now, plan.targetAt > now,
+              plan.seconds.isFinite, plan.seconds > 0,
+              !(plan.usedPercent > 0 && snapshot.weeklyWindow.usedPercent == 0)
+        else { return 0 }
+        return min(plan.seconds, remainingTargetSeconds)
+    }
+
+    public var remainingTargetSeconds: TimeInterval {
+        max(0, resetCountdownTarget?.date.timeIntervalSince(now) ?? 0)
+    }
+
+    public var activeTimeRemainingSeconds: TimeInterval {
+        max(0, remainingTargetSeconds - plannedIdleSeconds)
+    }
+
+    public var plannedIdleFields: DurationFields {
+        durationFields(totalSeconds: Int(plannedIdleSeconds.rounded(.down)))
+    }
+
+    public var activeTimeRemainingFields: DurationFields {
+        durationFields(totalSeconds: Int(activeTimeRemainingSeconds.rounded(.down)))
+    }
+
+    public func setPlannedIdleHours(_ hours: Double) {
+        guard hours.isFinite, hours >= 0, hours <= remainingTargetSeconds / 3_600,
+              let snapshot, let target = resetCountdownTarget else { return }
+        guard hours > 0 else { clearPlannedIdleTime(); return }
+        let plan = IdlePlan(seconds: hours * 3_600,
+                            resetAt: snapshot.weeklyWindow.resetsAt, targetAt: target.date,
+                            accountID: snapshot.accountID, usedPercent: snapshot.weeklyWindow.usedPercent)
+        idlePlan = plan
+        if let data = try? JSONEncoder().encode(plan) {
+            defaults.set(data, forKey: Self.idlePlanKey)
+        }
+    }
+
+    public func clearPlannedIdleTime() {
+        idlePlan = nil
+        defaults.removeObject(forKey: Self.idlePlanKey)
+    }
+
+    private func clearInvalidIdlePlan() {
+        // A relaunch may take several timer ticks to fetch its first reading.
+        guard snapshot != nil else { return }
+        if idlePlan != nil && plannedIdleSeconds == 0 { clearPlannedIdleTime() }
     }
 
     private func formatDuration(_ interval: TimeInterval) -> String {
@@ -574,9 +652,14 @@ public final class PaceViewModel: ObservableObject {
 
         let shouldAlert = shouldAlertForCreditConsumption(freshSnapshot)
         let didResetUsage = shouldAlertForUsageReset(freshSnapshot)
+        if didResetUsage || ((snapshot?.weeklyWindow.usedPercent ?? 0) > 0 && freshSnapshot.weeklyWindow.usedPercent == 0) {
+            clearPlannedIdleTime()
+            usageResetCount += 1
+        }
         rememberWeeklyUsageRemainingPercent(usageRemainingPercent)
         snapshot = freshSnapshot
         self.now = now
+        clearInvalidIdlePlan()
         if shouldAlert { creditConsumptionAlert() }
         if didResetUsage { usageResetAlert() }
         checkBankedResetReminders()

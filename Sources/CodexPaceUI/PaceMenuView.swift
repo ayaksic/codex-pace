@@ -14,6 +14,7 @@ public struct PaceMenuView: View {
     @State private var isShowingCreditEditor = false
     @State private var isShowingBuildDetails = false
     @State private var isShowingResetEditor = false
+    @State private var isShowingIdleEditor = false
     @State private var isShowingWeeklyTimeline: Bool
     private let showsDisplaySizeControl: Bool
     private let popOutAction: (() -> Void)?
@@ -52,6 +53,9 @@ public struct PaceMenuView: View {
             }
             .sheet(isPresented: $isShowingResetEditor) {
                 ResetOverrideEditor(model: model)
+            }
+            .sheet(isPresented: $isShowingIdleEditor) {
+                PlannedIdleEditor(model: model)
             }
     }
 
@@ -141,6 +145,17 @@ public struct PaceMenuView: View {
             .accessibilityLabel(
                 model.isManualResetActive ? "Edit reset estimate" : "Set reset estimate"
             )
+            Button {
+                isShowingIdleEditor = true
+            } label: {
+                Image(systemName: "moon.zzz")
+                    .font(.system(size: 11))
+                    .foregroundStyle(model.plannedIdleSeconds > 0 ? Color.accentColor : .primary)
+            }
+            .buttonStyle(.plain)
+            .help("Adjust planned idle time")
+            .accessibilityLabel("Adjust planned idle time")
+            .disabled(model.remainingTargetSeconds <= 0)
             versionStatus(presentsBuildDetails: presentsBuildDetails)
             Spacer()
             if let countdown = model.nextRefreshCountdownFields {
@@ -257,7 +272,7 @@ public struct PaceMenuView: View {
                 : "Usage and time remaining"
         )
         .accessibilityValue(
-            isShowingWeeklyTimeline
+            isShowingWeeklyTimeline && model.plannedIdleSeconds == 0
                 ? timelineProgress.accessibilityValue
                 : comparisonAccessibilityValue(for: weeklyWindow)
         )
@@ -276,6 +291,18 @@ public struct PaceMenuView: View {
 
     private func details(_: PaceSnapshot) -> some View {
         VStack(spacing: PaceMenuLayout.groupGap) {
+            if model.plannedIdleSeconds > 0 {
+                PaceColumns { detailLabel("Planned idle") } middle: {
+                    durationValue(model.plannedIdleFields)
+                } trailing: {
+                    Button("Edit") { isShowingIdleEditor = true }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Edit planned idle time")
+                }
+                PaceColumns { detailLabel("Active time left") } middle: {
+                    durationValue(model.activeTimeRemainingFields)
+                } trailing: { EmptyView() }
+            }
             if runoutPrecedesStoppage(runout: model.projectedRunoutAt, stoppage: model.stoppageEndsAt) {
                 runoutRow
                 paceTimeRow
@@ -294,8 +321,12 @@ public struct PaceMenuView: View {
     @ViewBuilder private var paceTimeRow: some View {
         if let label = model.visiblePaceTimeLabel, let fields = model.paceTimeFields {
             PaceColumns {
-                detailLabel(label == "Stoppage time" ? "Stop until" : label)
+                detailLabel(label == "Stoppage time"
+                    ? (model.plannedIdleSeconds > 0 ? "Extra pause" : "Stop until") : label)
             } middle: { durationValue(fields) } trailing: { detailTimestamp(model.stoppageEndsAt) }
+                .help(model.plannedIdleSeconds > 0
+                    ? "Pace margin after excluding planned idle time. Extra pause is any additional break needed."
+                    : "Pace margin compared with time remaining")
         }
     }
 
@@ -304,6 +335,9 @@ public struct PaceMenuView: View {
             PaceColumns { detailLabel("Run out at") } middle: {
                 durationValue(fields)
             } trailing: { detailTimestamp(date) }
+                .help(model.plannedIdleSeconds > 0
+                    ? "Assumes all planned idle time occurs before usage runs out, then consumption continues at the average rate since the week began."
+                    : "Projected using the average consumption rate since the week began")
         }
     }
 

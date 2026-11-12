@@ -64,6 +64,23 @@ measurements preserve the chosen size without snapping back during a drag.
 On launch, the window fits once after its first usage reading arrives, unless it
 has already been manually resized while waiting.
 
+Use the moon button to set **Planned idle time**: hours you still expect to spend
+away from Codex before the current pacing target. Fractional hours are supported,
+with 2h, 4h, and 8h shortcuts. **Active time left** subtracts those hours from the
+remaining time; percentages keep the seven-day scale. The allowance and actual
+reset timestamp do not change. Both bar views, menu-bar percentage, pace margin,
+and extra pause guidance use the adjusted active time. When shown, **Run out at**
+adds the idle hours to the existing average-rate projection, assuming all planned
+idle time happens before exhaustion. This does not measure an active-use rate.
+
+The main window shows the deducted idle time and remaining active hours. Edit or
+clear the estimate there or through the moon button. It is a manual estimate of
+idle time **still ahead**: reduce or clear it after a break. It survives relaunches
+for the same account, usage window, and pacing target, and clears when any of
+those change or usage resets. A detected usage reset also clears any unsaved idle
+hours in an open editor. Input must be between zero and the remaining target
+time; the deduction is capped as that deadline approaches.
+
 Use the calendar-and-clock button in the header when a one-off usage reset is
 expected before the timestamp reported by Codex. Codex Pace shows the manual
 value as **Reset by (est.)**, remembers it across launches, and automatically

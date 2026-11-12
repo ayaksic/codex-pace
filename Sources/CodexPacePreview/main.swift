@@ -104,6 +104,10 @@ struct CodexPacePreview {
         if hasResetOverride {
             model.setManualResetAt(now.addingTimeInterval(11 * 3_600))
         }
+        if let hours = arguments.first(where: { $0.hasPrefix("--idle-hours=") })
+            .flatMap({ Double($0.dropFirst("--idle-hours=".count)) }) {
+            model.setPlannedIdleHours(hours)
+        }
         if arguments.contains("--resizable-window") {
             // Exercise a real SwiftUI Window scene, including its native size
             // negotiation, with isolated sample readings and no account polling.
