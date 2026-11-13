@@ -1,2 +1,2 @@
 // Generated from Version.xcconfig by Scripts/sync-version.py.
-public enum ApplicationVersion { public static let current = "2.1.1" }
+public enum ApplicationVersion { public static let current = "2.2.0" }

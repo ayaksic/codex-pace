@@ -116,7 +116,7 @@ struct CodexPacePreview {
             return
         }
         let content = (arguments.contains("--credit-alert")
-            ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}))
+            ? AnyView(UsageCreditConsumptionAlertView(dismiss: {}, snooze: {}))
             : showsExpiryAlert ? AnyView(BankedResetExpiryAlertView(warnings: [
                 BankedResetExpiryWarning(creditID: "preview-reset", expiresAt: now.addingTimeInterval(3_600), hoursRemaining: 1)
             ], dismiss: {}))

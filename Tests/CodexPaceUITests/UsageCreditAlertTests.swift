@@ -117,6 +117,44 @@ private func creditReading(
 }
 
 @MainActor
+@Test func creditAlertSnoozeSurvivesRelaunchAndRearmsOnConfirmedConsumption() {
+    let suiteName = "UsageCreditAlertTests.\(UUID())"
+    let defaults = UserDefaults(suiteName: suiteName)!
+    defer { defaults.removePersistentDomain(forName: suiteName) }
+    var alerts = 0
+    let model = PaceViewModel(snapshot: creditReading(), pollingEnabled: false,
+                              defaults: defaults, creditConsumptionAlert: { alerts += 1 })
+    model.applyFreshSnapshot(creditReading(balance: "99", offset: 15))
+    #expect(alerts == 1)
+    model.snoozeCreditConsumptionAlert(for: "fixture-account", at: alertFixtureDate.addingTimeInterval(20))
+
+    let relaunched = PaceViewModel(snapshot: creditReading(balance: "99", offset: 15),
+                                   pollingEnabled: false, defaults: defaults,
+                                   creditConsumptionAlert: { alerts += 1 })
+    // A corrected reset time must not bypass the snooze.
+    relaunched.applyFreshSnapshot(creditReading(balance: "98", offset: 30, resetOffset: 3_601),
+                                  now: alertFixtureDate.addingTimeInterval(30))
+    relaunched.applyFreshSnapshot(creditReading(balance: "97", offset: 45, resetOffset: 3_601),
+                                  now: alertFixtureDate.addingTimeInterval(45))
+    relaunched.applyFreshSnapshot(creditReading(balance: "97", offset: 1_800),
+                                  now: alertFixtureDate.addingTimeInterval(1_800))
+    relaunched.applyFreshSnapshot(creditReading(balance: "96", offset: 1_819),
+                                  now: alertFixtureDate.addingTimeInterval(1_819))
+    #expect(alerts == 1)
+
+    // An unchanged balance at expiry leaves the alert armed for a later decrease.
+    relaunched.applyFreshSnapshot(creditReading(balance: "96", offset: 1_820),
+                                  now: alertFixtureDate.addingTimeInterval(1_820))
+    #expect(alerts == 1)
+    relaunched.applyFreshSnapshot(creditReading(balance: "95", offset: 1_835),
+                                  now: alertFixtureDate.addingTimeInterval(1_835))
+    #expect(alerts == 2)
+    relaunched.applyFreshSnapshot(creditReading(balance: "94", offset: 1_850),
+                                  now: alertFixtureDate.addingTimeInterval(1_850))
+    #expect(alerts == 2)
+}
+
+@MainActor
 @Test func creditAlertCreatesAnIndependentWindowWithEqualPeerSpacing() throws {
     _ = NSApplication.shared
     let panel = UsageCreditAlertPresenter().makePanel()
@@ -129,7 +167,7 @@ private func creditReading(
     panel.makeKeyAndOrderFront(nil)
     #expect(panel.isVisible)
     #expect(NSApplication.shared.modalWindow == nil)
-    let renderer = ImageRenderer(content: UsageCreditConsumptionAlertView(dismiss: {}))
+    let renderer = ImageRenderer(content: UsageCreditConsumptionAlertView(dismiss: {}, snooze: {}))
     let image = try #require(renderer.nsImage)
     #expect(image.size.width == 420)
     #expect(image.size.height == panel.contentView?.frame.height)

@@ -1,4 +1,18 @@
-# Current task — 2026-11-12
+# Current task — 2026-11-13
+
+Prepared local 2.2.0 with a 30-minute snooze on the included-usage exhaustion
+alert. Snooze is saved per account and survives relaunch. The next confirmed
+credit decrease after expiry can show the alert again. OK and window close keep
+the existing once-per-exhaustion behavior. The installed app is still 2.1.1.
+
+Validation: all 112 tests passed, and a native synthetic preview confirmed the
+alert layout. Version synchronization and git diff --check passed.
+
+Storage: reused the existing /Users/andrew/Documents/codex-pace/.build cache.
+This task retained credit-alert-snooze-2.2.0.png (40 KB) and
+credit-alert-snooze-2.2.0-tests.log (about 24 KB) there as validation evidence.
+
+## Previous task — 2026-11-12
 
 Prepared 2.1.1 to prevent normal refresh metadata from erasing planned idle hours.
 Removed exact deadline and pacing-target equality from idle-plan validity. Missing

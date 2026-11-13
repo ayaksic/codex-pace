@@ -32,8 +32,11 @@ every 60 seconds at a displayed 2% or higher weekly usage remaining, and every
 Codex Pace shows a separate alert window when Codex explicitly reports that
 included usage is unavailable, weekly usage remaining is 0%, and the usage-credit
 balance decreases between fresh readings for the same account and weekly window.
-The alert appears once per exhaustion period, including across relaunches, and
-updates continue while it is open. A displayed 0% alone does not trigger it.
+By default, the alert appears once per exhaustion period, including across
+relaunches. Choose **Snooze for 30 minutes** to close it and suppress this alert
+for the same account. The snooze survives relaunches. After it expires, the
+next confirmed credit decrease can show the alert again. Updates continue while
+the alert is open or snoozed. A displayed 0% alone does not trigger it.
 If Codex omits account identity, included-usage permission, or a valid balance,
 Codex Pace cannot confirm credit consumption and does not alert. The balance is
 the Codex usage-credit balance; this does not monitor separate API billing or

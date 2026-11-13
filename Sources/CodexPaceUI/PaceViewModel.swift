@@ -81,6 +81,7 @@ public final class PaceViewModel: ObservableObject {
 
     private static let usageResetReadingKey = "usageResetReading"
     private static let lastCreditConsumptionAlertKey = "lastCreditConsumptionAlert"
+    private static let creditConsumptionSnoozeUntilKey = "creditConsumptionSnoozeUntil"
     private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
     private static let lastWeeklyUsageRemainingPercentKey = "lastWeeklyUsageRemainingPercent"
@@ -105,7 +106,7 @@ public final class PaceViewModel: ObservableObject {
     private let snapshotProvider: @Sendable () async throws -> PaceSnapshot
     private let defaults: UserDefaults
     private let latestRevisionProvider: @Sendable () async throws -> String
-    private let creditConsumptionAlert: @MainActor () -> Void
+    private let creditConsumptionAlert: (@MainActor () -> Void)?
     private let usageResetAlert: @MainActor () -> Void
     private var lastUsageResetReading: (accountID: String?, reading: UsageResetReading)?
     private var bankedResetReminders: BankedResetReminderHistory
@@ -136,9 +137,7 @@ public final class PaceViewModel: ObservableObject {
             .flatMap { try? JSONDecoder().decode(IdlePlan.self, from: $0) }
         self.appBuildInfo = appBuildInfo
         self.latestRevisionProvider = latestRevisionProvider
-        self.creditConsumptionAlert = creditConsumptionAlert ?? {
-            UsageCreditAlertPresenter.shared.show()
-        }
+        self.creditConsumptionAlert = creditConsumptionAlert
         self.usageResetAlert = usageResetAlert ?? {
             UsageResetAlertPresenter.shared.show()
         }
@@ -659,7 +658,7 @@ public final class PaceViewModel: ObservableObject {
             clearManualReset()
         }
 
-        let shouldAlert = shouldAlertForCreditConsumption(freshSnapshot)
+        let shouldAlert = shouldAlertForCreditConsumption(freshSnapshot, now: now)
         let didResetUsage = shouldAlertForUsageReset(freshSnapshot)
         if didResetUsage || ((snapshot?.weeklyWindow.usedPercent ?? 0) > 0 && freshSnapshot.weeklyWindow.usedPercent == 0) {
             clearPlannedIdleTime()
@@ -669,7 +668,15 @@ public final class PaceViewModel: ObservableObject {
         snapshot = freshSnapshot
         self.now = now
         clearInvalidIdlePlan()
-        if shouldAlert { creditConsumptionAlert() }
+        if shouldAlert, let accountID = freshSnapshot.accountID {
+            if let creditConsumptionAlert {
+                creditConsumptionAlert()
+            } else {
+                UsageCreditAlertPresenter.shared.show { [weak self] in
+                    self?.snoozeCreditConsumptionAlert(for: accountID)
+                }
+            }
+        }
         if didResetUsage { usageResetAlert() }
         checkBankedResetReminders()
     }
@@ -716,7 +723,12 @@ public final class PaceViewModel: ObservableObject {
         return fresh.weeklyWindow.usedPercent == 0 && (baseline?.usedPercent ?? 0) > 0
     }
 
-    private func shouldAlertForCreditConsumption(_ fresh: PaceSnapshot) -> Bool {
+    func snoozeCreditConsumptionAlert(for accountID: String, at now: Date = Date()) {
+        let snoozeKey = "\(Self.creditConsumptionSnoozeUntilKey).\(accountID)"
+        defaults.set(now.addingTimeInterval(30 * 60), forKey: snoozeKey)
+    }
+
+    private func shouldAlertForCreditConsumption(_ fresh: PaceSnapshot, now: Date) -> Bool {
         guard let accountID = fresh.accountID, !accountID.isEmpty else { return false }
         let alertKey = "\(Self.lastCreditConsumptionAlertKey).\(accountID)"
         if fresh.ordinaryUsageAllowed == true {
@@ -733,8 +745,14 @@ public final class PaceViewModel: ObservableObject {
               fresh.fetchedAt > previous.fetchedAt,
               let previousBalance = creditBalanceValue(previous.creditBalance),
               let balance = creditBalanceValue(fresh.creditBalance),
-              balance < previousBalance,
-              defaults.object(forKey: alertKey) as? Date != fresh.weeklyWindow.resetsAt else {
+              balance < previousBalance else {
+            return false
+        }
+        let snoozeKey = "\(Self.creditConsumptionSnoozeUntilKey).\(accountID)"
+        if let snoozeUntil = defaults.object(forKey: snoozeKey) as? Date {
+            guard now >= snoozeUntil else { return false }
+            defaults.removeObject(forKey: snoozeKey)
+        } else if defaults.object(forKey: alertKey) as? Date == fresh.weeklyWindow.resetsAt {
             return false
         }
         defaults.set(fresh.weeklyWindow.resetsAt, forKey: alertKey)

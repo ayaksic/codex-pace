@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0 — 2026-11-13
+
+- Add a 30-minute snooze to the included-usage exhaustion alert. The alert can return on the next confirmed credit decrease after the snooze expires.
+
 ## 2.1.1 — 2026-11-12
 
 - Preserve planned idle hours across ordinary refreshes, corrected deadlines, pacing-target changes, and temporarily missing account information. Continue clearing on a detected usage reset, completed weekly rollover, or confirmed account switch.

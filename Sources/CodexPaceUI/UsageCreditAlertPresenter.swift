@@ -7,8 +7,10 @@ import SwiftUI
 final class UsageCreditAlertPresenter {
     static let shared = UsageCreditAlertPresenter()
     private var panel: NSPanel?
+    private var snooze: (() -> Void)?
 
-    func show() {
+    func show(snooze: @escaping () -> Void) {
+        self.snooze = snooze
         if panel == nil { panel = makePanel() }
         NSApplication.shared.activate(ignoringOtherApps: true)
         panel?.makeKeyAndOrderFront(nil)
@@ -24,9 +26,13 @@ final class UsageCreditAlertPresenter {
         panel.title = "Codex Pace"
         panel.isReleasedWhenClosed = false
         panel.level = .floating
-        let content = NSHostingView(rootView: UsageCreditConsumptionAlertView { [weak panel] in
-            panel?.close()
-        })
+        let content = NSHostingView(rootView: UsageCreditConsumptionAlertView(
+            dismiss: { [weak panel] in panel?.close() },
+            snooze: { [weak self, weak panel] in
+                self?.snooze?()
+                panel?.close()
+            }
+        ))
         panel.contentView = content
         panel.setContentSize(content.fittingSize)
         panel.center()
@@ -36,9 +42,11 @@ final class UsageCreditAlertPresenter {
 
 public struct UsageCreditConsumptionAlertView: View {
     private let dismiss: () -> Void
+    private let snooze: () -> Void
 
-    public init(dismiss: @escaping () -> Void) {
+    public init(dismiss: @escaping () -> Void, snooze: @escaping () -> Void) {
         self.dismiss = dismiss
+        self.snooze = snooze
     }
 
     public var body: some View {
@@ -47,8 +55,9 @@ public struct UsageCreditConsumptionAlertView: View {
                 .font(.headline)
             Text("Codex reports that included usage is unavailable, and your usage-credit balance has decreased. Continued work can consume additional usage credits.")
                 .fixedSize(horizontal: false, vertical: true)
-            HStack {
+            HStack(spacing: 8) {
                 Spacer()
+                Button("Snooze for 30 minutes", action: snooze)
                 Button("OK", action: dismiss)
                     .keyboardShortcut(.defaultAction)
             }
