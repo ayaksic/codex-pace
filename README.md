@@ -16,7 +16,8 @@ back on pace if weekly usage stopped increasing, followed by the date and time
 when usage could resume. The **Run out at** row beneath it shows when usage
 would reach 0% if the average consumption rate since the window began continued
 unchanged, as both a countdown and timestamp. At 0% usage remaining, the pace
-label says **Stopped**.
+label says **Stopped**. The **Stop until** row is hidden when its timestamp
+matches the displayed **Reset at** row.
 
 Countdowns keep seconds visible and reserve fixed-width number columns without
 displaying leading zeroes. The next-update countdown appears in the toolbar;

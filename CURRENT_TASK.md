@@ -1,5 +1,15 @@
 # Current task — 2026-11-13
 
+Prepared 2.2.2 to hide the Stop until row when its timestamp matches the
+displayed Reset at row. The regression reproduced the duplicate before the
+fix, and all 113 tests passed afterward. Native synthetic previews confirmed
+the row is absent at 0% usage remaining and visible at 1% remaining.
+
+Storage: reused .build and dist for local build outputs. Retained this task's
+stop-until-2.2.2 test log and two preview PNGs in .build (about 151 KB total).
+
+## Previous release — 2026-11-13
+
 Prepared local 2.2.1 after confirming that the installed 2.2.0 suppressed a
 credit alert using an earlier alert record for the current weekly window.
 Live usage was exhausted and no snooze was active. Deduplication now applies

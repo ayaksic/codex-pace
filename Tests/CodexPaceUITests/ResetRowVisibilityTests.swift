@@ -192,6 +192,21 @@ func usageCreditsSortBeforeBetweenOrAfterBankedExpirations(position: Int) throws
     #expect(later.visiblePaceTimeLabel == "Time ahead")
 }
 
+@Test @MainActor func stopUntilIsHiddenWhenItMatchesTheReportedReset() throws {
+    let h = ResetRowHarness()
+    defer { h.cleanUp() }
+    let model = h.model(usedPercent: 100)
+    let reset = try #require(model.visibleResetCountdownTargets.first)
+    #expect(reset.kind == .natural)
+    #expect(model.stoppageEndsAt == reset.date)
+    #expect(model.visiblePaceTimeLabel == nil)
+
+    model.applyFreshSnapshot(try #require(h.model(usedPercent: 99).snapshot), now: h.now)
+    #expect(model.visibleResetCountdownTargets == [reset])
+    #expect(try #require(model.stoppageEndsAt) < reset.date)
+    #expect(model.visiblePaceTimeLabel == "Stoppage time")
+}
+
 @Test @MainActor func stopUntilRemainsVisibleWithAnEstimate() {
     let h = ResetRowHarness()
     defer { h.cleanUp() }

@@ -167,7 +167,7 @@ func nativeHostedContentResizesWhenResetRowsArrive(menuPanel: Bool) throws {
     let defaults = try #require(UserDefaults(suiteName: suite))
     defer { defaults.removePersistentDomain(forName: suite) }
     let now = Date(timeIntervalSince1970: 2_000_000_000)
-    let weeklyWindow = UsageWindow(usedPercent: 100, durationMinutes: 10_080,
+    let weeklyWindow = UsageWindow(usedPercent: 99, durationMinutes: 10_080,
                                   resetsAt: now.addingTimeInterval(6 * 86_400))
     let model = PaceViewModel(snapshot: PaceSnapshot(weeklyWindow: weeklyWindow, fetchedAt: now),
                               now: now, pollingEnabled: false, defaults: defaults)

@@ -327,8 +327,13 @@ public final class PaceViewModel: ObservableObject {
     }
 
     var visiblePaceTimeLabel: String? {
+        let resetTargets = visibleResetCountdownTargets
         if currentPaceState == .ahead,
-           visibleResetCountdownTargets.contains(where: { $0.kind == .manualEstimate }) {
+           resetTargets.contains(where: { $0.kind == .manualEstimate }) {
+            return nil
+        }
+        if let stoppageEndsAt,
+           resetTargets.contains(where: { $0.kind == .natural && $0.date == stoppageEndsAt }) {
             return nil
         }
         return paceTimeLabel

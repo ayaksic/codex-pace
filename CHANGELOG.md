@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.2 — 2026-11-13
+
+- Hide “Stop until” when it matches the displayed “Reset at” timestamp.
+
 ## 2.2.1 — 2026-11-13
 
 - Allow the usage-credit alert to appear after relaunch on a new confirmed credit decrease. An active snooze still carries across relaunches.
