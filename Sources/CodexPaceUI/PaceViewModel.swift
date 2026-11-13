@@ -80,7 +80,6 @@ public final class PaceViewModel: ObservableObject {
     }
 
     private static let usageResetReadingKey = "usageResetReading"
-    private static let lastCreditConsumptionAlertKey = "lastCreditConsumptionAlert"
     private static let creditConsumptionSnoozeUntilKey = "creditConsumptionSnoozeUntil"
     private static let updateCheckInterval: TimeInterval = 6 * 60 * 60
     private static let manualResetAtKey = "manualResetAt"
@@ -109,6 +108,7 @@ public final class PaceViewModel: ObservableObject {
     private let creditConsumptionAlert: (@MainActor () -> Void)?
     private let usageResetAlert: @MainActor () -> Void
     private var lastUsageResetReading: (accountID: String?, reading: UsageResetReading)?
+    private var lastCreditAlertWindowByAccount: [String: Date] = [:]
     private var bankedResetReminders: BankedResetReminderHistory
     private let bankedResetWarning: @MainActor ([BankedResetExpiryWarning], Bool) -> Void
 
@@ -730,10 +730,9 @@ public final class PaceViewModel: ObservableObject {
 
     private func shouldAlertForCreditConsumption(_ fresh: PaceSnapshot, now: Date) -> Bool {
         guard let accountID = fresh.accountID, !accountID.isEmpty else { return false }
-        let alertKey = "\(Self.lastCreditConsumptionAlertKey).\(accountID)"
         if fresh.ordinaryUsageAllowed == true {
             // Only an explicit permission reading confirms that included usage recovered.
-            defaults.removeObject(forKey: alertKey)
+            lastCreditAlertWindowByAccount.removeValue(forKey: accountID)
             return false
         }
         guard fresh.ordinaryUsageAllowed == false,
@@ -752,10 +751,10 @@ public final class PaceViewModel: ObservableObject {
         if let snoozeUntil = defaults.object(forKey: snoozeKey) as? Date {
             guard now >= snoozeUntil else { return false }
             defaults.removeObject(forKey: snoozeKey)
-        } else if defaults.object(forKey: alertKey) as? Date == fresh.weeklyWindow.resetsAt {
+        } else if lastCreditAlertWindowByAccount[accountID] == fresh.weeklyWindow.resetsAt {
             return false
         }
-        defaults.set(fresh.weeklyWindow.resetsAt, forKey: alertKey)
+        lastCreditAlertWindowByAccount[accountID] = fresh.weeklyWindow.resetsAt
         return true
     }
 

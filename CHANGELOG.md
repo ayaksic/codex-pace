@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.1 — 2026-11-13
+
+- Allow the usage-credit alert to appear after relaunch on a new confirmed credit decrease. An active snooze still carries across relaunches.
+
 ## 2.2.0 — 2026-11-13
 
 - Add a 30-minute snooze to the included-usage exhaustion alert. The alert can return on the next confirmed credit decrease after the snooze expires.

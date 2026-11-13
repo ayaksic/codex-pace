@@ -1,9 +1,23 @@
 # Current task — 2026-11-13
 
+Prepared local 2.2.1 after confirming that the installed 2.2.0 suppressed a
+credit alert using an earlier alert record for the current weekly window.
+Live usage was exhausted and no snooze was active. Deduplication now applies
+within a running instance; an explicit snooze still persists across launches.
+All five focused alert tests passed, including the upgrade from the saved 2.2.0
+marker and relaunch during a snooze. The local 2.2.1 app bundle passed signature
+verification. The installed app is still 2.2.0.
+
+Storage: reused the existing .build and dist directories. This task retained
+.build/credit-alert-relaunch-2.2.1-build.log and refreshed dist/Codex Pace.app
+and dist/bin/codex-pace as reusable local build outputs.
+
+## Previous release — 2026-11-13
+
 Prepared local 2.2.0 with a 30-minute snooze on the included-usage exhaustion
 alert. Snooze is saved per account and survives relaunch. The next confirmed
 credit decrease after expiry can show the alert again. OK and window close keep
-the existing once-per-exhaustion behavior. The installed app is still 2.1.1.
+the existing once-per-exhaustion behavior in 2.2.0.
 
 Validation: all 112 tests passed, and a native synthetic preview confirmed the
 alert layout. Version synchronization and git diff --check passed.

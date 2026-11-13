@@ -26,7 +26,7 @@ private func creditReading(
 }
 
 @MainActor
-@Test func alertsOnceForConfirmedCreditConsumptionAndRearmsOnExplicitRecovery() {
+@Test func alertsOncePerExhaustionUntilRelaunchOrExplicitRecovery() {
     let suiteName = "UsageCreditAlertTests.\(UUID())"
     let defaults = UserDefaults(suiteName: suiteName)!
     defer { defaults.removePersistentDomain(forName: suiteName) }
@@ -38,23 +38,26 @@ private func creditReading(
     model.applyFreshSnapshot(creditReading(balance: "99.998", offset: 30))
     #expect(alerts == 1)
 
+    // Versions through 2.2.0 saved this marker even when no snooze was requested.
+    defaults.set(creditReading().weeklyWindow.resetsAt,
+                 forKey: "lastCreditConsumptionAlert.fixture-account")
     let relaunched = PaceViewModel(snapshot: creditReading(balance: "99.998", offset: 30),
                                    pollingEnabled: false, defaults: defaults,
                                    creditConsumptionAlert: { alerts += 1 }, usageResetAlert: {})
     relaunched.applyFreshSnapshot(creditReading(balance: "99.997", offset: 45))
-    #expect(alerts == 1)
+    #expect(alerts == 2)
     // Rounded percentages and missing permission must not infer recovery.
     relaunched.applyFreshSnapshot(creditReading(balance: "99.997", allowed: nil, used: 99, offset: 60))
     relaunched.applyFreshSnapshot(creditReading(balance: "99.996", offset: 75))
-    #expect(alerts == 1)
+    #expect(alerts == 2)
     relaunched.applyFreshSnapshot(creditReading(balance: "99.996", allowed: true, used: 0, offset: 90))
     relaunched.applyFreshSnapshot(creditReading(balance: "99.995", offset: 105))
-    #expect(alerts == 2)
+    #expect(alerts == 3)
 
     // A genuinely new weekly window permits a new warning.
     relaunched.applyFreshSnapshot(creditReading(balance: "99.995", offset: 120, resetOffset: 7 * 86_400))
     relaunched.applyFreshSnapshot(creditReading(balance: "99.994", offset: 135, resetOffset: 7 * 86_400))
-    #expect(alerts == 3)
+    #expect(alerts == 4)
 }
 
 @MainActor
