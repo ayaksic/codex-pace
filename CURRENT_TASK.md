@@ -1,5 +1,25 @@
 # Current task — 2026-11-12
 
+Prepared 2.1.1 to prevent normal refresh metadata from erasing planned idle hours.
+Removed exact deadline and pacing-target equality from idle-plan validity. Missing
+account information and a temporary zero-length target preserve the saved plan.
+Detected usage resets, completed weekly rollovers, and confirmed account switches
+still clear it. Existing 2.1.0 persisted estimates decode without migration.
+
+Validation: a one-second deadline correction reproduced unwanted clearing before
+the fix; the regression now passes. All 111 tests pass (102 UI/model, 9 core),
+including real-reset clearing, restored estimates, target changes, absent identity,
+and weekly rollover. Three live reads with unchanged metadata preserved a sample
+estimate in an isolated model; the user's exact live clearing event was not
+reproduced. Native application inspection timed out, so no live UI verification
+is claimed for this patch. Version synchronization and git diff --check passed.
+Build/test artifacts reuse .build and dist; temporary diagnostic source and
+process sample are under the chat's work directory. The temporary live diagnostic
+test was removed before publication. Continue the authorized commit/push workflow;
+Git history records the patch identity.
+
+## Previous release — 2026-11-12
+
 Prepared version 2.1.0 with manual planned-idle projections. Confirmed saved idle
 hours clear when a usage reset is detected, including after relaunch. Also clear
 an unsaved value in an open editor on reset, preventing Save from restoring the

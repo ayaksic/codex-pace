@@ -76,8 +76,9 @@ idle time happens before exhaustion. This does not measure an active-use rate.
 The main window shows the deducted idle time and remaining active hours. Edit or
 clear the estimate there or through the moon button. It is a manual estimate of
 idle time **still ahead**: reduce or clear it after a break. It survives relaunches
-for the same account, usage window, and pacing target, and clears when any of
-those change or usage resets. A detected usage reset also clears any unsaved idle
+through ordinary refreshes, deadline corrections, and pacing-target changes.
+It clears on a detected usage reset, a completed weekly rollover, or a confirmed
+account switch. Missing account information does not erase it. A detected usage reset also clears any unsaved idle
 hours in an open editor. Input must be between zero and the remaining target
 time; the deduction is capped as that deadline approaches.
 

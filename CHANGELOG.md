@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.1.1 — 2026-11-12
+
+- Preserve planned idle hours across ordinary refreshes, corrected deadlines, pacing-target changes, and temporarily missing account information. Continue clearing on a detected usage reset, completed weekly rollover, or confirmed account switch.
+
 ## 2.1.0 — 2026-11-12
 
 - Automatically clear saved idle hours and any open editor draft when a usage reset is detected, including resets detected after relaunch.

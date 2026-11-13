@@ -9,7 +9,7 @@ import CodexPaceCore
     let defaults: UserDefaults
     init() { defaults = UserDefaults(suiteName: suite)! }
     func cleanUp() { defaults.removePersistentDomain(forName: suite) }
-    func snapshot(used: Double = 91, account: String = "a", resetHours: Double = 19,
+    func snapshot(used: Double = 91, account: String? = "a", resetHours: Double = 19,
                   fetchedSeconds: Double = 0, bankedHours: Double? = nil) -> PaceSnapshot {
         PaceSnapshot(weeklyWindow: UsageWindow(usedPercent: used, durationMinutes: 10_080,
             resetsAt: now.addingTimeInterval(resetHours * 3_600)),
@@ -26,6 +26,42 @@ import CodexPaceCore
             defaults: defaults, creditConsumptionAlert: {}, usageResetAlert: {},
             bankedResetWarning: { _, _ in })
     }
+}
+
+@Test @MainActor func ordinaryRefreshMetadataChangesDoNotEraseIdleHours() {
+    let h = IdleHarness(); defer { h.cleanUp() }
+    let model = h.model()
+    model.setPlannedIdleHours(8)
+    model.applyFreshSnapshot(h.snapshot(used: 92, resetHours: 19 + 1.0 / 3_600,
+        fetchedSeconds: 60), now: h.now.addingTimeInterval(60))
+    #expect(model.plannedIdleSeconds == 8 * 3_600)
+    model.applyFreshSnapshot(h.snapshot(used: 92, account: nil, fetchedSeconds: 120),
+        now: h.now.addingTimeInterval(120))
+    #expect(model.plannedIdleSeconds == 8 * 3_600)
+    model.applyFreshSnapshot(h.snapshot(used: 93, fetchedSeconds: 180, bankedHours: 12),
+        now: h.now.addingTimeInterval(180))
+    #expect(model.plannedIdleSeconds == 8 * 3_600)
+    #expect(h.model(h.snapshot(used: 93, fetchedSeconds: 180, bankedHours: 12)).plannedIdleSeconds == 8 * 3_600)
+    #expect(model.usageResetCount == 0)
+    model.applyFreshSnapshot(h.snapshot(used: 0, fetchedSeconds: 240), now: h.now)
+    #expect(model.plannedIdleSeconds == 0)
+    #expect(h.model().plannedIdleSeconds == 0)
+}
+
+@Test @MainActor func oldSavedIdlePlanSurvivesCorrectedDeadlineAfterRelaunch() throws {
+    let h = IdleHarness(); defer { h.cleanUp() }
+    let reset = h.snapshot().weeklyWindow.resetsAt.timeIntervalSinceReferenceDate
+    // Version 2.1.0 persisted targetAt as well as resetAt.
+    let oldPlan: [String: Any] = ["seconds": 28_800, "resetAt": reset,
+        "targetAt": reset, "accountID": "a", "usedPercent": 91]
+    h.defaults.set(try JSONSerialization.data(withJSONObject: oldPlan), forKey: "plannedIdleTime")
+    let model = h.model(h.snapshot(resetHours: 19 + 1.0 / 3_600))
+    #expect(model.plannedIdleSeconds == 28_800)
+    // A temporary zero-length target caps the displayed deduction, not the saved estimate.
+    model.applyFreshSnapshot(h.snapshot(resetHours: 0, fetchedSeconds: 60), now: h.now)
+    #expect(model.plannedIdleSeconds == 0)
+    model.applyFreshSnapshot(h.snapshot(fetchedSeconds: 120), now: h.now)
+    #expect(model.plannedIdleSeconds == 28_800)
 }
 
 @Test @MainActor func plannedSleepChangesPaceWithoutChangingAllowanceOrReset() throws {
@@ -73,7 +109,10 @@ import CodexPaceCore
     model.applyFreshSnapshot(h.snapshot(account: "b", fetchedSeconds: 180), now: h.now)
     #expect(model.plannedIdleSeconds == 0)
     model.setPlannedIdleHours(8)
-    #expect(h.model(h.snapshot(account: "b", resetHours: 168)).plannedIdleSeconds == 0)
+    model.applyFreshSnapshot(h.snapshot(used: 10, account: "b", resetHours: 187,
+        fetchedSeconds: 19 * 3_600), now: h.now.addingTimeInterval(19 * 3_600))
+    #expect(model.plannedIdleSeconds == 0)
+    #expect(h.model(h.snapshot(account: "b")).plannedIdleSeconds == 0)
 }
 
 @Test @MainActor func resetNotifiesOpenIdleEditorEvenWithoutASavedEstimate() {
@@ -117,20 +156,20 @@ import CodexPaceCore
     #expect(model.plannedIdleSeconds == 0)
 }
 
-@Test @MainActor func idleUsesEarlierTargetsAndClearsWhenTheyChange() {
+@Test @MainActor func idleUsesEarlierTargetsWithoutClearingWhenTheyChange() {
     let h = IdleHarness(); defer { h.cleanUp() }
     let model = h.model()
     model.setManualResetAt(h.now.addingTimeInterval(12 * 3_600))
     model.setPlannedIdleHours(8)
     #expect(model.activeTimeRemainingSeconds == 4 * 3_600)
     model.clearManualReset()
-    #expect(model.plannedIdleSeconds == 0)
+    #expect(model.plannedIdleSeconds == 8 * 3_600)
     model.applyFreshSnapshot(h.snapshot(bankedHours: 10), now: h.now)
     model.setPlannedIdleHours(8)
     #expect(model.activeTimeRemainingSeconds == 2 * 3_600)
     #expect(model.resetCountdownTarget?.kind == .bankedResetExpiry)
     model.applyFreshSnapshot(h.snapshot(fetchedSeconds: 60), now: h.now)
-    #expect(model.plannedIdleSeconds == 0)
+    #expect(model.plannedIdleSeconds == 8 * 3_600)
 }
 
 private actor IdleSnapshotGate {

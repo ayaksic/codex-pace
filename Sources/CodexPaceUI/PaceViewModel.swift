@@ -64,7 +64,6 @@ public final class PaceViewModel: ObservableObject {
     private struct IdlePlan: Codable {
         let seconds: TimeInterval
         let resetAt: Date
-        let targetAt: Date
         let accountID: String?
         let usedPercent: Double
     }
@@ -555,18 +554,28 @@ public final class PaceViewModel: ObservableObject {
         clearInvalidIdlePlan()
     }
 
-    /// A manual budget of idle time still ahead, scoped to this account and target.
+    /// A manual budget of idle time still ahead, scoped to this account and usage window.
     /// It does not infer sleep or subtract breaks that have already happened.
     public var plannedIdleSeconds: TimeInterval {
-        guard let plan = idlePlan, let snapshot,
-              plan.accountID == snapshot.accountID,
-              plan.resetAt == snapshot.weeklyWindow.resetsAt,
-              plan.targetAt == resetCountdownTarget?.date,
-              plan.resetAt > now, plan.targetAt > now,
-              plan.seconds.isFinite, plan.seconds > 0,
-              !(plan.usedPercent > 0 && snapshot.weeklyWindow.usedPercent == 0)
+        guard let plan = idlePlan, snapshot != nil, !isIdlePlanInvalid
         else { return 0 }
         return min(plan.seconds, remainingTargetSeconds)
+    }
+
+    private var isIdlePlanInvalid: Bool {
+        guard let plan = idlePlan, let snapshot else { return false }
+        guard plan.seconds.isFinite, plan.seconds > 0 else { return true }
+        // Missing identity is not an account switch. Refreshed deadlines and
+        // pacing targets are not reset events either; never use exact date equality.
+        if let savedAccount = plan.accountID, !savedAccount.isEmpty,
+           let currentAccount = snapshot.accountID, !currentAccount.isEmpty,
+           savedAccount != currentAccount { return true }
+        let window = snapshot.weeklyWindow
+        if plan.usedPercent > 0 && window.usedPercent == 0 { return true }
+        // Recognize a completed weekly rollover even if usage has already resumed
+        // before the first reading. A small correction to the deadline cannot do this.
+        let windowStartedAt = window.resetsAt.addingTimeInterval(-Double(window.durationMinutes) * 60)
+        return now >= plan.resetAt && windowStartedAt >= plan.resetAt
     }
 
     public var remainingTargetSeconds: TimeInterval {
@@ -587,10 +596,10 @@ public final class PaceViewModel: ObservableObject {
 
     public func setPlannedIdleHours(_ hours: Double) {
         guard hours.isFinite, hours >= 0, hours <= remainingTargetSeconds / 3_600,
-              let snapshot, let target = resetCountdownTarget else { return }
+              let snapshot, resetCountdownTarget != nil else { return }
         guard hours > 0 else { clearPlannedIdleTime(); return }
         let plan = IdlePlan(seconds: hours * 3_600,
-                            resetAt: snapshot.weeklyWindow.resetsAt, targetAt: target.date,
+                            resetAt: snapshot.weeklyWindow.resetsAt,
                             accountID: snapshot.accountID, usedPercent: snapshot.weeklyWindow.usedPercent)
         idlePlan = plan
         if let data = try? JSONEncoder().encode(plan) {
@@ -606,7 +615,7 @@ public final class PaceViewModel: ObservableObject {
     private func clearInvalidIdlePlan() {
         // A relaunch may take several timer ticks to fetch its first reading.
         guard snapshot != nil else { return }
-        if idlePlan != nil && plannedIdleSeconds == 0 { clearPlannedIdleTime() }
+        if isIdlePlanInvalid { clearPlannedIdleTime() }
     }
 
     private func formatDuration(_ interval: TimeInterval) -> String {

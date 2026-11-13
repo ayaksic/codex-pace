@@ -49,7 +49,7 @@ struct PlannedIdleEditor: View {
             Text("Your allowance and reset date stay the same. Pace and bars exclude these hours. Runout assumes this idle time happens before you run out.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("This is a manual estimate of idle time still ahead. Reduce or clear it after your break. It is saved until the usage window or pacing target changes.")
+            Text("This is a manual estimate of idle time still ahead. Reduce or clear it after your break. Refreshing preserves it; a detected usage reset clears it automatically.")
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack {
