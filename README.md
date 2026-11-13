@@ -78,8 +78,8 @@ and extra pause guidance use the adjusted active time. When shown, **Run out at*
 adds the idle hours to the existing average-rate projection, assuming all planned
 idle time happens before exhaustion. This does not measure an active-use rate.
 
-The main window shows the deducted idle time and remaining active hours. Edit or
-clear the estimate there or through the moon button. It is a manual estimate of
+The main window shows the deducted idle time and remaining active hours. Use the
+moon button to edit or clear the estimate. It is a manual estimate of
 idle time **still ahead**: reduce or clear it after a break. It survives relaunches
 through ordinary refreshes, deadline corrections, and pacing-target changes.
 It clears on a detected usage reset, a completed weekly rollover, or a confirmed

@@ -294,11 +294,7 @@ public struct PaceMenuView: View {
             if model.plannedIdleSeconds > 0 {
                 PaceColumns { detailLabel("Planned idle") } middle: {
                     durationValue(model.plannedIdleFields)
-                } trailing: {
-                    Button("Edit") { isShowingIdleEditor = true }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel("Edit planned idle time")
-                }
+                } trailing: { EmptyView() }
                 PaceColumns { detailLabel("Active time left") } middle: {
                     durationValue(model.activeTimeRemainingFields)
                 } trailing: { EmptyView() }

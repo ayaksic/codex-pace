@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.3 — 2026-11-13
+
+- Remove the inline “Edit” button from Planned idle. The moon button opens the editor.
+
 ## 2.2.2 — 2026-11-13
 
 - Hide “Stop until” when it matches the displayed “Reset at” timestamp.

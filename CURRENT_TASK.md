@@ -1,5 +1,15 @@
 # Current task — 2026-11-13
 
+Prepared 2.2.3 to remove the inline Edit button from Planned idle. A native
+2× synthetic preview showed the row without Edit and with aligned countdowns.
+The moon button opened the editor in the isolated native window. All 113 tests
+passed, including the existing row spacing checks.
+
+Storage: reused .build and retained the task's planned-idle-2.2.3.png preview
+and planned-idle-2.2.3-tests.log (about 300 KB total).
+
+## Previous release — 2026-11-13
+
 Prepared 2.2.2 to hide the Stop until row when its timestamp matches the
 displayed Reset at row. The regression reproduced the duplicate before the
 fix, and all 113 tests passed afterward. Native synthetic previews confirmed
